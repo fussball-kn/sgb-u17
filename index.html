@@ -1849,17 +1849,24 @@ document.head.appendChild(_ls);
 document.body.appendChild(_lo);
 
 // Real-time listener — all viewers get live updates
+let _firstLoad=true;
 _fbdb.collection('sgb').doc('u17data').onSnapshot(snap=>{
   if(snap.exists){
     const data=snap.data();
     D.players=data.players||[];D.sessions=data.sessions||[];D.games=data.games||[];
     D.pstats=data.pstats||[];D.trainingDays=data.trainingDays||[];D.matchReports=data.matchReports||[];
   }
-  if(_lo.parentNode){_lo.remove();}
-  viewMode();showPin();renderTeam();setTimeout(()=>renderTCharts('tr'),100);
+  if(_firstLoad){
+    _firstLoad=false;
+    if(_lo.parentNode){_lo.remove();}
+    viewMode();showPin();renderTeam();setTimeout(()=>renderTCharts('tr'),100);
+  } else {
+    // Live update: just refresh current view without resetting UI
+    renderTeam();renderStatsOv();
+    setTimeout(()=>renderTCharts('tr'),60);
+  }
 },err=>{
   console.error('Firestore:',err);
-  // Fallback to localStorage
   const local=JSON.parse(localStorage.getItem('sgb_u17_v2')||'null');
   if(local){D.players=local.players||[];D.sessions=local.sessions||[];D.games=local.games||[];D.pstats=local.pstats||[];D.trainingDays=local.trainingDays||[];D.matchReports=local.matchReports||[];}
   if(_lo.parentNode){_lo.remove();}

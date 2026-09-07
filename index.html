@@ -2059,7 +2059,8 @@ function renderScore(pid){
 
     // 1. Einsatzzeit (gewichtete Einsatzquote pro Spiel)
     const minRates=plMRs.map(mr=>{
-      const played=parseFloat(computePMS(pid,mr))||0;
+      const pms=computePMS(pid,mr);
+      const played=pms?parseFloat(pms.minutes)||0:0;
       const dur=parseFloat(mr.matchDuration)||80;
       return Math.min(1,played/dur);
     });

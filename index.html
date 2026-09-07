@@ -655,8 +655,10 @@ function chkPin(){
 }
 function trainerMode(){
   isTr=true;isEltern=false;
-  // Restore all standard nav buttons
+  // Restore all standard nav buttons + cmp sidebar
   document.querySelectorAll('.nb').forEach(b=>b.style.display='');
+  const _cmpSide=document.getElementById('cmp-player-list');if(_cmpSide&&_cmpSide.parentElement)_cmpSide.parentElement.style.display='';
+  const _cmpExtra=document.getElementById('cmp-pl-extra');if(_cmpExtra)_cmpExtra.remove();
   document.getElementById('nb-pl').style.display='none';
   document.getElementById('nb-eltern').style.display='none';
   document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🔐 Trainer';
@@ -707,17 +709,19 @@ function chkPlayerPin(){
 }
 
 function playerMode(p){
-  curPlayer=p;isTr=false;isEltern=false;
-  // Nav: hide Training, Spiele, Statistiken, Vergleich
-  ['sessions','games-ov','stats-ov','vergleich'].forEach(id=>{
+  curPlayer=p;isTr=false;isEltern=false;aPl=p.id;
+  // Nav: hide Training, Spiele, Statistiken (keep Vergleich for team avg)
+  ['sessions','games-ov','stats-ov'].forEach(id=>{
     const btn=document.querySelector('.nb[onclick*=\''+id+'\']');
     if(btn)btn.style.display='none';
   });
+  const cmpBtn=document.querySelector('.nb[onclick*=\'vergleich\']');
+  if(cmpBtn)cmpBtn.style.display='';
   document.getElementById('mode-b').className='mb pl';
   document.getElementById('mode-b').textContent='👤 '+p.name;
   document.getElementById('tr-ctrl').style.display='none';
   document.getElementById('nb-pl').style.display='flex';
-  sp('player',p.id); // go straight to their player page
+  sp('player'); // go straight to their player page
 }
 function togTr(){if(isTr||curPlayer){if(curPlayer){curPlayer=null;viewMode();return;}isTr=false;viewMode();}else{document.getElementById('pin-in').value='';document.getElementById('pin-err').textContent='';showPin();}}
 function doChgPin(){
@@ -787,7 +791,39 @@ function setCmpMode(m){
   cmpUpdate();
 }
 
+function renderVergleichPlayer(){
+  const p=curPlayer;
+  const myTrSess=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
+  const teamTrSess=D.sessions.filter(s=>parseFloat(s.distance||0)>0);
+  const teamAvg=k=>teamTrSess.length?teamTrSess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/teamTrSess.length:0;
+  const myAvg=k=>myTrSess.length?myTrSess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/myTrSess.length:0;
+  const labels=['Distanz (km)','Hi-Int (/100m)','Max. Sprint','Pässe (/10)','Aktiv-Min'];
+  const meVals=[myAvg('distance'),myAvg('hiInt')/100,myAvg('maxSprint'),myAvg('passes')/10,myAvg('activeMin')];
+  const teamVals=[teamAvg('distance'),teamAvg('hiInt')/100,teamAvg('maxSprint'),teamAvg('passes')/10,teamAvg('activeMin')];
+  const myAtt=D.trainingDays.length?D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length/D.trainingDays.length*100:0;
+  const allAtts=D.players.map(pl=>D.trainingDays.length?D.trainingDays.filter(td=>(td.present||[]).includes(pl.id)).length/D.trainingDays.length*100:0);
+  const teamAttAvg=allAtts.length?allAtts.reduce((a,v)=>a+v,0)/allAtts.length:0;
+  const tInfo=document.getElementById('cmp-tracker-info');
+  if(tInfo)tInfo.innerHTML='Dein Vergleich mit dem <strong>Team-Durchschnitt</strong>';
+  const plSidebar=document.getElementById('cmp-player-list');
+  if(plSidebar&&plSidebar.parentElement)plSidebar.parentElement.style.display='none';
+  const old2=document.getElementById('cmp-pl-extra');if(old2)old2.remove();
+  if(CHS['ch-cmp']){CHS['ch-cmp'].destroy();delete CHS['ch-cmp'];}
+  const parent=document.getElementById('cmp-chart-wrap');
+  if(!parent)return;
+  if(!document.getElementById('ch-cmp')){parent.innerHTML='<canvas id="ch-cmp" style="max-height:320px"></canvas>';}
+  const ctx=document.getElementById('ch-cmp').getContext('2d');
+  CHS['ch-cmp']=new Chart(ctx,{type:'radar',data:{labels,datasets:[
+    {label:p.name,data:meVals,borderColor:'#2d7a2d',backgroundColor:'#2d7a2d22',pointRadius:4,pointBackgroundColor:'#2d7a2d'},
+    {label:'Team-Durchschnitt',data:teamVals,borderColor:'#1a5e8a',backgroundColor:'#1a5e8a22',pointRadius:4,pointBackgroundColor:'#1a5e8a',borderDash:[4,3]}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:11}}}},scales:{r:{beginAtZero:true,ticks:{font:{size:9}}}}}});
+  parent.insertAdjacentHTML('afterend','<div class="g2" style="margin-top:12px" id="cmp-pl-extra">'
+    +'<div class="card"><div class="cv">Deine Anwesenheit</div><div class="cn" style="color:'+(myAtt>=80?'var(--grn)':myAtt>=60?'#ca8a04':'var(--red)')+'">'+Math.round(myAtt)+'%</div><div class="cs">'+D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length+' von '+D.trainingDays.length+' Einheiten</div></div>'
+    +'<div class="card"><div class="cv">Team-Ø Anwesenheit</div><div class="cn" style="color:#1a5e8a">'+Math.round(teamAttAvg)+'%</div><div class="cs">Alle Spieler</div></div></div>');
+}
+
 function renderVergleich(){
+  if(curPlayer){renderVergleichPlayer();return;}
   // tracker info
   const withGPS=D.players.filter(p=>D.sessions.some(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0));
   const withGPSGm=D.players.filter(p=>D.games.some(g=>g.playerId===p.id&&parseFloat(g.distance||0)>0));

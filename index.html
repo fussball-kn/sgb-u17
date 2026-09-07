@@ -1817,8 +1817,70 @@ function opPl(pid){
   const b=document.getElementById('nb-pl');b.style.display='';b.textContent=p?p.name.split(' ')[0]:'Spieler';
   sp('player');
 }
+
+// ── VERLETZUNGSVERWALTUNG ─────────────────────────────────────────────────────
+function isInjuredNow(p){
+  const today=new Date().toISOString().slice(0,10);
+  return (p.injuries||[]).some(inj=>inj.from<=today&&(!inj.to||inj.to>=today));
+}
+
+function injuryExcludeDates(p){
+  // Returns array of date ranges to exclude
+  return p.injuries||[];
+}
+
+function sessExcludeInjured(pid,sessions){
+  const p=D.players.find(x=>x.id===pid);if(!p)return sessions;
+  const injs=p.injuries||[];
+  if(!injs.length)return sessions;
+  return sessions.filter(s=>!injs.some(inj=>s.date>=inj.from&&(!inj.to||s.date<=inj.to)));
+}
+
+function renderInjurySection(p){
+  const injs=p.injuries||[];
+  const today=new Date().toISOString().slice(0,10);
+  const injRows=injs.map((inj,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12px">
+      <span style="color:var(--red)">🏥</span>
+      <span style="flex:1">${fmtD(inj.from)} – ${inj.to?fmtD(inj.to):'<span style="color:var(--red);font-weight:700">aktuell</span>'}</span>
+      <span style="color:var(--muted);font-size:11px">${inj.note||''}</span>
+      ${isTr?`<button onclick="delInj('${p.id}',${i})" style="border:none;background:none;color:var(--red);cursor:pointer;font-size:12px">✕</button>`:''}
+    </div>`).join('');
+  const addForm=isTr?`<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end">
+    <div><label style="font-size:11px;color:var(--muted)">Von</label><input type="date" id="inj-from" value="${today}" style="display:block;padding:4px 6px;border-radius:5px;border:1px solid var(--brd);font-size:12px"></div>
+    <div><label style="font-size:11px;color:var(--muted)">Bis (leer = noch verletzt)</label><input type="date" id="inj-to" style="display:block;padding:4px 6px;border-radius:5px;border:1px solid var(--brd);font-size:12px"></div>
+    <div><label style="font-size:11px;color:var(--muted)">Notiz</label><input type="text" id="inj-note" placeholder="z.B. Muskelfaserriss" style="display:block;padding:4px 6px;border-radius:5px;border:1px solid var(--brd);font-size:12px;width:160px"></div>
+    <button class="btn btn-g" style="font-size:11px;padding:5px 10px" onclick="addInj('${p.id}')">+ Verletzung</button>
+  </div>`:'';
+  if(!injs.length&&!isTr)return '';
+  return `<div class="card trainer-only" style="margin-bottom:12px;border-left:4px solid var(--red)">
+    <div style="font-size:13px;font-weight:800;margin-bottom:8px">🏥 Verletzungshistorie</div>
+    ${injs.length?injRows:'<div style="font-size:12px;color:var(--muted)">Keine Verletzungen eingetragen</div>'}
+    ${addForm}
+  </div>`;
+}
+
+function addInj(pid){
+  const from=document.getElementById('inj-from')?.value;
+  const to=document.getElementById('inj-to')?.value||null;
+  const note=document.getElementById('inj-note')?.value||'';
+  if(!from){alert('Startdatum angeben.');return;}
+  const p=D.players.find(x=>x.id===pid);if(!p)return;
+  if(!p.injuries)p.injuries=[];
+  p.injuries.push({from,to,note});
+  p.injuries.sort((a,b)=>b.from.localeCompare(a.from));
+  sv();renderPlayer();
+}
+
+function delInj(pid,idx){
+  const p=D.players.find(x=>x.id===pid);if(!p)return;
+  p.injuries.splice(idx,1);
+  sv();renderPlayer();
+}
+
 function renderScore(pid){
-  const sess=D.sessions.filter(s=>s.playerId===pid&&parseFloat(s.distance||0)>0).sort((a,b)=>a.date.localeCompare(b.date));
+  const allSess=D.sessions.filter(s=>s.playerId===pid&&parseFloat(s.distance||0)>0).sort((a,b)=>a.date.localeCompare(b.date));
+  const sess=sessExcludeInjured(pid,allSess); // exclude injury periods
   const recent=sess.slice(-4); // last 4 training sessions
   if(!recent.length)return '';
   const seaAvg=k=>sess.length?sess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/sess.length:0;
@@ -1869,12 +1931,16 @@ function renderPlayer(){
   const p=D.players.find(p=>p.id===aPl);if(!p)return;
   const ps=pSess(p.id),gs=pGames(p.id),idx=D.players.indexOf(p),col=COLS[idx%COLS.length];
   const delBtn=isTr?`<button class="btn-d" style="padding:6px 11px;font-size:11px;border-radius:5px" onclick="delPl('${p.id}')">Entfernen</button>`:'';
+  const scoreHtml=renderScore(p.id);
+  const injHtml=renderInjurySection(p);
   document.getElementById('pl-content').innerHTML=`
-    <div style="display:flex;align-items:center;gap:11px;margin-bottom:16px;flex-wrap:wrap">
+    ${scoreHtml}
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:12px;flex-wrap:wrap">
       <div class="pav" style="width:52px;height:52px;font-size:19px;background:${col}18;color:${col};border-color:${col}">${ini(p.name)}</div>
-      <div><div style="font-size:17px;font-weight:800">#${p.number} ${p.name}</div><div style="color:var(--muted);font-size:11px">${p.pos} · ${ps.length} Trainings · ${gs.length} Spiele</div></div>
+      <div><div style="font-size:17px;font-weight:800">#${p.number} ${p.name} ${isInjuredNow(p)?'<span style="font-size:12px;background:#fee2e2;color:#c0392b;padding:2px 8px;border-radius:99px;font-weight:700">🏥 Verletzt</span>':''}</div><div style="color:var(--muted);font-size:11px">${p.pos} · ${ps.length} Trainings · ${gs.length} Spiele</div></div>
       <div style="margin-left:auto">${delBtn}</div>
     </div>
+    ${injHtml}
     <div class="tabs">
       <button class="tab active" onclick="setPT('tr',this,'${p.id}')">🏃 Training</button>
       <button class="tab gm" onclick="setPT('gm',this,'${p.id}')">🏆 Spiele</button>

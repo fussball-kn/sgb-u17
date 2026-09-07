@@ -376,6 +376,11 @@ input:focus,select:focus{border-color:var(--grn);}
 <!-- STATS OVERVIEW -->
 <div id="page-stats-ov" class="page">
   <div class="sh"><div class="stt">📊 Saisonstatistiken</div><div style="display:flex;gap:6px;align-items:center"><span class="bdg bdg-p">Übersicht</span><button class="btn trainer-only" style="background:var(--org);color:#fff;font-size:11px;padding:4px 9px;border-radius:6px;border:none;cursor:pointer" onclick="sp('games-ov')">🏆 Spielberichte verwalten</button></div></div>
+  <div class="tabs" style="margin-bottom:12px">
+    <button class="tab active" id="stf-all" onclick="setStFilter('all',this)">Alle Spiele</button>
+    <button class="tab gm" id="stf-official" onclick="setStFilter('official',this)">Nur Pflichtspiele</button>
+    <button class="tab" id="stf-friendly" onclick="setStFilter('friendly',this)" style="background:#1a5e8a;color:#fff">Nur Testspiele</button>
+  </div>
   <div class="g4" id="sts-ov-cards"></div>
   <div class="card" style="margin-bottom:14px">
     <div style="font-size:13px;font-weight:800;margin-bottom:9px">Torschützen & Vorlagen</div>
@@ -392,13 +397,6 @@ input:focus,select:focus{border-color:var(--grn);}
   </div>
   <!-- Mannschaftsscore -->
   <div class="card" id="team-score-card" style="margin-bottom:14px"></div>
-
-  <!-- Filter tabs for player table -->
-  <div class="tabs" style="margin-bottom:10px">
-    <button class="tab active" id="stf-all" onclick="setStFilter('all',this)">Alle Spiele</button>
-    <button class="tab gm" id="stf-official" onclick="setStFilter('official',this)">Nur Pflichtspiele</button>
-    <button class="tab" id="stf-friendly" onclick="setStFilter('friendly',this)" style="background:#1a5e8a;color:#fff">Nur Testspiele</button>
-  </div>
 
   <div class="card">
     <div style="font-size:13px;font-weight:800;margin-bottom:9px">Vollständige Statistiken</div>
@@ -1052,14 +1050,25 @@ function computePMS(pid,mr){
   const strs=mr.starters||[],bench=mr.bench||[],evts=mr.events||[];
   const isStr=strs.includes(pid);
   const isBench=bench.includes(pid);
-  const subIn=evts.find(e=>e.type==='sub'&&e.playerInId===pid);
-  const subOut=evts.find(e=>e.type==='sub'&&e.playerOutId===pid);
-  const kader=isStr||isBench||!!subIn;if(!kader)return null;
-  let min=0;
+  const allSubsIn=evts.filter(e=>e.type==='sub'&&e.playerInId===pid);
+  const allSubsOut=evts.filter(e=>e.type==='sub'&&e.playerOutId===pid);
+  const kader=isStr||isBench||allSubsIn.length>0;if(!kader)return null;
   const REGTIME=mr.matchDuration||80;
-  if(isStr) min=subOut?Math.min(subOut.minute,REGTIME):REGTIME;
-  else if(subIn) min=subOut?(Math.min(subOut.minute,REGTIME)-Math.min(subIn.minute,REGTIME)):(REGTIME-Math.min(subIn.minute,REGTIME));
-  // bench player not subbed in = 0 minutes (but counts as kader)
+  // Calculate total minutes across all stints (handles multiple sub in/out)
+  let min=0;
+  if(isStr){
+    // Starter: played from 0 until first sub-out (or full game)
+    const firstOut=allSubsOut.length?Math.min(...allSubsOut.map(e=>e.minute)):null;
+    min=firstOut?Math.min(firstOut,REGTIME):REGTIME;
+  }
+  // Add stints for each sub-in event
+  for(const si of allSubsIn){
+    const inMin=Math.min(si.minute,REGTIME);
+    // Find the next sub-out after this sub-in
+    const nextOut=allSubsOut.filter(e=>e.minute>si.minute).sort((a,b)=>a.minute-b.minute)[0];
+    const outMin=nextOut?Math.min(nextOut.minute,REGTIME):REGTIME;
+    min+=Math.max(0,outMin-inMin);
+  }
   min=Math.max(0,min);
   const goals=evts.filter(e=>e.type==='goal'&&e.playerId===pid).length;
   const eigentore=evts.filter(e=>e.type==='eigentor'&&e.playerId===pid).length;
@@ -1070,7 +1079,7 @@ function computePMS(pid,mr){
   const penSaved=evts.filter(e=>e.type==='oppenalty'&&e.savedBy===pid&&e.result==='saved').length;
   const penMissed=evts.filter(e=>e.type==='penalty_miss'&&e.playerId===pid).length;
   const penWon=evts.filter(e=>e.type==='penalty_miss'&&e.rausgeholt===pid).length;
-  return{kader,s11:isStr,bench:isBench&&!subIn,ew:!!subIn,aw:!!subOut,minutes:min,goals,eigentore,assists,gk,grk,rk,penSaved,penMissed,penWon};
+  return{kader,s11:isStr,bench:isBench&&!allSubsIn.length,ew:allSubsIn.length>0,aw:allSubsOut.length>0,minutes:min,goals,eigentore,assists,gk,grk,rk,penSaved,penMissed,penWon};
 }
 
 function getEffStats(pid,mrFilter){
@@ -1745,42 +1754,41 @@ function renderTeamScore(mrList){
 }
 
 function renderStatsOv(){
-  const allSt=D.players.map(p=>getEffStats(p.id));
+  const mrAllRaw=D.matchReports||[];
+  const mrPflRaw=mrAllRaw.filter(m=>(m.gameType||'official')==='official');
+  const mrTestRaw=mrAllRaw.filter(m=>m.gameType==='friendly');
+  // filtered MR for all cards/charts
+  const mrAll=stFilter==='official'?mrPflRaw:stFilter==='friendly'?mrTestRaw:mrAllRaw;
+  const mrPfl=mrPflRaw;const mrTest=mrTestRaw;
+  const sfArg=stFilter==='all'?undefined:stFilter;
+  const allSt=D.players.map(p=>getEffStats(p.id,sfArg));
   const totalG=allSt.reduce((a,s)=>a+totalGoals(s),0);
-  const totalA=allSt.reduce((a,s)=>a+(s.vl||0),0);
-  const topScorer=D.players.reduce((best,p)=>{const g=totalGoals(getEffStats(p.id));return g>best.g?{p,g}:best;},{p:null,g:0});
+  const topScorer=D.players.reduce((best,p)=>{const g=totalGoals(getEffStats(p.id,sfArg));return g>best.g?{p,g}:best;},{p:null,g:0});
   const avgAtt=D.players.length?allSt.reduce((a,s)=>a+attPct(s),0)/D.players.length:0;
-  // Team game stats
-  // Spielergebnis-Stats IMMER aus Spielberichten (nicht GPS)
-  const mrAll=D.matchReports||[];
-  const mrPfl=mrAll.filter(m=>(m.gameType||'official')==='official');
-  const mrTest=mrAll.filter(m=>m.gameType==='friendly');
   const avgGoals=mrAll.length?(mrAll.reduce((a,m)=>a+parseInt(m.goalsUs||0),0)/mrAll.length).toFixed(1):'–';
   const avgConc=mrAll.length?(mrAll.reduce((a,m)=>a+parseInt(m.goalsThem||0),0)/mrAll.length).toFixed(1):'–';
   const zuArr=mrAll.map(m=>parseInt(m.zuschauer||0)).filter(v=>v>0);
   const avgZu=zuArr.length?Math.round(zuArr.reduce((a,b)=>a+b,0)/zuArr.length):'–';
   const avgPflG=mrPfl.length?(mrPfl.reduce((a,m)=>a+parseInt(m.goalsUs||0),0)/mrPfl.length).toFixed(1):'–';
   const avgTestG=mrTest.length?(mrTest.reduce((a,m)=>a+parseInt(m.goalsUs||0),0)/mrTest.length).toFixed(1):'–';
-  // Compat: uniqueGames/uniquePflicht/uniqueTest für Karten-Stats unten
-  const uniqueGames=mrAll;const uniquePflicht=mrPfl;const uniqueTest=mrTest;
-  const mrList=D.matchReports||[];
+  const mrList=mrAll;
   const avgET1=mrList.length?(mrList.reduce((a,mr)=>a+(mr.etH1||0),0)/mrList.length).toFixed(1):'–';
   const avgET2=mrList.length?(mrList.reduce((a,mr)=>a+(mr.etH2||0),0)/mrList.length).toFixed(1):'–';
   const avgNSZtotal=mrList.length?(mrList.reduce((a,mr)=>a+(mr.etH1||0)+(mr.etH2||0),0)/mrList.length).toFixed(1):'–';
   const avgNSZ=mrList.length?avgNSZtotal+' Min':'–';
   const attCol=avgAtt>=80?'var(--grn)':avgAtt>=65?'#ca8a04':'var(--red)';
+  const filterLabel=stFilter==='official'?'Pflichtspiele':stFilter==='friendly'?'Testspiele':'Alle Spiele';
   document.getElementById('sts-ov-cards').innerHTML=`
-    <div class="card"><div class="cv">Ø Tore/Spiel</div><div class="cn" style="color:var(--grn)">${avgGoals}</div><div class="cs">Gesamt: ${totalG} · Pflicht: ${avgPflG} · Test: ${avgTestG}</div></div>
-    <div class="card"><div class="cv">Ø Gegentore/Spiel</div><div class="cn" style="color:var(--red)">${avgConc}</div><div class="cs">${mrPfl.length} Pflicht · ${mrTest.length} Test · ${mrAll.length} gesamt</div></div>
+    <div class="card"><div class="cv">Ø Tore/Spiel</div><div class="cn" style="color:var(--grn)">${avgGoals}</div><div class="cs">Pflicht: ${avgPflG} · Test: ${avgTestG} · ${mrAll.length} Spiele</div></div>
+    <div class="card"><div class="cv">Ø Gegentore/Spiel</div><div class="cn" style="color:var(--red)">${avgConc}</div><div class="cs">${filterLabel} · ${mrAll.length} Spiele</div></div>
     <div class="card"><div class="cv">👟 Ø Anwesenheit Team</div><div class="cn" style="color:${attCol}">${Math.round(avgAtt)}%</div><div class="cs">${D.trainingDays.length} Trainingstage · ${D.players.length} Spieler</div></div>
-    <div class="card"><div class="cv">Bester Torschütze</div><div class="cn" style="font-size:14px">${topScorer.p?topScorer.p.name.split(' ')[0]:'–'}</div><div class="cs">${topScorer.g} Tore</div></div>
+    <div class="card"><div class="cv">Bester Torschütze</div><div class="cn" style="font-size:14px">${topScorer.p?topScorer.p.name.split(' ')[0]:'–'}</div><div class="cs">${topScorer.g} Tore (${filterLabel})</div></div>
     <div class="card"><div class="cv">Ergebnis (${mrAll.length} Spiele)</div><div class="cn" style="font-size:14px;color:var(--grn)">${mrAll.filter(m=>res(m)==='win').length}S <span style="color:#ca8a04">${mrAll.filter(m=>res(m)==='draw').length}U</span> <span style="color:var(--red)">${mrAll.filter(m=>res(m)==='loss').length}N</span></div><div class="cs">aus Spielberichten</div></div>
     <div class="card"><div class="cv">Zuschauerschnitt</div><div class="cn" style="font-size:18px">${avgZu}</div><div class="cs">${zuArr.length} von ${mrAll.length} Spielen mit Daten</div></div>
     <div class="card"><div class="cv">⏱ Ø Nachspielzeit</div><div class="cn" style="font-size:18px">${avgNSZ}</div><div class="cs">1. HZ: Ø ${avgET1} · 2. HZ: Ø ${avgET2} Min</div></div>`;
 
   // Mannschaftsscore
-  const _scoreMR=(stFilter==='all'?mrAll:stFilter==='official'?mrPfl:mrTest);
-  renderTeamScore(_scoreMR);
+  renderTeamScore(mrAll);
   const tbody=document.getElementById('sts-tbody');
   if(!D.players.length){tbody.innerHTML='<tr><td colspan="23" style="text-align:center;color:var(--muted);padding:20px">Noch keine Spieler</td></tr>';return;}
   const visiblePlayers=curPlayer?D.players.filter(p=>p.id===curPlayer.id):D.players;

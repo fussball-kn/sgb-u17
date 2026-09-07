@@ -1803,8 +1803,26 @@ function renderStatsCharts(){
   if(!D.players.length){noDataMsg(['ch-goals','ch-gtypes','ch-att','ch-mins','ch-zones'],'Noch keine Spieler angelegt');return;}
   const sorted=[...D.players].sort((a,b)=>totalGoals(getEffStats(b.id))-totalGoals(getEffStats(a.id))).slice(0,10);
   CHS['ch-goals']=new Chart(document.getElementById('ch-goals'),{type:'bar',data:{labels:sorted.map(p=>p.name.split(' ')[0]),datasets:[{label:'Tore',data:sorted.map(p=>totalGoals(getEffStats(p.id))),backgroundColor:'#2d7a2d',borderRadius:4},{label:'Vorlagen',data:sorted.map(p=>getEffStats(p.id).vl||0),backgroundColor:'#7b2d8b',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
-  const tib=D.players.reduce((a,p)=>a+(getEffStats(p.id).tib||0),0),tao=D.players.reduce((a,p)=>a+(getEffStats(p.id).tao||0),0),ts=D.players.reduce((a,p)=>a+(getEffStats(p.id).ts||0),0),tk=D.players.reduce((a,p)=>a+(getEffStats(p.id).tk||0),0);
-  CHS['ch-gtypes']=new Chart(document.getElementById('ch-gtypes'),{type:'doughnut',data:{labels:['In Box','Außerhalb','Schuss','Kopf'],datasets:[{data:[tib,tao,ts,tk],backgroundColor:['#2d7a2d','#c05000','#1a5e8a','#7b2d8b'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},cutout:'52%'}});
+  const hasMRData=(D.matchReports||[]).length>0;
+  let gtLabels,gtData,gtColors;
+  if(hasMRData){
+    const allGEvts=(D.matchReports||[]).flatMap(mr=>(mr.events||[]).filter(e=>e.type==='goal'));
+    const gtSchuss=allGEvts.filter(e=>!e.goalType||e.goalType==='schuss').length;
+    const gtKopf=allGEvts.filter(e=>e.goalType==='kopf').length;
+    const gtElf=allGEvts.filter(e=>e.goalType==='elfmeter').length;
+    gtLabels=['Schuss','Kopfball','Elfmeter'];
+    gtData=[gtSchuss,gtKopf,gtElf];
+    gtColors=['#2d7a2d','#1a5e8a','#c05000'];
+  } else {
+    const tib=D.players.reduce((a,p)=>a+(getEffStats(p.id).tib||0),0);
+    const tao=D.players.reduce((a,p)=>a+(getEffStats(p.id).tao||0),0);
+    const ts=D.players.reduce((a,p)=>a+(getEffStats(p.id).ts||0),0);
+    const tk=D.players.reduce((a,p)=>a+(getEffStats(p.id).tk||0),0);
+    gtLabels=['In Box','Außerhalb','Schuss','Kopf'];
+    gtData=[tib,tao,ts,tk];
+    gtColors=['#2d7a2d','#c05000','#1a5e8a','#7b2d8b'];
+  }
+  CHS['ch-gtypes']=new Chart(document.getElementById('ch-gtypes'),{type:'doughnut',data:{labels:gtLabels,datasets:[{data:gtData,backgroundColor:gtColors,borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},cutout:'52%'}});
   CHS['ch-att']=new Chart(document.getElementById('ch-att'),{type:'bar',data:{labels:D.players.map(p=>p.name.split(' ')[0]),datasets:[{data:D.players.map(p=>attPct(getEffStats(p.id))),backgroundColor:D.players.map(p=>{const a=attPct(getEffStats(p.id));return a>=80?'#2d7a2d':a>=60?'#ca8a04':'#c0392b';}),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}});
   // Zone chart — events by time period across all match reports
   dch('ch-zones');

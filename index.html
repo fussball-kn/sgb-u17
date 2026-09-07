@@ -161,7 +161,7 @@ input:focus,select:focus{border-color:var(--grn);}
       <div style="margin-top:11px"><button class="btn" style="width:100%;background:#1a5e8a;color:#fff" onclick="chkPlayerPin()">Einloggen als Spieler</button></div>
     </div>
   </div>
-  <span class="skip" onclick="viewMode()">Nur zuschauen (kein Login)</span>
+  <span class="skip" onclick="elternMode()">👨‍👩‍👧 Eltern-Ansicht</span><span class="skip" onclick="viewMode()" style="font-size:10px;opacity:.5">Trainer-Vorschau</span>
 </div>
 
 <!-- MODAL: Add Player -->
@@ -300,6 +300,7 @@ input:focus,select:focus{border-color:var(--grn);}
   <button class="nb st" onclick="sp('stats-ov')">📊 Statistiken</button>
   <button class="nb" id="nb-cmp" onclick="sp('vergleich')">🔄 Vergleich</button>
   <button class="nb" id="nb-pl" style="display:none" onclick="sp('player')">Spieler</button>
+  <button class="nb" id="nb-eltern" style="display:none" onclick="sp('eltern')">📊 Übersicht</button>
   <div class="nsp"></div>
   <button class="mb pl" id="mode-b" onclick="togTr()">👤 Spieler</button>
   <div id="tr-ctrl" style="display:flex;gap:2px;align-items:center">
@@ -610,7 +611,7 @@ function trainerMode(){
 }
 function viewMode(){
   curPlayer=null;
-  hidePin();isTr=false;
+  hidePin();isTr=false;isEltern=false;
   // restore all nav buttons
   document.querySelectorAll('.nb').forEach(b=>b.style.display='');
   document.getElementById('nb-pl').style.display='none';
@@ -650,7 +651,7 @@ function chkPlayerPin(){
 }
 
 function playerMode(p){
-  curPlayer=p;isTr=false;
+  curPlayer=p;isTr=false;isEltern=false;
   // Nav: hide Training, Spiele, Statistiken, Vergleich
   ['sessions','games-ov','stats-ov','vergleich'].forEach(id=>{
     const btn=document.querySelector('.nb[onclick*=\''+id+'\']');
@@ -683,12 +684,13 @@ document.querySelectorAll('.mod').forEach(m=>m.addEventListener('click',e=>{if(e
 
 // ── NAV ───────────────────────────────────────────────────────────────────────
 function sp(name,pid){
+  if(isEltern&&name!=='eltern'){sp('eltern');return;}
   if(curPlayer&&!['team','player'].includes(name)){sp('player',curPlayer.id);return;}
   if(name==='player'&&!pid&&curPlayer){pid=curPlayer.id;}
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  const map={team:0,sessions:1,'games-ov':2,'stats-ov':3,player:4,vergleich:5};
+  const map={team:0,sessions:1,'games-ov':2,'stats-ov':3,player:4,vergleich:5,eltern:6};
   const btns=document.querySelectorAll('.nb');
   if(map[name]!==undefined&&btns[map[name]])btns[map[name]].classList.add('active');
   if(name==='team'){renderTeam();setTimeout(()=>renderTCharts(curTT),60);}
@@ -697,6 +699,7 @@ function sp(name,pid){
   if(name==='stats-ov'){renderStatsOv();setTimeout(renderStatsCharts,60);}
   if(name==='settings'){setTimeout(renderPinMgmt,50);}
   if(name==='vergleich'){renderVergleich();}
+  if(name==='eltern'){renderEltern();}
   if(name==='player')renderPlayer();
 }
 function svPlayer(){
@@ -1838,6 +1841,69 @@ function svEntry(e){
   sv();document.getElementById('ef').reset();sp('team');
 }
 
+
+// ── ELTERN MODE ───────────────────────────────────────────────────────────────
+let isEltern=false;
+
+function elternMode(){
+  curPlayer=null;isTr=false;isEltern=true;
+  hidePin();
+  // Hide all nav except eltern button
+  document.querySelectorAll('.nb').forEach(b=>b.style.display='none');
+  document.getElementById('nb-eltern').style.display='';
+  document.getElementById('mode-b').className='mb pl';
+  document.getElementById('mode-b').textContent='👨‍👩‍👧 Eltern';
+  document.getElementById('tr-ctrl').style.display='none';
+  sp('eltern');
+}
+
+function renderEltern(){
+  // Games
+  const elGames=document.getElementById('el-games');
+  if(!elGames)return;
+  const mrs=D.matchReports||[];
+  if(!mrs.length){
+    elGames.innerHTML='<div class="empty"><div class="eico">🏆</div><div class="etit">Noch keine Spielberichte</div></div>';
+  } else {
+    const sorted=[...mrs].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    elGames.innerHTML='<table class="tbl"><thead><tr><th>Datum</th><th>Gegner</th><th>Heim/Auswärts</th><th class="num">Ergebnis</th><th>Typ</th></tr></thead><tbody>'
+      +sorted.map(m=>{
+        const res=(m.goalsUs!==undefined&&m.goalsThem!==undefined)?m.goalsUs+' : '+m.goalsThem:'–';
+        const won=m.goalsUs>m.goalsThem,draw=m.goalsUs==m.goalsThem;
+        const rc=won?'var(--grn)':draw?'#b45309':'var(--red)';
+        const hw=m.home==='home'?'🏠 Heim':'✈️ Auswärts';
+        const typ=m.gameType==='friendly'?'Freundschaftsspiel':'Pflichtspiel';
+        return '<tr><td>'+fmtD(m.date)+'</td><td style="font-weight:700">'+( m.opponent||'?')+'</td><td>'+hw+'</td>'
+          +'<td class="num"><span style="font-weight:800;color:'+rc+'">'+res+'</span></td><td style="font-size:10px;color:var(--muted)">'+typ+'</td></tr>';
+      }).join('')+'</tbody></table>';
+  }
+
+  // Team averages from training sessions
+  const sess=D.sessions.filter(s=>!s.opponent&&parseFloat(s.distance||0)>0);
+  const avg=k=>sess.length?sess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/sess.length:null;
+  const fmt=(v,dec=1)=>v!=null?v.toFixed(dec):'–';
+
+  document.getElementById('el-dist').textContent=fmt(avg('distance'))+' km';
+  document.getElementById('el-sprint').textContent=fmt(avg('maxSprint'))+' km/h';
+  document.getElementById('el-hiint').textContent=fmt(avg('hiInt'),0)+' m';
+  document.getElementById('el-passes').textContent=fmt(avg('passes'),0);
+  document.getElementById('el-shots').textContent=fmt(avg('shots'),0);
+
+  // Attendance from trainingDays
+  const tds=D.trainingDays||[];
+  if(tds.length&&D.players.length){
+    const recent=tds.slice(-10);
+    const rates=recent.map(td=>{
+      const present=(td.present||[]).length;
+      return present/D.players.length*100;
+    });
+    const avgAtt=rates.reduce((a,v)=>a+v,0)/rates.length;
+    document.getElementById('el-att').textContent=Math.round(avgAtt)+'%';
+  } else {
+    document.getElementById('el-att').textContent='–';
+  }
+}
+
 // ── FIREBASE INIT ─────────────────────────────────────────────────────────────
 const firebaseConfig={apiKey:"AIzaSyCprG_2PMcoQfjqfuwQIweEpy6P2_RNEdg",authDomain:"sgb-u17-26-27.firebaseapp.com",projectId:"sgb-u17-26-27",storageBucket:"sgb-u17-26-27.firebasestorage.app",messagingSenderId:"883361577166",appId:"1:883361577166:web:e9726015a3f6fb2a34f89f"};
 firebase.initializeApp(firebaseConfig);
@@ -1876,6 +1942,55 @@ _fbdb.collection('sgb').doc('u17data').onSnapshot(snap=>{
   if(_lo.parentNode){_lo.remove();}
   viewMode();showPin();renderTeam();setTimeout(()=>renderTCharts('tr'),100);
 });
+
+<!-- ELTERN PAGE -->
+<div id="page-eltern" class="page">
+  <div class="sh"><div class="stt">📊 Team-Übersicht</div><span class="bdg bdg-g">Eltern-Ansicht</span></div>
+
+  <!-- Spielergebnisse -->
+  <div class="card" style="margin-bottom:13px">
+    <div class="sh"><div style="font-size:14px;font-weight:800">🏆 Spielergebnisse</div></div>
+    <div id="el-games"></div>
+  </div>
+
+  <!-- Team-Statistiken -->
+  <div class="g3" style="margin-bottom:13px">
+    <div class="card">
+      <div class="cv">Ø Anwesenheit</div>
+      <div class="cn" id="el-att">–</div>
+      <div class="cs">Letzte Trainings</div>
+    </div>
+    <div class="card">
+      <div class="cv">Ø Laufdistanz/Training</div>
+      <div class="cn" id="el-dist">–</div>
+      <div class="cs">km pro Einheit</div>
+    </div>
+    <div class="card">
+      <div class="cv">Ø Max. Sprint</div>
+      <div class="cn" id="el-sprint">–</div>
+      <div class="cs">km/h im Training</div>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="card">
+      <div class="cv">Ø Hi-Intensität</div>
+      <div class="cn" id="el-hiint">–</div>
+      <div class="cs">m pro Einheit</div>
+    </div>
+    <div class="card">
+      <div class="cv">Ø Pässe/Training</div>
+      <div class="cn" id="el-passes">–</div>
+      <div class="cs">pro Einheit</div>
+    </div>
+    <div class="card">
+      <div class="cv">Ø Schüsse/Training</div>
+      <div class="cn" id="el-shots">–</div>
+      <div class="cs">pro Einheit</div>
+    </div>
+  </div>
+</div>
+
 </script>
 
 </html>

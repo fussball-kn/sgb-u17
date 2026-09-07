@@ -655,6 +655,10 @@ function chkPin(){
 }
 function trainerMode(){
   isTr=true;isEltern=false;
+  // Restore all standard nav buttons
+  document.querySelectorAll('.nb').forEach(b=>b.style.display='');
+  document.getElementById('nb-pl').style.display='none';
+  document.getElementById('nb-eltern').style.display='none';
   document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🔐 Trainer';
   document.getElementById('tr-ctrl').style.display='flex';
   document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='');
@@ -663,9 +667,10 @@ function trainerMode(){
 function viewMode(){
   curPlayer=null;
   hidePin();isTr=false;isEltern=false;
-  // restore all nav buttons
+  // Restore standard nav buttons (not nb-pl, not nb-eltern)
   document.querySelectorAll('.nb').forEach(b=>b.style.display='');
   document.getElementById('nb-pl').style.display='none';
+  document.getElementById('nb-eltern').style.display='none';
   document.getElementById('mode-b').className='mb pl';document.getElementById('mode-b').textContent='👤 Spieler';
   document.getElementById('tr-ctrl').style.display='none';
   document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='none');
@@ -1900,9 +1905,9 @@ function elToggle(i){
   const det=document.getElementById('el-det-'+i);
   const arr=document.getElementById('el-arr-'+i);
   if(!det)return;
-  const open=det.style.display==='none'||det.style.display==='';
-  det.style.display=open?'':'none';
-  if(arr)arr.textContent=open?'▼':'▶';
+  const isHidden=det.style.display==='none';
+  det.style.display=isHidden?'table-row':'none';
+  if(arr)arr.textContent=isHidden?'▼':'▶';
 }
 
 function elternMode(){

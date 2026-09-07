@@ -2033,7 +2033,7 @@ function renderScore(pid){
   const trLabel=trScore>=80?'🔥 Top-Form':trScore>=65?'💪 Gute Form':trScore>=50?'📈 Aufsteigend':'⚡ Aufholbedarf';
   const trend=dRec>dSea&&hRec>hSea?'↑ Besser als Saisonschnitt':dRec<dSea*0.9?'↓ Unter Saisonschnitt':'→ Im Saisonschnitt';
 
-  // ── GESAMTLEISTUNGSSCORE — positionsabhängig ─────────────────────────────
+  // ── GESAMTLEISTUNGSSCORE — positionsabhängig, nur Pflichtspiele, recency-gewichtet ──
   const p4s=D.players.find(x=>x.id===pid);
   const pos4=(p4s?p4s.pos||'':'').toLowerCase();
   const isTW=pos4.includes('torwart')||pos4.includes('keeper');
@@ -2041,55 +2041,69 @@ function renderScore(pid){
   const isATT=!isTW&&!isDEF&&(pos4.includes('stürmer')||pos4.includes('sturm')||pos4.includes('außenstürmer'));
   // weights: [Einsatz, Ergebnis, Offensiv, Defensiv, GPS]
   const W=isTW?[25,20,5,35,15]:isDEF?[25,20,15,25,15]:isATT?[25,20,35,5,15]:[25,20,25,15,15];
-  const wTotal=W.reduce((a,b)=>a+b,0); // always 100
 
-  const st=getEffStats(pid);
-  const allMR=D.matchReports||[];
-  // games where this player was in kader
-  const plMRs=allMR.filter(mr=>computePMS(pid,mr)!==null);
+  const st=getEffStats(pid,'official');
+  const allMR=(D.matchReports||[]).filter(m=>(m.gameType||'official')==='official');
+  // nur Pflichtspiele wo Spieler im Kader — nach Datum sortiert (älteste zuerst)
+  const plMRs=allMR.filter(mr=>computePMS(pid,mr)!==null).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   const hasGameData=plMRs.length>0||st.em>0;
-  let gameScore=0,gameNote='keine Spieldaten';
+  let gameScore=0,gameNote='keine Pflichtspieleinsätze';
   let minSc=0,resSc=0,offSc=0,defSc=0,gpsSc=0;
 
-  if(hasGameData){
-    const nG=Math.max(plMRs.length,1);
-    // 1. Einsatzzeit (vs. max mögliche Min.)
-    const possMin=plMRs.reduce((a,mr)=>a+(mr.matchDuration||80),0)||80;
-    const actMin=st.em||0;
-    minSc=Math.min(W[0],Math.round(actMin/possMin*W[0]));
+  if(hasGameData&&plMRs.length>0){
+    const nG=plMRs.length;
+    // Recency-Gewichte: letztes Spiel = nG, vorletztes = nG-1, ... (linear)
+    const rw=plMRs.map((_,i)=>i+1); // [1,2,...,nG]
+    const rwSum=rw.reduce((a,b)=>a+b,0);
+    const wAvg=(arr)=>arr.reduce((a,v,i)=>a+v*rw[i],0)/rwSum;
 
-    // 2. Spielergebnis (W=3, U=1, L=0, max bei 3 Pkt/Spiel)
-    const wins=plMRs.filter(mr=>parseInt(mr.goalsUs||0)>parseInt(mr.goalsThem||0)).length;
-    const draws=plMRs.filter(mr=>parseInt(mr.goalsUs||0)===parseInt(mr.goalsThem||0)).length;
-    const maxPts=nG*3;
-    const pts=wins*3+draws*1;
-    resSc=Math.min(W[1],Math.round(pts/maxPts*W[1]));
+    // 1. Einsatzzeit (gewichtete Einsatzquote pro Spiel)
+    const minRates=plMRs.map(mr=>{
+      const played=computePMS(pid,mr)||0;
+      return Math.min(1,played/(mr.matchDuration||80));
+    });
+    minSc=Math.min(W[0],Math.round(wAvg(minRates)*W[0]));
 
-    // 3. Offensiver Beitrag (Tore + Vorlagen, positionsgewichtet)
-    const goals=totalGoals(st),assists=st.vl||0;
-    const goalRate=nG>0?(goals+assists*0.6)/nG:0; // G+A pro Spiel
-    const offRef=isATT?0.6:isDEF?0.15:isTW?0.05:0.35; // Erwarteter G+A-Schnitt pro Pos.
-    offSc=Math.min(W[2],Math.round(Math.min(goalRate/offRef,1.5)*W[2]*0.85));
+    // 2. Spielergebnis (gewichtete Punkte: S=1, U=0.33, N=0)
+    const resRates=plMRs.map(mr=>{
+      const us=parseInt(mr.goalsUs||0),th=parseInt(mr.goalsThem||0);
+      return us>th?1:us===th?0.33:0;
+    });
+    resSc=Math.min(W[1],Math.round(wAvg(resRates)*W[1]));
 
-    // 4. Defensiver Beitrag (Gegentore pro Spiel + Clean Sheets, positionsgewichtet)
-    const goalsConceded=plMRs.reduce((a,mr)=>a+parseInt(mr.goalsThem||0),0);
-    const concPerGame=nG>0?goalsConceded/nG:3;
-    const cleanSheets=st.sn||plMRs.filter(mr=>parseInt(mr.goalsThem||0)===0).length;
-    const csRate=nG>0?cleanSheets/nG:0;
-    const concScore=Math.max(0,Math.min(1,(2-concPerGame)/2)); // 0 GA = 1.0, 2 GA = 0.0
-    defSc=Math.min(W[3],Math.round((concScore*0.6+csRate*0.4)*W[3]));
+    // 3. Offensiver Beitrag — aus Events der Pflichtspiele (positionsgewichtet)
+    const plGoals=plMRs.map(mr=>{
+      const evts=mr.events||[];
+      const g=evts.filter(e=>e.type==='goal'&&e.playerId===pid).length;
+      const a=evts.filter(e=>e.type==='goal'&&e.assistId===pid).length;
+      return g+a*0.6;
+    });
+    const offRef=isATT?0.6:isDEF?0.15:isTW?0.05:0.35;
+    offSc=Math.min(W[2],Math.round(Math.min(wAvg(plGoals)/offRef,1.5)*W[2]*0.85));
 
-    // 5. GPS Spieldaten
-    const allGms=D.games.filter(g=>g.playerId===pid);
+    // 4. Defensiver Beitrag (Gegentore + Clean Sheets, gewichtet)
+    const defRates=plMRs.map(mr=>{
+      const conc=parseInt(mr.goalsThem||0);
+      const concScore=Math.max(0,Math.min(1,(2-conc)/2));
+      const cs=conc===0?1:0;
+      return concScore*0.6+cs*0.4;
+    });
+    defSc=Math.min(W[3],Math.round(wAvg(defRates)*W[3]));
+
+    // 5. GPS Spieldaten (Pflichtspiele)
+    const allGms=(D.games||[]).filter(g=>g.playerId===pid);
     const gpsGms=allGms.filter(g=>parseFloat(g.distance||0)>0);
     gpsSc=gpsGms.length?Math.min(W[4],Math.round(gpsGms.reduce((a,g)=>a+parseFloat(g.distance||0),0)/gpsGms.length*3)):0;
 
     gameScore=Math.min(100,minSc+resSc+offSc+defSc+gpsSc);
+    const wins=plMRs.filter(mr=>parseInt(mr.goalsUs||0)>parseInt(mr.goalsThem||0)).length;
+    const draws=plMRs.filter(mr=>parseInt(mr.goalsUs||0)===parseInt(mr.goalsThem||0)).length;
+    const totalGoalsConc=plMRs.reduce((a,mr)=>a+parseInt(mr.goalsThem||0),0);
     const posLabel=isTW?'Torwart':isDEF?'Verteidiger':isATT?'Angreifer':'Mittelfeld';
-    gameNote=posLabel+' · '+wins+'S/'+draws+'U/'+(nG-wins-draws)+'N · '+goals+'T/'+assists+'V · Ø '+concPerGame.toFixed(1)+' GA/Spiel';
+    gameNote=posLabel+' · '+wins+'S/'+draws+'U/'+(nG-wins-draws)+'N · '+totalGoals(st)+'T/'+st.vl+'V · Ø '+(totalGoalsConc/nG).toFixed(1)+' GA/Spiel';
   }
 
-  const gesamtScore=hasGameData?Math.min(100,Math.round(trScore*0.7+gameScore*0.3)):trScore;
+  const gesamtScore=hasGameData&&plMRs.length>0?Math.min(100,Math.round(trScore*0.7+gameScore*0.3)):trScore;
   const gsCol=gesamtScore>=80?'#2d7a2d':gesamtScore>=60?'#ca8a04':'#c0392b';
   const gsLabel=gesamtScore>=80?'🔥 Sehr gut':gesamtScore>=65?'💪 Gut':gesamtScore>=50?'📈 Solide':'⚡ Aufholbedarf';
 

@@ -2054,13 +2054,14 @@ function renderScore(pid){
     const nG=plMRs.length;
     // Recency-Gewichte: letztes Spiel = nG, vorletztes = nG-1, ... (linear)
     const rw=plMRs.map((_,i)=>i+1); // [1,2,...,nG]
-    const rwSum=rw.reduce((a,b)=>a+b,0);
-    const wAvg=(arr)=>arr.reduce((a,v,i)=>a+v*rw[i],0)/rwSum;
+    const rwSum=rw.reduce((a,b)=>a+b,0)||1;
+    const wAvg=(arr)=>arr.reduce((a,v,i)=>a+(isNaN(v)?0:v)*rw[i],0)/rwSum;
 
     // 1. Einsatzzeit (gewichtete Einsatzquote pro Spiel)
     const minRates=plMRs.map(mr=>{
-      const played=computePMS(pid,mr)||0;
-      return Math.min(1,played/(mr.matchDuration||80));
+      const played=parseFloat(computePMS(pid,mr))||0;
+      const dur=parseFloat(mr.matchDuration)||80;
+      return Math.min(1,played/dur);
     });
     minSc=Math.min(W[0],Math.round(wAvg(minRates)*W[0]));
 
@@ -2079,7 +2080,8 @@ function renderScore(pid){
       return g+a*0.6;
     });
     const offRef=isATT?0.6:isDEF?0.15:isTW?0.05:0.35;
-    offSc=Math.min(W[2],Math.round(Math.min(wAvg(plGoals)/offRef,1.5)*W[2]*0.85));
+    const offAvg=wAvg(plGoals);
+    offSc=offRef>0?Math.min(W[2],Math.round(Math.min(offAvg/offRef,1.5)*W[2]*0.85)):0;
 
     // 4. Defensiver Beitrag (Gegentore + Clean Sheets, gewichtet)
     const defRates=plMRs.map(mr=>{

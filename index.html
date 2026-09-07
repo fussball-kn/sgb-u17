@@ -1485,7 +1485,7 @@ function renderTeam(){
       <div class="pn">#${p.number} ${p.name}</div><div class="pp">${p.pos}</div>
       <div class="ps">
         <div><div class="psv" style="color:${col}">${ps.length}</div><div class="psl">Trainings</div></div>
-        <div><div class="psv" style="color:var(--org)">${gs.length}</div><div class="psl">Spiele</div></div>
+        <div><div class="psv" style="color:var(--org)">${(()=>{const sp=getEffStats(p.id,'official');const st2=getEffStats(p.id,'friendly');const tot=(sp.kn||0)+(st2.kn||0)||gs.length;return tot;})()}</div><div class="psl" style="white-space:nowrap">Spiele<br><span style="font-size:9px;color:var(--muted)">P:${getEffStats(p.id,'official').kn||0} T:${getEffStats(p.id,'friendly').kn||0}</span></div></div>
         <div><div class="psv" style="color:var(--pur)">${totalGoals(st)}</div><div class="psl">Tore</div></div>
         <div><div class="psv" style="color:#1a5e8a">${st.em||0}min</div><div class="psl">Einsatz</div></div>
       </div></div>`;
@@ -1522,7 +1522,7 @@ function renderTeam(){
       <div class="pn">#${p.number} ${p.name}</div><div class="pp">${p.pos}</div>
       <div class="ps">
         <div><div class="psv" style="color:${col}">${ps.length}</div><div class="psl">Trainings</div></div>
-        <div><div class="psv" style="color:var(--org)">${gs.length}</div><div class="psl">Spiele</div></div>
+        <div><div class="psv" style="color:var(--org)">${(()=>{const sp=getEffStats(p.id,'official');const st2=getEffStats(p.id,'friendly');const tot=(sp.kn||0)+(st2.kn||0)||gs.length;return tot;})()}</div><div class="psl" style="white-space:nowrap">Spiele<br><span style="font-size:9px;color:var(--muted)">P:${getEffStats(p.id,'official').kn||0} T:${getEffStats(p.id,'friendly').kn||0}</span></div></div>
         <div><div class="psv" style="color:var(--pur)">${totalGoals(st)}</div><div class="psl">Tore</div></div>
         <div><div class="psv" style="color:#1a5e8a">${st.em||0}min</div><div class="psl">Einsatz</div></div>
       </div></div>`;}).join('');
@@ -2111,9 +2111,9 @@ function renderPlayer(){
     </div>
     ${injHtml}
     <div class="tabs">
-      <button class="tab active" onclick="setPT('tr',this,'${p.id}')">🏃 Training</button>
-      <button class="tab gm" onclick="setPT('gm',this,'${p.id}')">🏆 Spiele</button>
-      <button class="tab st" onclick="setPT('st',this,'${p.id}')">📊 Saison</button>
+      <button class="tab active" onclick="setPT('tr',this,'${p.id}')">📡 Tracker-Training</button>
+      <button class="tab gm" onclick="setPT('gm',this,'${p.id}')">📡 Tracker-Spiel</button>
+      <button class="tab st" onclick="setPT('st',this,'${p.id}')">🏅 Saisonwerte</button>
     </div>
     <div id="pt-c"></div>`;
   renderPTab('tr',p,ps,gs,col);
@@ -2128,7 +2128,7 @@ function renderPTab(type,p,ps,gs,col){
   const isGm=type==='gm',baseEntries=isGm?gs:ps;
   const entries=isGm?filtGames(baseEntries,plGmFilter):baseEntries,ac=isGm?'var(--org)':col;
   const avgD=entries.length?avg(entries,'distance').toFixed(1):'–',maxSp=entries.length?Math.max(...entries.map(s=>parseFloat(s.maxSprint||0))).toFixed(1):'–';
-  const extra=isGm&&gs.length?`<div class="card"><div class="cv">Siege</div><div class="cn" style="color:var(--grn)">${gs.filter(g=>res(g)==='win').length}<span style="font-size:11px;color:#999"> / ${gs.length}</span></div></div>`:`<div class="card"><div class="cv">Ø Pässe</div><div class="cn">${entries.length?avg(entries,'passes').toFixed(0):'–'}</div></div>`;
+  const extra=isGm&&gs.length?`<div class="card"><div class="cv">Siege</div><div class="cn" style="color:var(--grn)">${gs.filter(g=>res(g)==='win').length}<span style="font-size:11px;color:#999"> / ${gs.length}</span></div></div>`:`<div class="card"><div class="cv">Trainings ges.</div><div class="cn">${entries.length}</div></div>`;
   const rows=entries.length?[...entries].reverse().map(e=>{
     const ld=parseFloat(e.load||0);
     const del=isTr?`<td><button class="btn-d" onclick="event.stopPropagation();delE('${e.id}','${isGm?'gm':'tr'}');opPl('${p.id}')">✕</button></td>`:'<td></td>';
@@ -2138,20 +2138,34 @@ function renderPTab(type,p,ps,gs,col){
     <button class="tab gm ${plGmFilter==='official'?'active':''}" onclick="plGmFilter='official';setPT('gm',document.querySelector('#pl-content .tab.gm.active'),'${p.id}')">Pflichtspiele</button>
     <button class="tab gm ${plGmFilter==='friendly'?'active':''}" onclick="plGmFilter='friendly';setPT('gm',document.querySelector('#pl-content .tab.gm.active'),'${p.id}')">Testspiele</button>
   </div>`:'';
+  const avgSp=entries.length?avg(entries,'maxSprint').toFixed(1):'–';
+  const avgHI=entries.length?avg(entries,'hiInt').toFixed(0):'–';
+  const avgAcc=entries.length?avg(entries,'acc').toFixed(1):'–';
+  const avgDec=entries.length?avg(entries,'dec').toFixed(1):'–';
   document.getElementById('pt-c').innerHTML=plFiltUI+`
-    <div class="g4" style="margin-bottom:12px">
+    <div class="g4" style="margin-bottom:10px">
       <div class="card"><div class="cv">${isGm?'Spiele':'Trainings'}</div><div class="cn" style="color:${ac}">${entries.length}</div></div>
       <div class="card"><div class="cv">Ø Distanz</div><div class="cn">${avgD} <small style="font-size:10px">km</small></div></div>
-      <div class="card"><div class="cv">Max. Sprint</div><div class="cn">${maxSp} <small style="font-size:10px">km/h</small></div></div>
+      <div class="card"><div class="cv">Ø Max. Sprint</div><div class="cn">${avgSp} <small style="font-size:10px">km/h</small></div></div>
       ${extra}
+    </div>
+    <div class="g4" style="margin-bottom:12px">
+      <div class="card"><div class="cv">Ø Hi-Intensität</div><div class="cn">${avgHI} <small style="font-size:10px">m</small></div></div>
+      <div class="card"><div class="cv">Ø Beschleunigungen</div><div class="cn">${avgAcc}</div></div>
+      <div class="card"><div class="cv">Ø Abbremsungen</div><div class="cn">${avgDec}</div></div>
+      <div class="card"><div class="cv">Ø Pässe</div><div class="cn">${entries.length?avg(entries,'passes').toFixed(0):'–'}</div></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
       <div class="card"><div class="cv" style="margin-bottom:6px">Distanz (km)</div><div class="chrt"><canvas id="ch-pd"></canvas></div></div>
       <div class="card"><div class="cv" style="margin-bottom:6px">Profil-Radar</div><div class="chrt"><canvas id="ch-pr"></canvas></div></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
-      <div class="card"><div class="cv" style="margin-bottom:6px">Max. Sprint</div><div class="chrt"><canvas id="ch-psp"></canvas></div></div>
+      <div class="card"><div class="cv" style="margin-bottom:6px">Ø Max. Sprint (km/h)</div><div class="chrt"><canvas id="ch-psp"></canvas></div></div>
       <div class="card"><div class="cv" style="margin-bottom:6px">Belastungsverlauf (Score)</div><div class="chrt"><canvas id="ch-pl"></canvas></div></div>
+    </div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="card"><div class="cv" style="margin-bottom:6px">Beschleunigungen</div><div class="chrt"><canvas id="ch-pacc"></canvas></div></div>
+      <div class="card"><div class="cv" style="margin-bottom:6px">Abbremsungen</div><div class="chrt"><canvas id="ch-pdec"></canvas></div></div>
     </div>
     <div class="card">
       <div style="font-size:12px;font-weight:800;margin-bottom:7px">${isGm?'Spielhistorie':'Trainingshistorie'}</div>
@@ -2160,11 +2174,11 @@ function renderPTab(type,p,ps,gs,col){
   setTimeout(()=>renderPChts(p,entries,ac),50);
 }
 function renderPChts(p,entries,col){
-  ['ch-pd','ch-pr','ch-psp','ch-pl'].forEach(dch);
+  ['ch-pd','ch-pr','ch-psp','ch-pl','ch-pacc','ch-pdec'].forEach(dch);
   if(!entries.length)return;
   const dates=entries.map(s=>fmtD(s.date));
   const mkL=(id,key,c)=>{const el=document.getElementById(id);if(!el)return;CHS[id]=new Chart(el,{type:'line',data:{labels:dates,datasets:[{data:entries.map(s=>parseFloat(s[key]||0)),borderColor:c,backgroundColor:c+'20',tension:.3,fill:true,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});};
-  mkL('ch-pd','distance',col);mkL('ch-psp','maxSprint','#c05000');mkL('ch-pl','load','#8a1a1a');
+  mkL('ch-pd','distance',col);mkL('ch-psp','maxSprint','#c05000');mkL('ch-pl','load','#8a1a1a');mkL('ch-pacc','acc','#1a5e8a');mkL('ch-pdec','dec','#7b2d8b');
   const el=document.getElementById('ch-pr');if(!el)return;
   const rL=['Distanz','Hi-Int.','Sprint','Beschl.','Abbrems.','Pässe','Am Ball'],rK=['distance','hiInt','maxSprint','acc','dec','passes','ballMin'];
   const mxV=rK.map(k=>Math.max(...[...D.sessions,...D.games].map(s=>parseFloat(s[k]||0)),1));
@@ -2190,13 +2204,14 @@ function renderPlSt(p,col){
     <div class="g3" style="margin-bottom:12px">
       <div class="card">
         <div style="font-size:12px;font-weight:800;margin-bottom:9px">📋 Einsatzdetails</div>
-        <div class="stat-row"><span class="stat-lbl">Kadernominierungen</span><span class="stat-val" style="color:var(--blk)">${s.kn||0}</span></div>
-        <div class="stat-row"><span class="stat-lbl">Start-11-Einsätze</span><span class="stat-val" style="color:var(--grn)">${s.s11||0}</span></div>
-        <div class="stat-row"><span class="stat-lbl">Einwechslungen</span><span class="stat-val">${s.ew||0}</span></div>
+        <div class="stat-row"><span class="stat-lbl">Kadernominierungen</span><span class="stat-val" style="color:var(--blk)">${s.kn||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(pid,'official').kn||0} T:${getEffStats(pid,'friendly').kn||0})</small></span></div>
+        <div class="stat-row"><span class="stat-lbl">Start-11-Einsätze</span><span class="stat-val" style="color:var(--grn)">${s.s11||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(pid,'official').s11||0} T:${getEffStats(pid,'friendly').s11||0})</small></span></div>
+        <div class="stat-row"><span class="stat-lbl">Einwechslungen</span><span class="stat-val">${s.ew||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(pid,'official').ew||0} T:${getEffStats(pid,'friendly').ew||0})</small></span></div>
         <div class="stat-row"><span class="stat-lbl">Auswechslungen</span><span class="stat-val">${s.aw||0}</span></div>
+        <div class="stat-row"><span class="stat-lbl">Einsatzminuten</span><span class="stat-val">${s.em||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(pid,'official').em||0} T:${getEffStats(pid,'friendly').em||0})</small></span></div>
         <div style="margin-top:9px;font-size:10px;font-weight:700;color:var(--muted)">MIN-ANTEIL</div>
         <div style="margin-top:3px"><div class="pct-bar" style="height:9px"><div class="pct-fill" style="width:${mp}%;background:${minC}"></div></div></div>
-        <div style="font-size:10px;color:var(--muted);margin-top:3px">${s.em||0} von ${mx} möglichen Min. (${s.kn||0} Nominierungen × ${GAME_MIN})</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px">${s.em||0} von ${mx} möglichen Min.</div>
       </div>
       <div class="card">
         <div style="font-size:12px;font-weight:800;margin-bottom:9px">⚽ Tore nach Art</div>

@@ -554,7 +554,7 @@ input:focus,select:focus{border-color:var(--grn);}
     <div class="card">
       <div class="cv">Ø Anwesenheit</div>
       <div class="cn" id="el-att">–</div>
-      <div class="cs">Letzte Trainings</div>
+      <div class="cs" id="el-att-cs" style="line-height:1.7">–</div>
     </div>
     <div class="card">
       <div class="cv">Ø Laufdistanz/Training</div>
@@ -2441,18 +2441,43 @@ function renderEltern(){
   document.getElementById('el-passes').textContent=fmt(avg('passes'),0);
   document.getElementById('el-shots').textContent=fmt(avg('shots'),0);
 
-  // Attendance from trainingDays
+  // Attendance from trainingDays — injury-aware
   const tds=D.trainingDays||[];
-  if(tds.length&&D.players.length){
-    const recent=tds.slice(-10);
-    const rates=recent.map(td=>{
-      const present=(td.present||[]).length;
-      return present/D.players.length*100;
+  function tdAttRate(tdList){
+    if(!tdList.length||!D.players.length)return null;
+    let totalPresent=0,totalPossible=0;
+    tdList.forEach(td=>{
+      // only count non-injured players for this training day
+      const eligible=D.players.filter(p=>{
+        const injs=p.injuries||[];
+        return !injs.some(inj=>td.date>=inj.from&&(!inj.to||td.date<=inj.to));
+      });
+      if(!eligible.length)return;
+      const presentEligible=eligible.filter(p=>(td.present||[]).includes(p.id)).length;
+      totalPresent+=presentEligible;
+      totalPossible+=eligible.length;
     });
-    const avgAtt=rates.reduce((a,v)=>a+v,0)/rates.length;
-    document.getElementById('el-att').textContent=Math.round(avgAtt)+'%';
+    return totalPossible>0?Math.round(totalPresent/totalPossible*100):null;
+  }
+  const cutoff2w=new Date();cutoff2w.setDate(cutoff2w.getDate()-14);
+  const cut2w=cutoff2w.toISOString().slice(0,10);
+  const tds2w=tds.filter(td=>(td.date||'')>=cut2w);
+  const attSeason=tdAttRate(tds);
+  const att2w=tdAttRate(tds2w);
+  const attEl=document.getElementById('el-att');
+  const attCs=document.getElementById('el-att-cs');
+  if(attSeason!==null){
+    attEl.textContent=att2w!==null?att2w+'%':attSeason+'%';
+    const attCol=parseInt(attEl.textContent)>=80?'var(--grn)':parseInt(attEl.textContent)>=65?'#ca8a04':'var(--red)';
+    attEl.style.color=attCol;
+    if(attCs){
+      const s2w=att2w!==null?'<span style="font-weight:700">Letzte 2 Wochen: '+att2w+'%</span>':'<span style="color:var(--muted)">Keine Trainings letzte 2 Wochen</span>';
+      const sSea='Saison gesamt: '+attSeason+'% ('+tds.length+' Einheiten)';
+      attCs.innerHTML=s2w+'<br>'+sSea;
+    }
   } else {
-    document.getElementById('el-att').textContent='–';
+    if(attEl)attEl.textContent='–';
+    if(attCs)attCs.textContent='Keine Trainingsdaten';
   }
 
   // Mannschaftsscore (nur Pflichtspiele)
@@ -2477,7 +2502,10 @@ function renderEltern(){
   if(tds.length&&D.players.length){
     const recentAll=tds.slice(-12);
     const attDates=recentAll.map(td=>fmtD(td.date||''));
-    const attVals=recentAll.map(td=>Math.round((td.present||[]).length/D.players.length*100));
+    const attVals=recentAll.map(td=>{
+      const eligible=D.players.filter(p=>!((p.injuries||[]).some(inj=>td.date>=inj.from&&(!inj.to||td.date<=inj.to))));
+      return eligible.length?Math.round(eligible.filter(p=>(td.present||[]).includes(p.id)).length/eligible.length*100):0;
+    });
     const elA=document.getElementById('el-ch-att');
     if(elA)CHS['el-ch-att']=new Chart(elA,{type:'bar',data:{labels:attDates,datasets:[{data:attVals,backgroundColor:attVals.map(v=>v>=80?'#2d7a2d':v>=65?'#ca8a04':'#c0392b'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}});
   }

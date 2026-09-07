@@ -1415,6 +1415,45 @@ function renderMRSection(){
 
 // ── TEAM ──────────────────────────────────────────────────────────────────────
 function renderTeam(){
+  // ── Player mode: hide other players, show team averages + own card ─────────
+  if(curPlayer){
+    const p=curPlayer;
+    const tcf=document.getElementById('tc-filter-panel')?.parentElement;
+    if(tcf)tcf.style.display='none'; // hide chart filter
+    document.getElementById('t-sc').textContent=D.sessions.length+' Trainings';
+    const aA=(arr,k)=>{const v=arr.map(s=>parseFloat(s[k]||0)).filter(v=>v>0);return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'–';};
+    const mA=(arr,k)=>{const v=arr.map(s=>parseFloat(s[k]||0)).filter(v=>v>0);return v.length?Math.max(...v).toFixed(1):'–';};
+    document.getElementById('t-sc-cards').innerHTML=`
+      <div class="card"><div class="cv">Trainings (Team)</div><div class="cn">${D.sessions.length}</div></div>
+      <div class="card"><div class="cv">Ø Distanz (Team)</div><div class="cn">${aA(D.sessions,'distance')} <small>km</small></div></div>
+      <div class="card"><div class="cv">Ø Max. Sprint (Team)</div><div class="cn">${aA(D.sessions,'maxSprint')} <small>km/h</small></div></div>
+      <div class="card"><div class="cv">Ø Hi-Int (Team)</div><div class="cn">${aA(D.sessions,'hiInt')} <small>m</small></div></div>`;
+    const fmGames=filtGames(D.games,gmFilter),w=fmGames.filter(g=>res(g)==='win').length,d=fmGames.filter(g=>res(g)==='draw').length,l=fmGames.filter(g=>res(g)==='loss').length;
+    document.getElementById('t-gc-cards').innerHTML=`
+      <div class="card"><div class="cv">Spiele</div><div class="cn">${fmGames.length}</div><div class="cs">${D.games.filter(g=>(g.gameType||'official')==='official').length} Pflicht · ${D.games.filter(g=>g.gameType==='friendly').length} Test</div></div>
+      <div class="card"><div class="cv">S / U / N</div><div class="cn" style="color:var(--grn)">${w}<span style="color:#999;font-size:14px"> / ${d} / </span><span style="color:var(--red)">${l}</span></div></div>
+      <div class="card"><div class="cv">Ø Distanz (Spiel)</div><div class="cn">${aA(D.games,'distance')} <small>km</small></div></div>
+      <div class="card"><div class="cv">Max. Sprint (Spiel)</div><div class="cn">${mA(D.games,'maxSprint')} <small>km/h</small></div></div>`;
+    // Show only own player card
+    const ps=pSess(p.id),gs=pGames(p.id),col=COLS[D.players.indexOf(p)%COLS.length],st=getEffStats(p.id);
+    document.getElementById('pg').innerHTML=`<div class="pc" style="cursor:default">
+      <div class="pav" style="background:${col}18;color:${col};border-color:${col}">${ini(p.name)}</div>
+      <div class="pn">#${p.number} ${p.name}</div><div class="pp">${p.pos}</div>
+      <div class="ps">
+        <div><div class="psv" style="color:${col}">${ps.length}</div><div class="psl">Trainings</div></div>
+        <div><div class="psv" style="color:var(--org)">${gs.length}</div><div class="psl">Spiele</div></div>
+        <div><div class="psv" style="color:var(--pur)">${totalGoals(st)}</div><div class="psl">Tore</div></div>
+        <div><div class="psv" style="color:#1a5e8a">${st.em||0}min</div><div class="psl">Einsatz</div></div>
+      </div></div>`;
+    setTimeout(()=>{
+      const filtPl=[p]; // only this player for charts
+      renderTChartsForPlayer(filtPl,'tr');
+    },60);
+    return;
+  }
+  // ── Trainer/public mode ───────────────────────────────────────────────────
+  const tcf=document.getElementById('tc-filter-panel')?.parentElement;
+  if(tcf)tcf.style.display='';
   document.getElementById('t-sc').textContent=D.sessions.length+' Trainings';
   document.getElementById('t-gc').textContent=D.games.length+' Spiele';
   const aA=(arr,k)=>{const v=arr.map(s=>parseFloat(s[k]||0)).filter(v=>v>0);return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'–';};
@@ -1504,6 +1543,43 @@ function noDataMsg(ids,msg){
     p.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:120px;color:var(--muted);font-size:12px;font-style:italic">'+msg+'</div>';
   });
 }
+function renderTChartsForPlayer(filtPl,t){
+  // For player mode: show only this player's chart lines
+  ['ch-td','ch-ts','ch-tr'].forEach(id=>{const el=document.getElementById(id);if(el&&CHS[id]){CHS[id].destroy();delete CHS[id];}});
+  if(t!=='tr')return;
+  const p=filtPl[0];if(!p)return;
+  const col='#2d7a2d';
+  const mySess=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0).sort((a,b)=>a.date.localeCompare(b.date));
+  const teamSess=D.sessions.filter(s=>parseFloat(s.distance||0)>0);
+  const teamAvgByDate=mySess.map(s=>{const same=teamSess.filter(t=>t.date===s.date);return same.length?same.reduce((a,x)=>a+parseFloat(x.distance||0),0)/same.length:null;});
+  const dates=mySess.map(s=>s.date);
+  if(!dates.length)return;
+  // Distance chart
+  const cd=document.getElementById('ch-td');
+  if(cd&&cd.getContext){CHS['ch-td']=new Chart(cd.getContext('2d'),{type:'line',data:{labels:dates,datasets:[
+    {label:p.name,data:mySess.map(s=>parseFloat(s.distance||0)),borderColor:col,backgroundColor:col+'22',tension:.3,pointRadius:4},
+    {label:'Team-Ø',data:teamAvgByDate,borderColor:'#1a5e8a',borderDash:[4,3],backgroundColor:'transparent',tension:.3,pointRadius:3}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},scales:{y:{beginAtZero:true}}}});}
+  // Sprint chart
+  const cs=document.getElementById('ch-ts');
+  if(cs&&cs.getContext){
+    const teamMaxSprint=mySess.map(s=>{const same=teamSess.filter(t=>t.date===s.date);return same.length?Math.max(...same.map(x=>parseFloat(x.maxSprint||0))):null;});
+    CHS['ch-ts']=new Chart(cs.getContext('2d'),{type:'bar',data:{labels:[p.name.split(' ')[0]],datasets:[
+      {label:'Max. Sprint',data:[mySess.length?Math.max(...mySess.map(s=>parseFloat(s.maxSprint||0))):0],backgroundColor:col+'cc',borderRadius:4},
+      {label:'Team-Ø',data:[teamSess.length?teamSess.reduce((a,s)=>a+parseFloat(s.maxSprint||0),0)/teamSess.length:0],backgroundColor:'#1a5e8a55',borderRadius:4}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},scales:{y:{beginAtZero:true}}}});}
+  // Radar chart
+  const cr=document.getElementById('ch-tr');
+  if(cr&&cr.getContext){
+    const teamAvgV=k=>teamSess.length?teamSess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/teamSess.length:0;
+    const myAvgV=k=>mySess.length?mySess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/mySess.length:0;
+    const labels=['Distanz','Hi-Int.','Sprint','Pässe','Aktiv-Min'];
+    CHS['ch-tr']=new Chart(cr.getContext('2d'),{type:'radar',data:{labels,datasets:[
+      {label:p.name,data:[myAvgV('distance'),myAvgV('hiInt')/100,myAvgV('maxSprint'),myAvgV('passes')/10,myAvgV('activeMin')],borderColor:col,backgroundColor:col+'22',pointRadius:3},
+      {label:'Team-Ø',data:[teamAvgV('distance'),teamAvgV('hiInt')/100,teamAvgV('maxSprint'),teamAvgV('passes')/10,teamAvgV('activeMin')],borderColor:'#1a5e8a',borderDash:[4,3],backgroundColor:'#1a5e8a22',pointRadius:3}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:9}}}},scales:{r:{beginAtZero:true,ticks:{font:{size:9}}}}}});}
+}
+
 function renderTCharts(t){
   const filtPl=tcFilter.size>0?D.players.filter(p=>tcFilter.has(p.id)):D.players;
   if(t==='tr'){
@@ -1741,6 +1817,53 @@ function opPl(pid){
   const b=document.getElementById('nb-pl');b.style.display='';b.textContent=p?p.name.split(' ')[0]:'Spieler';
   sp('player');
 }
+function renderScore(pid){
+  const sess=D.sessions.filter(s=>s.playerId===pid&&parseFloat(s.distance||0)>0).sort((a,b)=>a.date.localeCompare(b.date));
+  const recent=sess.slice(-4); // last 4 training sessions
+  if(!recent.length)return '';
+  const seaAvg=k=>sess.length?sess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/sess.length:0;
+  const recAvg=k=>recent.reduce((a,s)=>a+parseFloat(s[k]||0),0)/recent.length;
+  // Attendance last 6 training days
+  const lastTDs=D.trainingDays.slice(-6);
+  const attScore=lastTDs.length?Math.round(lastTDs.filter(td=>(td.present||[]).includes(pid)).length/lastTDs.length*25):0;
+  // Distance score (recent vs season)
+  const dSea=seaAvg('distance'),dRec=recAvg('distance');
+  const dScore=dSea>0?Math.min(25,Math.round((dRec/dSea)*20)):0;
+  // Hi-Int score
+  const hSea=seaAvg('hiInt'),hRec=recAvg('hiInt');
+  const hScore=hSea>0?Math.min(25,Math.round((hRec/hSea)*20)):0;
+  // Sprint score
+  const sSea=seaAvg('maxSprint'),sRec=recAvg('maxSprint');
+  const sScore=sSea>0?Math.min(25,Math.round((sRec/sSea)*20)):0;
+  const total=Math.min(100,attScore+dScore+hScore+sScore);
+  const col=total>=80?'#2d7a2d':total>=60?'#ca8a04':'#c0392b';
+  const label=total>=80?'🔥 Top-Form':total>=65?'💪 Gute Form':total>=50?'📈 Aufsteigend':'⚡ Aufholbedarf';
+  const trend=dRec>dSea&&hRec>hSea?'↑ Besser als Saisonschnitt':dRec<dSea*0.9?'↓ Unter Saisonschnitt':'→ Im Saisonschnitt';
+  const bar=Math.round(total);
+  return \`<div class="card" style="margin-bottom:14px;border-left:4px solid \${col}">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:800">⚡ Aktueller Leistungsscore</div>
+      <div style="font-size:11px;color:var(--muted)">basiert auf letzten \${recent.length} Einheiten</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+      <div style="font-size:42px;font-weight:900;color:\${col};line-height:1">\${total}</div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:\${col}">\${label}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">\${trend}</div>
+      </div>
+    </div>
+    <div style="background:var(--bg2);border-radius:99px;height:8px;overflow:hidden;margin-bottom:8px">
+      <div style="height:8px;border-radius:99px;background:\${col};width:\${bar}%;transition:width .5s"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:11px;text-align:center">
+      <div><div style="font-weight:700;color:\${col}">\${attScore}/25</div><div style="color:var(--muted)">Präsenz</div></div>
+      <div><div style="font-weight:700;color:\${col}">\${dScore}/25</div><div style="color:var(--muted)">Distanz</div></div>
+      <div><div style="font-weight:700;color:\${col}">\${hScore}/25</div><div style="color:var(--muted)">Hi-Int</div></div>
+      <div><div style="font-weight:700;color:\${col}">\${sScore}/25</div><div style="color:var(--muted)">Sprint</div></div>
+    </div>
+  </div>\`;
+}
+
 function renderPlayer(){
   if(!aPl)return;
   const p=D.players.find(p=>p.id===aPl);if(!p)return;

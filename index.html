@@ -2204,11 +2204,11 @@ function renderPlSt(p,col){
     <div class="g3" style="margin-bottom:12px">
       <div class="card">
         <div style="font-size:12px;font-weight:800;margin-bottom:9px">📋 Einsatzdetails</div>
-        <div class="stat-row"><span class="stat-lbl">Kadernominierungen</span><span class="stat-val" style="color:var(--blk)">${s.kn||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(pid,'official').kn||0} T:${getEffStats(pid,'friendly').kn||0})</small></span></div>
-        <div class="stat-row"><span class="stat-lbl">Start-11-Einsätze</span><span class="stat-val" style="color:var(--grn)">${s.s11||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(pid,'official').s11||0} T:${getEffStats(pid,'friendly').s11||0})</small></span></div>
-        <div class="stat-row"><span class="stat-lbl">Einwechslungen</span><span class="stat-val">${s.ew||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(pid,'official').ew||0} T:${getEffStats(pid,'friendly').ew||0})</small></span></div>
+        <div class="stat-row"><span class="stat-lbl">Kadernominierungen</span><span class="stat-val" style="color:var(--blk)">${s.kn||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(p.id,'official').kn||0} T:${getEffStats(p.id,'friendly').kn||0})</small></span></div>
+        <div class="stat-row"><span class="stat-lbl">Start-11-Einsätze</span><span class="stat-val" style="color:var(--grn)">${s.s11||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(p.id,'official').s11||0} T:${getEffStats(p.id,'friendly').s11||0})</small></span></div>
+        <div class="stat-row"><span class="stat-lbl">Einwechslungen</span><span class="stat-val">${s.ew||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(p.id,'official').ew||0} T:${getEffStats(p.id,'friendly').ew||0})</small></span></div>
         <div class="stat-row"><span class="stat-lbl">Auswechslungen</span><span class="stat-val">${s.aw||0}</span></div>
-        <div class="stat-row"><span class="stat-lbl">Einsatzminuten</span><span class="stat-val">${s.em||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(pid,'official').em||0} T:${getEffStats(pid,'friendly').em||0})</small></span></div>
+        <div class="stat-row"><span class="stat-lbl">Einsatzminuten</span><span class="stat-val">${s.em||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(p.id,'official').em||0} T:${getEffStats(p.id,'friendly').em||0})</small></span></div>
         <div style="margin-top:9px;font-size:10px;font-weight:700;color:var(--muted)">MIN-ANTEIL</div>
         <div style="margin-top:3px"><div class="pct-bar" style="height:9px"><div class="pct-fill" style="width:${mp}%;background:${minC}"></div></div></div>
         <div style="font-size:10px;color:var(--muted);margin-top:3px">${s.em||0} von ${mx} möglichen Min.</div>

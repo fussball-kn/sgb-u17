@@ -589,12 +589,6 @@ input:focus,select:focus{border-color:var(--grn);}
   <!-- Mannschaftsscore -->
   <div class="card" id="el-team-score" style="margin:13px 0"></div>
 
-  <!-- Top Torschützen -->
-  <div class="card" style="margin-bottom:13px">
-    <div style="font-size:13px;font-weight:800;margin-bottom:9px">⚽ Torschützen</div>
-    <div id="el-scorers"></div>
-  </div>
-
   <!-- Training Trend Charts -->
   <div class="g2" style="margin-bottom:13px">
     <div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:7px">📈 Distanz-Trend (Training)</div><div class="chrt"><canvas id="el-ch-dist"></canvas></div></div>
@@ -1100,8 +1094,12 @@ function computePMS(pid,mr){
 function getEffStats(pid,mrFilter){
   const ps=gPS(pid);
   const hasTD=D.trainingDays.length>0;
-  const ta=hasTD?D.trainingDays.filter(t=>t.present&&t.present.includes(pid)).length:ps.ta;
-  const tg=hasTD?D.trainingDays.length:ps.tg;
+  const p4inj=D.players.find(x=>x.id===pid);
+  const injs=p4inj?p4inj.injuries||[]:[];
+  const notInjured=td=>!injs.some(inj=>td.date>=inj.from&&(!inj.to||td.date<=inj.to));
+  const validTDs=hasTD?D.trainingDays.filter(notInjured):[];
+  const ta=hasTD?validTDs.filter(t=>t.present&&t.present.includes(pid)).length:ps.ta;
+  const tg=hasTD?validTDs.length:ps.tg;
   const _allMR=D.matchReports||[];
   const allMR=mrFilter&&mrFilter!=='all'?_allMR.filter(m=>(m.gameType||'official')===mrFilter):_allMR;
   const allPR=allMR.flatMap(mr=>{const r=computePMS(pid,mr);return r?[r]:[];});
@@ -2457,36 +2455,12 @@ function renderEltern(){
     document.getElementById('el-att').textContent='–';
   }
 
-  // Mannschaftsscore
-  const elTS=document.getElementById('el-team-score');
-  if(elTS)renderTeamScore(D.matchReports||[]);
-  // clone card into el-team-score
+  // Mannschaftsscore (nur Pflichtspiele)
+  const elPflMR=(D.matchReports||[]).filter(m=>(m.gameType||'official')==='official');
+  renderTeamScore(elPflMR);
   const tsCard=document.getElementById('team-score-card');
+  const elTS=document.getElementById('el-team-score');
   if(tsCard&&elTS)elTS.innerHTML=tsCard.innerHTML;
-
-  // Top Torschützen aus Spielberichten
-  const elSc=document.getElementById('el-scorers');
-  if(elSc){
-    const scorerMap={};
-    (D.matchReports||[]).forEach(mr=>(mr.events||[]).filter(e=>e.type==='goal').forEach(e=>{
-      scorerMap[e.playerId]=(scorerMap[e.playerId]||0)+1;
-    }));
-    const sorted=Object.entries(scorerMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
-    if(!sorted.length){elSc.innerHTML='<div style="color:var(--muted);font-size:12px">Noch keine Tore eingetragen</div>';}
-    else{
-      elSc.innerHTML=sorted.map(([pid,g],i)=>{
-        const p=D.players.find(x=>x.id===pid);
-        const name=p?p.name:'?';
-        const bar=Math.round(g/sorted[0][1]*100);
-        return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">'
-          +'<span style="font-weight:800;color:var(--muted);min-width:18px;font-size:11px">#'+(i+1)+'</span>'
-          +'<span style="font-size:13px;font-weight:700;min-width:140px">'+name+'</span>'
-          +'<div style="flex:1;background:var(--bg2);border-radius:99px;height:7px;overflow:hidden"><div style="height:7px;border-radius:99px;background:var(--grn);width:'+bar+'%"></div></div>'
-          +'<span style="font-weight:800;color:var(--grn);min-width:24px;text-align:right">'+g+'</span>'
-          +'</div>';
-      }).join('');
-    }
-  }
 
   // Charts
   ['el-ch-dist','el-ch-att'].forEach(dch);

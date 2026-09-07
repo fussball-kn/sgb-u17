@@ -604,7 +604,7 @@ let isTr=false;
 function sv(){if(_fbdb){_fbdb.collection('sgb').doc('u17data').set(JSON.parse(JSON.stringify(D))).catch(e=>console.error('Firestore:',e));}else{localStorage.setItem('sgb_u17_v2',JSON.stringify(D));}}
 
 const COLS=['#2d7a2d','#c05000','#7b2d8b','#1a5e8a','#8a6000','#8a1a1a','#006a8a','#4a7a00','#8a3a00','#003a8a','#6a1a6a','#005a3a'];
-let aPl=null,CHS={},curTT='tr',gmFilter='all',plGmFilter='all',stFilter='all';
+let aPl=null,CHS={},curTT='tr',gmFilter='all',plGmFilter='all',stFilter='all',plStFilter='all';
 let tcFilter=new Set(); // selected player IDs for team charts (empty=all)
 let tcFOpen=false;
 function renderTCFilter(){
@@ -2119,6 +2119,7 @@ function renderPlayer(){
   renderPTab('tr',p,ps,gs,col);
 }
 function setPT(type,btn,pid){
+  if(type!=='st')plStFilter='all';
   document.querySelectorAll('#pl-content .tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
   const p=D.players.find(p=>p.id===pid),col=COLS[D.players.indexOf(p)%COLS.length];
   renderPTab(type,p,pSess(pid),pGames(pid),col);
@@ -2187,12 +2188,18 @@ function renderPChts(p,entries,col){
 
 // ── PLAYER SEASON STATS TAB ───────────────────────────────────────────────────
 function renderPlSt(p,col){
-  const s=getEffStats(p.id),tg=totalGoals(s),att=attPct(s),mp=minPct(s),mx=maxMin(s);
+  const sfArg=plStFilter==='all'?undefined:plStFilter;
+  const s=getEffStats(p.id,sfArg),tg=totalGoals(s),att=attPct(s),mp=minPct(s),mx=maxMin(s);
   const attC=att>=80?'var(--grn)':att>=60?'#ca8a04':'var(--red)';
   const minC=mp>=80?'var(--grn)':mp>=50?'#ca8a04':'var(--red)';
   const src=s.hasMR?'<span style="font-size:10px;background:#e6f4e6;color:var(--grn);padding:2px 7px;border-radius:8px;font-weight:700;border:1px solid #b0d8b0">📊 aus Spielberichten</span>':s.hasTD?'<span style="font-size:10px;background:#e8f0fe;color:#1a5e8a;padding:2px 7px;border-radius:8px;font-weight:700;border:1px solid #b0c8f0">📋 aus Anwesenheitslisten</span>':'';
   const editBtn=isTr?`<button class="btn btn-p" onclick="opEditSt('${p.id}')">✏️ Manuell bearbeiten</button>`:'';
-  document.getElementById('pt-c').innerHTML=`
+  const stFiltUI=`<div class="tabs" style="margin-bottom:12px">
+    <button class="tab gm ${plStFilter==='all'?'active':''}" onclick="plStFilter='all';renderPlSt(D.players.find(x=>x.id==='${p.id}'),'${col}')">Alle Spiele</button>
+    <button class="tab gm ${plStFilter==='official'?'active':''}" onclick="plStFilter='official';renderPlSt(D.players.find(x=>x.id==='${p.id}'),'${col}')">Pflichtspiele</button>
+    <button class="tab ${plStFilter==='friendly'?'active':''}" onclick="plStFilter='friendly';renderPlSt(D.players.find(x=>x.id==='${p.id}'),'${col}')" style="background:#1a5e8a;color:#fff">Testspiele</button>
+  </div>`;
+  document.getElementById('pt-c').innerHTML=stFiltUI+`
     <div class="g4" style="margin-bottom:12px">
       <div class="card"><div class="cv">Tore ⚽</div><div class="cn" style="color:var(--grn)">${tg}</div><div class="cs">${s.ts||0} Schuss · ${s.tk||0} Kopf</div></div>
       <div class="card"><div class="cv">Vorlagen</div><div class="cn" style="color:var(--pur)">${s.vl||0}</div></div>

@@ -453,7 +453,7 @@ input:focus,select:focus{border-color:var(--grn);}
         <button id="cmp-btn-ss" class="btn" onclick="setCmpMode('season')" style="font-size:11px;padding:5px 12px;border-radius:6px;border:none;cursor:pointer;background:var(--card);color:var(--fg);border:1px solid var(--brd)">📊 Saisonwerte</button>
       </div>
       <div style="background:var(--card);border-radius:10px;padding:14px;margin-bottom:12px">
-        <div class="chrt" style="height:320px"><canvas id="ch-cmp"></canvas></div>
+        <div id="cmp-chart-wrap" class="chrt" style="height:320px"><canvas id="ch-cmp"></canvas></div>
       </div>
       <div id="cmp-table" style="background:var(--card);border-radius:10px;padding:12px;overflow-x:auto"></div>
     </div>
@@ -789,9 +789,13 @@ function cmpGetData(pid){
 
 function cmpUpdate(){
   if(CHS['ch-cmp']){CHS['ch-cmp'].destroy();delete CHS['ch-cmp'];}
-  const canvas=document.getElementById('ch-cmp');
-  if(!canvas)return;
-  const parent=canvas.parentElement;
+  // Ensure the canvas wrapper exists
+  const parent=document.getElementById('cmp-chart-wrap');
+  if(!parent)return;
+  // Restore canvas if it was replaced by placeholder text
+  if(!document.getElementById('ch-cmp')){
+    parent.innerHTML='<canvas id="ch-cmp" style="max-height:320px"></canvas>';
+  }
 
   const modeLabels={
     training:['Distanz (km)','Hi-Int (×100m)','Max Sprint (km/h)','Beschl.','Abbrems.','Pässe (×10)','Aktiv-Min'],
@@ -834,9 +838,9 @@ function cmpUpdate(){
     cmpRenderTable(selected,[]);return;
   }
 
-  // restore canvas if replaced by placeholder
+  // Ensure canvas is present (placeholder may have replaced it)
   if(!document.getElementById('ch-cmp')){
-    parent.innerHTML='<canvas id="ch-cmp"></canvas>';
+    parent.innerHTML='<canvas id="ch-cmp" style="max-height:320px"></canvas>';
   }
   const ctx=document.getElementById('ch-cmp');
   CHS['ch-cmp']=new Chart(ctx,{type:'radar',data:{labels,datasets},options:{

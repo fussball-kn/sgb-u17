@@ -1880,49 +1880,98 @@ function delInj(pid,idx){
 
 function renderScore(pid){
   const allSess=D.sessions.filter(s=>s.playerId===pid&&parseFloat(s.distance||0)>0).sort((a,b)=>a.date.localeCompare(b.date));
-  const sess=sessExcludeInjured(pid,allSess); // exclude injury periods
-  const recent=sess.slice(-4); // last 4 training sessions
+  const sess=sessExcludeInjured(pid,allSess);
+  const recent=sess.slice(-4);
   if(!recent.length)return '';
   const seaAvg=k=>sess.length?sess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/sess.length:0;
   const recAvg=k=>recent.reduce((a,s)=>a+parseFloat(s[k]||0),0)/recent.length;
-  // Attendance last 6 training days
+
+  // ── TRAININGSLEISTUNGSSCORE (100 Pkt) ────────────────────────────────────
   const lastTDs=D.trainingDays.slice(-6);
   const attScore=lastTDs.length?Math.round(lastTDs.filter(td=>(td.present||[]).includes(pid)).length/lastTDs.length*25):0;
-  // Distance score (recent vs season)
   const dSea=seaAvg('distance'),dRec=recAvg('distance');
   const dScore=dSea>0?Math.min(25,Math.round((dRec/dSea)*20)):0;
-  // Hi-Int score
   const hSea=seaAvg('hiInt'),hRec=recAvg('hiInt');
   const hScore=hSea>0?Math.min(25,Math.round((hRec/hSea)*20)):0;
-  // Sprint score
   const sSea=seaAvg('maxSprint'),sRec=recAvg('maxSprint');
   const sScore=sSea>0?Math.min(25,Math.round((sRec/sSea)*20)):0;
-  const total=Math.min(100,attScore+dScore+hScore+sScore);
-  const col=total>=80?'#2d7a2d':total>=60?'#ca8a04':'#c0392b';
-  const label=total>=80?'🔥 Top-Form':total>=65?'💪 Gute Form':total>=50?'📈 Aufsteigend':'⚡ Aufholbedarf';
+  const trScore=Math.min(100,attScore+dScore+hScore+sScore);
+  const trCol=trScore>=80?'#2d7a2d':trScore>=60?'#ca8a04':'#c0392b';
+  const trLabel=trScore>=80?'🔥 Top-Form':trScore>=65?'💪 Gute Form':trScore>=50?'📈 Aufsteigend':'⚡ Aufholbedarf';
   const trend=dRec>dSea&&hRec>hSea?'↑ Besser als Saisonschnitt':dRec<dSea*0.9?'↓ Unter Saisonschnitt':'→ Im Saisonschnitt';
-  const bar=Math.round(total);
-  return `<div class="card" style="margin-bottom:14px;border-left:4px solid ${col}">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <div style="font-size:13px;font-weight:800">⚡ Aktueller Leistungsscore</div>
-      <div style="font-size:11px;color:var(--muted)">basiert auf letzten ${recent.length} Einheiten</div>
-    </div>
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
-      <div style="font-size:42px;font-weight:900;color:${col};line-height:1">${total}</div>
-      <div>
-        <div style="font-size:14px;font-weight:700;color:${col}">${label}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">${trend}</div>
+
+  // ── GESAMTLEISTUNGSSCORE (70% Training + 30% Spieleinsatz) ───────────────
+  const allGms=D.games.filter(g=>g.playerId===pid).sort((a,b)=>a.date.localeCompare(b.date));
+  const recGms=allGms.slice(-4);
+  const st=getEffStats(pid);
+  let gameScore=0,gameNote='keine Spieldaten';
+  if(recGms.length||st.em>0){
+    // Minutes: actual vs possible (90min*games)
+    const possMin=Math.max(recGms.length,1)*90;
+    const actMin=recGms.length?recGms.reduce((a,g)=>a+parseFloat(g.activeMin||g.minutes||0),0):(st.em||0);
+    const minScore=Math.min(40,Math.round(actMin/possMin*40));
+    // Goals+Assists contribution (capped at 30 pts)
+    const goals=st.go||0,assists=st.vl||0;
+    const contribScore=Math.min(30,goals*8+assists*5);
+    // GPS in games (if available, capped at 30)
+    const gpsGmSess=recGms.filter(g=>parseFloat(g.distance||0)>0);
+    const gpsScore=gpsGmSess.length?Math.min(30,Math.round(gpsGmSess.reduce((a,g)=>a+parseFloat(g.distance||0),0)/gpsGmSess.length*5)):0;
+    const hasGPS=gpsGmSess.length>0;
+    gameScore=hasGPS?Math.round((minScore+contribScore+gpsScore)/100*100):Math.round((minScore+contribScore)/(70)*100);
+    gameScore=Math.min(100,gameScore);
+    gameNote=`Einsatzzeit ${Math.round(actMin/(possMin)*100)}% · ${goals}G / ${assists}A${hasGPS?' · GPS-Spieldaten':' · kein Spiel-GPS'}`;
+  }
+  const hasGameData=allGms.length>0||st.em>0;
+  const gesamtScore=hasGameData?Math.min(100,Math.round(trScore*0.7+gameScore*0.3)):trScore;
+  const gsCol=gesamtScore>=80?'#2d7a2d':gesamtScore>=60?'#ca8a04':'#c0392b';
+  const gsLabel=gesamtScore>=80?'🔥 Sehr gut':gesamtScore>=65?'💪 Gut':gesamtScore>=50?'📈 Solide':'⚡ Aufholbedarf';
+
+  return `<div class="card" style="margin-bottom:14px">
+
+    <!-- Trainingsleistungsscore -->
+    <div style="border-left:4px solid ${trCol};padding-left:10px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:12px;font-weight:800">🏃 Trainingsleistungsscore</div>
+        <div style="font-size:10px;color:var(--muted)">letzte ${recent.length} Einheiten</div>
       </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <div style="font-size:38px;font-weight:900;color:${trCol};line-height:1">${trScore}</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:${trCol}">${trLabel}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">${trend}</div>
+        </div>
+      </div>
+      <div style="background:var(--bg2);border-radius:99px;height:6px;overflow:hidden;margin-bottom:6px">
+        <div style="height:6px;border-radius:99px;background:${trCol};width:${trScore}%;transition:width .5s"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-size:10px;text-align:center;margin-bottom:4px">
+        <div><div style="font-weight:700;color:${trCol}">${attScore}/25</div><div style="color:var(--muted)">Präsenz</div></div>
+        <div><div style="font-weight:700;color:${trCol}">${dScore}/25</div><div style="color:var(--muted)">Distanz</div></div>
+        <div><div style="font-weight:700;color:${trCol}">${hScore}/25</div><div style="color:var(--muted)">Hi-Int</div></div>
+        <div><div style="font-weight:700;color:${trCol}">${sScore}/25</div><div style="color:var(--muted)">Sprint</div></div>
+      </div>
+      <div style="font-size:9px;color:var(--muted);font-style:italic">Berechnung: Anwesenheit letzte 6 Tage (25P) + Distanz/Hi-Int/Sprint vs. Saisonschnitt (je 25P)</div>
     </div>
-    <div style="background:var(--bg2);border-radius:99px;height:8px;overflow:hidden;margin-bottom:8px">
-      <div style="height:8px;border-radius:99px;background:${col};width:${bar}%;transition:width .5s"></div>
+
+    <!-- Gesamtleistungsscore -->
+    <div style="border-left:4px solid ${gsCol};padding-left:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:12px;font-weight:800">⚡ Gesamtleistungsscore</div>
+        <div style="font-size:10px;color:var(--muted)">${hasGameData?'Training 70% · Spiel 30%':'nur Training (keine Spieldaten)'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <div style="font-size:38px;font-weight:900;color:${gsCol};line-height:1">${gesamtScore}</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:${gsCol}">${gsLabel}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">${gameNote}</div>
+        </div>
+      </div>
+      <div style="background:var(--bg2);border-radius:99px;height:6px;overflow:hidden;margin-bottom:6px">
+        <div style="height:6px;border-radius:99px;background:${gsCol};width:${gesamtScore}%;transition:width .5s"></div>
+      </div>
+      <div style="font-size:9px;color:var(--muted);font-style:italic">${hasGameData?'Berechnung: Trainingsform (70%) + Spieleinsatzzeit, Tore/Vorlagen, Spiel-GPS (30%)':'Berechnung: nur Trainingsform (keine Spieldaten vorhanden → 100% Trainingsgewichtung)'}</div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:11px;text-align:center">
-      <div><div style="font-weight:700;color:${col}">${attScore}/25</div><div style="color:var(--muted)">Präsenz</div></div>
-      <div><div style="font-weight:700;color:${col}">${dScore}/25</div><div style="color:var(--muted)">Distanz</div></div>
-      <div><div style="font-weight:700;color:${col}">${hScore}/25</div><div style="color:var(--muted)">Hi-Int</div></div>
-      <div><div style="font-weight:700;color:${col}">${sScore}/25</div><div style="color:var(--muted)">Sprint</div></div>
-    </div>
+
   </div>`;
 }
 

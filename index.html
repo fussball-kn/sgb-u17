@@ -262,7 +262,8 @@ input:focus,select:focus{border-color:var(--grn);}
       <div><label>Datum</label><input type="date" id="mr-dt" style="margin-top:3px"></div>
       <div><label>Gegner</label><input type="text" id="mr-op" placeholder="Vereinsname" style="margin-top:3px"></div>
       <div><label>Heim/Auswärts</label><select id="mr-hm" style="margin-top:3px"><option value="home">Heimspiel</option><option value="away">Auswärtsspiel</option></select></div>
-      <div><label>Spieltyp</label><select id="mr-gtype" style="margin-top:3px"><option value="official">Pflichtspiel</option><option value="friendly">Testspiel</option></select></div>
+      <div><label>Spieltyp</label><select id="mr-gtype" style="margin-top:3px" onchange="mrGtypeChange()"><option value="official">Pflichtspiel</option><option value="friendly">Testspiel</option></select></div>
+      <div id="mr-dur-wrap" style="display:none;grid-column:1/-1;background:#e8f0fe;border:1px solid #b0c8f0;border-radius:7px;padding:8px 10px"><div style="font-size:11px;font-weight:800;color:#1a5e8a;margin-bottom:6px">⏱ Spielzeit (Testspiel)</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label>Abschnitte</label><input type="number" id="mr-per" min="1" max="4" value="2" style="margin-top:3px" onchange="mrDurInfo()" oninput="mrDurInfo()"></div><div><label>Min. pro Abschnitt</label><input type="number" id="mr-pmin" min="10" max="60" value="40" style="margin-top:3px" onchange="mrDurInfo()" oninput="mrDurInfo()"></div></div><div style="font-size:11px;color:#1a5e8a;margin-top:5px" id="mr-dur-info">Spielzeit: 80 Min.</div></div>
       <div><label>Tore Wir</label><input type="number" id="mr-gu" min="0" value="0" style="margin-top:3px"></div>
       <div><label>Tore Gegner</label><input type="number" id="mr-gt" min="0" value="0" style="margin-top:3px"></div>
       <div><label>Zuschauer</label><input type="number" id="mr-zu" min="0" placeholder="0" style="margin-top:3px"></div>
@@ -650,7 +651,7 @@ function gPS(pid){
   return s;
 }
 // kn × 80 = max possible minutes
-const maxMin=s=>(s.kn||0)*GAME_MIN;
+const maxMin=s=>s.maxMinFromMR!=null?s.maxMinFromMR:(s.kn||0)*GAME_MIN;
 const minPct=s=>maxMin(s)>0?Math.round((s.em||0)/maxMin(s)*100):0;
 const attPct=s=>s.tg?Math.round((s.ta||0)/s.tg*100):0;
 const totalGoals=s=>s.goalsTotal!==undefined?s.goalsTotal:(s.ts||0)+(s.tk||0);
@@ -1055,7 +1056,7 @@ function computePMS(pid,mr){
   const subOut=evts.find(e=>e.type==='sub'&&e.playerOutId===pid);
   const kader=isStr||isBench||!!subIn;if(!kader)return null;
   let min=0;
-  const REGTIME=80; // Nachspielzeit zaehlt NICHT zu Spielminuten
+  const REGTIME=mr.matchDuration||80;
   if(isStr) min=subOut?Math.min(subOut.minute,REGTIME):REGTIME;
   else if(subIn) min=subOut?(Math.min(subOut.minute,REGTIME)-Math.min(subIn.minute,REGTIME)):(REGTIME-Math.min(subIn.minute,REGTIME));
   // bench player not subbed in = 0 minutes (but counts as kader)
@@ -1104,13 +1105,27 @@ function getEffStats(pid,mrFilter){
   const penScored=hasMR?allEvtsForPid.filter(e=>e.type==='goal'&&e.playerId===pid&&e.goalType==='elfmeter').length:(ps.et||0);
   // Spiele zu null (hasMR: Spiele in Kader wo goalsThem===0)
   const cleanSheets=hasMR?allMR.filter(mr=>{const r=computePMS(pid,mr);return r&&r.kader&&(mr.goalsThem===0||(mr.goalsThem||0)===0);}).length:(ps.sn||0);
+  const maxMinFromMR=hasMR?allPR.reduce((a,r,i)=>{
+    const mr2=allMR[i];return a+(r.kader?(mr2.matchDuration||80):0);
+  },0):null;
   return{ta,tg,kn,s11,em,ew,aw,gk,grk,rk,vl,goalsTotal,
     tib:ps.tib,tao:ps.tao,ts:ps.ts,tk:ps.tk,
     penSaved,penMissed,penWon,penCaused,penScored,
-    sn:cleanSheets,
+    sn:cleanSheets,maxMinFromMR,
     ego:eigenFromMR||(ps.ego||0),hasMR,hasTD};
 }
 
+function mrGtypeChange(){
+  const isFriendly=document.getElementById('mr-gtype').value==='friendly';
+  document.getElementById('mr-dur-wrap').style.display=isFriendly?'':'none';
+  mrDurInfo();
+}
+function mrDurInfo(){
+  const per=parseInt(document.getElementById('mr-per')?.value||2);
+  const pmin=parseInt(document.getElementById('mr-pmin')?.value||40);
+  const info=document.getElementById('mr-dur-info');
+  if(info)info.textContent='Spielzeit: '+(per*pmin)+' Min.';
+}
 function oMR(id){
   const mr=id?D.matchReports.find(m=>m.id===id):null;
   document.getElementById('mr-id').value=id||'';
@@ -1118,6 +1133,11 @@ function oMR(id){
   document.getElementById('mr-op').value=mr?mr.opponent||'':'';
   document.getElementById('mr-hm').value=mr?mr.home||'home':'home';
   document.getElementById('mr-gtype').value=mr?mr.gameType||'official':'official';
+  const _isFr=mr&&mr.gameType==='friendly';
+  document.getElementById('mr-dur-wrap').style.display=_isFr?'':'none';
+  document.getElementById('mr-per').value=mr&&mr.matchPeriods?mr.matchPeriods:2;
+  document.getElementById('mr-pmin').value=mr&&mr.matchPeriodMin?mr.matchPeriodMin:40;
+  mrDurInfo();
   document.getElementById('mr-gu').value=mr?mr.goalsUs||0:0;
   document.getElementById('mr-gt').value=mr?mr.goalsThem||0:0;
   document.getElementById('mr-zu').value=mr?mr.zuschauer||'':'';
@@ -1373,7 +1393,11 @@ function svMR(){
   const id=document.getElementById('mr-id').value||Date.now().toString();
   const date=document.getElementById('mr-dt').value;if(!date){alert('Datum angeben.');return;}
   const g=i=>document.getElementById(i).value;
-  const rec={id,date,opponent:g('mr-op'),home:g('mr-hm'),gameType:g('mr-gtype')||'official',
+  const _mrGtype=g('mr-gtype')||'official';
+  const _mrPer=_mrGtype==='friendly'?parseInt(g('mr-per')||2):2;
+  const _mrPmin=_mrGtype==='friendly'?parseInt(g('mr-pmin')||40):40;
+  const _mrDur=_mrGtype==='friendly'?_mrPer*_mrPmin:80;
+  const rec={id,date,opponent:g('mr-op'),home:g('mr-hm'),gameType:_mrGtype,matchDuration:_mrDur,matchPeriods:_mrPer,matchPeriodMin:_mrPmin,
     goalsUs:parseInt(g('mr-gu')||0),goalsThem:parseInt(g('mr-gt')||0),
     zuschauer:parseInt(g('mr-zu')||0)||0,htUs:parseInt(g('mr-htu')||0),htThem:parseInt(g('mr-htt')||0),etH1:parseInt(g('mr-et1')||0),etH2:parseInt(g('mr-et2')||0),starters:[...mrStrs],bench:[...mrBench],events:mrEvts.map(e=>({...e}))};
   const idx=D.matchReports.findIndex(m=>m.id===id);

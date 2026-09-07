@@ -537,6 +537,9 @@ input:focus,select:focus{border-color:var(--grn);}
     <div id="el-games"></div>
   </div>
 
+  <!-- Spielverlauf -->
+  <div id="el-reports-wrap"></div>
+
   <!-- Team-Statistiken -->
   <div class="g3" style="margin-bottom:13px">
     <div class="card">
@@ -651,7 +654,7 @@ function chkPin(){
   else{document.getElementById('pin-err').textContent='Falscher PIN.';document.getElementById('pin-in').value='';}
 }
 function trainerMode(){
-  isTr=true;
+  isTr=true;isEltern=false;
   document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🔐 Trainer';
   document.getElementById('tr-ctrl').style.display='flex';
   document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='');
@@ -1906,10 +1909,11 @@ function elternMode(){
 }
 
 function renderEltern(){
-  // Games
+  // Games table
   const elGames=document.getElementById('el-games');
   if(!elGames)return;
   const mrs=D.matchReports||[];
+  const pname=id=>{const p=D.players.find(x=>x.id===id);return p?(p.name||'?'):'?';};
   if(!mrs.length){
     elGames.innerHTML='<div class="empty"><div class="eico">🏆</div><div class="etit">Noch keine Spielberichte</div></div>';
   } else {
@@ -1924,6 +1928,48 @@ function renderEltern(){
         return '<tr><td>'+fmtD(m.date)+'</td><td style="font-weight:700">'+( m.opponent||'?')+'</td><td>'+hw+'</td>'
           +'<td class="num"><span style="font-weight:800;color:'+rc+'">'+res+'</span></td><td style="font-size:10px;color:var(--muted)">'+typ+'</td></tr>';
       }).join('')+'</tbody></table>';
+  }
+
+  // Spielverlauf (lineup + subs per game)
+  const wrap=document.getElementById('el-reports-wrap');
+  if(wrap&&mrs.length){
+    const sorted2=[...mrs].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    wrap.innerHTML=sorted2.map(m=>{
+      const evts=m.events||[];
+      const goals=evts.filter(e=>e.type==='goal'||e.type==='goal-gegen');
+      const subs=evts.filter(e=>e.type==='sub');
+      const cards=evts.filter(e=>e.type==='yellow'||e.type==='red'||e.type==='yellow-red');
+      const starters=m.starters||[];
+      const bench=m.bench||[];
+      const rc=m.goalsUs>m.goalsThem?'var(--grn)':m.goalsUs<m.goalsThem?'var(--red)':'#ca8a04';
+      let html='<div class="card" style="margin-bottom:10px">';
+      html+='<div class="sh"><div style="font-size:13px;font-weight:800">'+fmtD(m.date)+' – '+(m.opponent||'?')+'</div>';
+      html+='<span style="font-weight:900;color:'+rc+';font-size:16px">'+m.goalsUs+':'+m.goalsThem+'</span></div>';
+      if(m.htUs!==undefined) html+='<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Halbzeit: '+m.htUs+':'+m.htThem+'</div>';
+      // Aufstellung
+      if(starters.length){
+        html+='<div style="font-size:12px;font-weight:700;margin-bottom:4px">⚽ Startelf</div>';
+        html+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.6">'+starters.map(id=>pname(id)).join(' · ')+'</div>';
+      }
+      if(bench.length){
+        html+='<div style="font-size:12px;font-weight:700;margin-bottom:4px">🪑 Bank</div>';
+        html+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.6">'+bench.map(id=>pname(id)).join(' · ')+'</div>';
+      }
+      // Ereignisse
+      const evtRows=[
+        ...goals.map(e=>{const own=e.type==='goal-gegen';return {min:e.min,icon:own?'⚽ (ET)':'⚽',txt:(e.playerId?pname(e.playerId):'')+(e.assist?' (Assist: '+pname(e.assist)+')':'')};  }),
+        ...subs.map(e=>({min:e.min,icon:'🔄',txt:'ein: '+(e.inId?pname(e.inId):'?')+' / aus: '+(e.outId?pname(e.outId):'?')})),
+        ...cards.map(e=>({min:e.min,icon:e.type==='yellow'?'🟨':e.type==='red'?'🟥':'🟨🟥',txt:e.playerId?pname(e.playerId):''}))
+      ].sort((a,b)=>(parseInt(a.min)||0)-(parseInt(b.min)||0));
+      if(evtRows.length){
+        html+='<div style="font-size:12px;font-weight:700;margin-bottom:6px">📋 Spielverlauf</div>';
+        html+=evtRows.map(e=>'<div style="font-size:12px;display:flex;gap:8px;margin-bottom:3px"><span style="min-width:32px;color:var(--muted)">'+(e.min?e.min+"'":'')+' </span><span>'+e.icon+'</span><span>'+e.txt+'</span></div>').join('');
+      }
+      html+='</div>';
+      return html;
+    }).join('');
+  } else if(wrap){
+    wrap.innerHTML='';
   }
 
   // Team averages from training sessions

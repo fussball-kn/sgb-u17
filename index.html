@@ -559,12 +559,12 @@ input:focus,select:focus{border-color:var(--grn);}
     <div class="card">
       <div class="cv">Ø Laufdistanz/Training</div>
       <div class="cn" id="el-dist">–</div>
-      <div class="cs">km pro Einheit</div>
+      <div class="cs">km pro Einheit · pro Spieler</div>
     </div>
     <div class="card">
       <div class="cv">Ø Max. Sprint</div>
       <div class="cn" id="el-sprint">–</div>
-      <div class="cs">km/h im Training</div>
+      <div class="cs">km/h · Max. Sprint pro Spieler</div>
     </div>
   </div>
 
@@ -572,18 +572,33 @@ input:focus,select:focus{border-color:var(--grn);}
     <div class="card">
       <div class="cv">Ø Hi-Intensität</div>
       <div class="cn" id="el-hiint">–</div>
-      <div class="cs">m pro Einheit</div>
+      <div class="cs">m pro Einheit · pro Spieler</div>
     </div>
     <div class="card">
       <div class="cv">Ø Pässe/Training</div>
       <div class="cn" id="el-passes">–</div>
-      <div class="cs">pro Einheit</div>
+      <div class="cs">pro Einheit · pro Spieler</div>
     </div>
     <div class="card">
       <div class="cv">Ø Schüsse/Training</div>
       <div class="cn" id="el-shots">–</div>
-      <div class="cs">pro Einheit</div>
+      <div class="cs">pro Einheit · pro Spieler</div>
     </div>
+  </div>
+
+  <!-- Mannschaftsscore -->
+  <div class="card" id="el-team-score" style="margin:13px 0"></div>
+
+  <!-- Top Torschützen -->
+  <div class="card" style="margin-bottom:13px">
+    <div style="font-size:13px;font-weight:800;margin-bottom:9px">⚽ Torschützen</div>
+    <div id="el-scorers"></div>
+  </div>
+
+  <!-- Training Trend Charts -->
+  <div class="g2" style="margin-bottom:13px">
+    <div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:7px">📈 Distanz-Trend (Training)</div><div class="chrt"><canvas id="el-ch-dist"></canvas></div></div>
+    <div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:7px">👥 Anwesenheit-Trend</div><div class="chrt"><canvas id="el-ch-att"></canvas></div></div>
   </div>
 </div>
 
@@ -2440,6 +2455,57 @@ function renderEltern(){
     document.getElementById('el-att').textContent=Math.round(avgAtt)+'%';
   } else {
     document.getElementById('el-att').textContent='–';
+  }
+
+  // Mannschaftsscore
+  const elTS=document.getElementById('el-team-score');
+  if(elTS)renderTeamScore(D.matchReports||[]);
+  // clone card into el-team-score
+  const tsCard=document.getElementById('team-score-card');
+  if(tsCard&&elTS)elTS.innerHTML=tsCard.innerHTML;
+
+  // Top Torschützen aus Spielberichten
+  const elSc=document.getElementById('el-scorers');
+  if(elSc){
+    const scorerMap={};
+    (D.matchReports||[]).forEach(mr=>(mr.events||[]).filter(e=>e.type==='goal').forEach(e=>{
+      scorerMap[e.playerId]=(scorerMap[e.playerId]||0)+1;
+    }));
+    const sorted=Object.entries(scorerMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    if(!sorted.length){elSc.innerHTML='<div style="color:var(--muted);font-size:12px">Noch keine Tore eingetragen</div>';}
+    else{
+      elSc.innerHTML=sorted.map(([pid,g],i)=>{
+        const p=D.players.find(x=>x.id===pid);
+        const name=p?p.name:'?';
+        const bar=Math.round(g/sorted[0][1]*100);
+        return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">'
+          +'<span style="font-weight:800;color:var(--muted);min-width:18px;font-size:11px">#'+(i+1)+'</span>'
+          +'<span style="font-size:13px;font-weight:700;min-width:140px">'+name+'</span>'
+          +'<div style="flex:1;background:var(--bg2);border-radius:99px;height:7px;overflow:hidden"><div style="height:7px;border-radius:99px;background:var(--grn);width:'+bar+'%"></div></div>'
+          +'<span style="font-weight:800;color:var(--grn);min-width:24px;text-align:right">'+g+'</span>'
+          +'</div>';
+      }).join('');
+    }
+  }
+
+  // Charts
+  ['el-ch-dist','el-ch-att'].forEach(dch);
+  // Distanz-Trend: avg distance per training day (from D.sessions grouped by date)
+  const sessByDate={};
+  sess.forEach(s=>{if(s.date){(sessByDate[s.date]=sessByDate[s.date]||[]).push(parseFloat(s.distance||0));}});
+  const distDates=Object.keys(sessByDate).sort().slice(-12);
+  const distVals=distDates.map(d=>{const vs=sessByDate[d];return vs.length?(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(1):0;});
+  if(distDates.length){
+    const elD=document.getElementById('el-ch-dist');
+    if(elD)CHS['el-ch-dist']=new Chart(elD,{type:'line',data:{labels:distDates.map(fmtD),datasets:[{data:distVals,borderColor:'#2d7a2d',backgroundColor:'#2d7a2d20',tension:.3,fill:true,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false}}}});
+  }
+  // Anwesenheit-Trend
+  if(tds.length&&D.players.length){
+    const recentAll=tds.slice(-12);
+    const attDates=recentAll.map(td=>fmtD(td.date||''));
+    const attVals=recentAll.map(td=>Math.round((td.present||[]).length/D.players.length*100));
+    const elA=document.getElementById('el-ch-att');
+    if(elA)CHS['el-ch-att']=new Chart(elA,{type:'bar',data:{labels:attDates,datasets:[{data:attVals,backgroundColor:attVals.map(v=>v>=80?'#2d7a2d':v>=65?'#ca8a04':'#c0392b'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}});
   }
 }
 

@@ -2033,31 +2033,35 @@ function renderScore(pid){
   const trLabel=trScore>=80?'🔥 Top-Form':trScore>=65?'💪 Gute Form':trScore>=50?'📈 Aufsteigend':'⚡ Aufholbedarf';
   const trend=dRec>dSea&&hRec>hSea?'↑ Besser als Saisonschnitt':dRec<dSea*0.9?'↓ Unter Saisonschnitt':'→ Im Saisonschnitt';
 
-  // ── GESAMTLEISTUNGSSCORE — positionsabhängig, nur Pflichtspiele, recency-gewichtet ──
+  // ── GESAMTLEISTUNGSSCORE — Training 75% + Spiel 25%, positionsabhängig, nur Pflichtspiele ──
   const p4s=D.players.find(x=>x.id===pid);
   const pos4=(p4s?p4s.pos||'':'').toLowerCase();
   const isTW=pos4.includes('torwart')||pos4.includes('keeper');
   const isDEF=!isTW&&(pos4.includes('verteidiger')||pos4.includes('libero')||pos4.includes('abwehr'));
   const isATT=!isTW&&!isDEF&&(pos4.includes('stürmer')||pos4.includes('sturm')||pos4.includes('außenstürmer'));
-  // weights: [Einsatz, Ergebnis, Offensiv, Defensiv, GPS]
-  const W=isTW?[25,20,5,35,15]:isDEF?[25,20,15,25,15]:isATT?[25,20,35,5,15]:[25,20,25,15,15];
+  // Feste Komponenten: Einsatz=30, Ergebnis=20, Rest 50 positionsabhängig aufgeteilt
+  // W=[Einsatz, Ergebnis, Offensiv, Defensiv]  — immer Summe 100
+  const W=isTW  ?[30,20, 5,45]
+         :isDEF ?[30,20,10,40]
+         :isATT ?[30,20,40,10]
+                :[30,20,25,25]; // MID
 
   const st=getEffStats(pid,'official');
   const allMR=(D.matchReports||[]).filter(m=>(m.gameType||'official')==='official');
-  // nur Pflichtspiele wo Spieler im Kader — nach Datum sortiert (älteste zuerst)
+  // nur Pflichtspiele wo Spieler im Kader, älteste zuerst (für Recency-Gewicht)
   const plMRs=allMR.filter(mr=>computePMS(pid,mr)!==null).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-  const hasGameData=plMRs.length>0||st.em>0;
+  const hasGameData=plMRs.length>0;
   let gameScore=0,gameNote='keine Pflichtspieleinsätze';
-  let minSc=0,resSc=0,offSc=0,defSc=0,gpsSc=0;
+  let minSc=0,resSc=0,offSc=0,defSc=0;
 
-  if(hasGameData&&plMRs.length>0){
+  if(hasGameData){
     const nG=plMRs.length;
-    // Recency-Gewichte: letztes Spiel = nG, vorletztes = nG-1, ... (linear)
-    const rw=plMRs.map((_,i)=>i+1); // [1,2,...,nG]
+    // Recency-Gewicht: letztes Spiel=nG, vorletztes=nG-1, ... (linear)
+    const rw=plMRs.map((_,i)=>i+1);
     const rwSum=rw.reduce((a,b)=>a+b,0)||1;
     const wAvg=(arr)=>arr.reduce((a,v,i)=>a+(isNaN(v)?0:v)*rw[i],0)/rwSum;
 
-    // 1. Einsatzzeit (gewichtete Einsatzquote pro Spiel)
+    // 1. Einsatzzeit (max 30) — gewichtete Einsatzquote
     const minRates=plMRs.map(mr=>{
       const pms=computePMS(pid,mr);
       const played=pms?parseFloat(pms.minutes)||0:0;
@@ -2066,47 +2070,45 @@ function renderScore(pid){
     });
     minSc=Math.min(W[0],Math.round(wAvg(minRates)*W[0]));
 
-    // 2. Spielergebnis (gewichtete Punkte: S=1, U=0.33, N=0)
+    // 2. Ergebnis (max 20) — S=1, U=0.4, N=0, recency-gewichtet
     const resRates=plMRs.map(mr=>{
       const us=parseInt(mr.goalsUs||0),th=parseInt(mr.goalsThem||0);
-      return us>th?1:us===th?0.33:0;
+      return us>th?1:us===th?0.4:0;
     });
     resSc=Math.min(W[1],Math.round(wAvg(resRates)*W[1]));
 
-    // 3. Offensiver Beitrag — aus Events der Pflichtspiele (positionsgewichtet)
+    // 3. Offensiv — Tore + Vorlagen pro Spiel vs. Erwartungswert für Position
     const plGoals=plMRs.map(mr=>{
       const evts=mr.events||[];
       const g=evts.filter(e=>e.type==='goal'&&e.playerId===pid).length;
       const a=evts.filter(e=>e.type==='goal'&&e.assistId===pid).length;
       return g+a*0.6;
     });
-    const offRef=isATT?0.6:isDEF?0.15:isTW?0.05:0.35;
+    // Erwarteter G+A-Schnitt pro Position (pro Spiel)
+    const offRef=isATT?0.55:isDEF?0.12:isTW?0.04:0.30;
     const offAvg=wAvg(plGoals);
-    offSc=offRef>0?Math.min(W[2],Math.round(Math.min(offAvg/offRef,1.5)*W[2]*0.85)):0;
+    offSc=W[2]>0&&offRef>0?Math.min(W[2],Math.round(Math.min(offAvg/offRef,1.5)*W[2])):0;
 
-    // 4. Defensiver Beitrag (Gegentore + Clean Sheets, gewichtet)
+    // 4. Defensiv — wenig Gegentore + Clean Sheets (recency-gewichtet)
+    // Score pro Spiel: 0 GT=1.0, 1 GT=0.65, 2 GT=0.30, 3+ GT=0
     const defRates=plMRs.map(mr=>{
       const conc=parseInt(mr.goalsThem||0);
-      const concScore=Math.max(0,Math.min(1,(2-conc)/2));
-      const cs=conc===0?1:0;
-      return concScore*0.6+cs*0.4;
+      if(conc===0)return 1;
+      if(conc===1)return 0.65;
+      if(conc===2)return 0.30;
+      return 0;
     });
     defSc=Math.min(W[3],Math.round(wAvg(defRates)*W[3]));
 
-    // 5. GPS Spieldaten (Pflichtspiele)
-    const allGms=(D.games||[]).filter(g=>g.playerId===pid);
-    const gpsGms=allGms.filter(g=>parseFloat(g.distance||0)>0);
-    gpsSc=gpsGms.length?Math.min(W[4],Math.round(gpsGms.reduce((a,g)=>a+parseFloat(g.distance||0),0)/gpsGms.length*3)):0;
-
-    gameScore=Math.min(100,minSc+resSc+offSc+defSc+gpsSc);
+    gameScore=Math.min(100,minSc+resSc+offSc+defSc);
     const wins=plMRs.filter(mr=>parseInt(mr.goalsUs||0)>parseInt(mr.goalsThem||0)).length;
     const draws=plMRs.filter(mr=>parseInt(mr.goalsUs||0)===parseInt(mr.goalsThem||0)).length;
-    const totalGoalsConc=plMRs.reduce((a,mr)=>a+parseInt(mr.goalsThem||0),0);
+    const totalGC=plMRs.reduce((a,mr)=>a+parseInt(mr.goalsThem||0),0);
     const posLabel=isTW?'Torwart':isDEF?'Verteidiger':isATT?'Angreifer':'Mittelfeld';
-    gameNote=posLabel+' · '+wins+'S/'+draws+'U/'+(nG-wins-draws)+'N · '+totalGoals(st)+'T/'+st.vl+'V · Ø '+(totalGoalsConc/nG).toFixed(1)+' GA/Spiel';
+    gameNote=posLabel+' · '+wins+'S/'+draws+'U/'+(nG-wins-draws)+'N · '+totalGoals(st)+'T/'+(st.vl||0)+'V · Ø '+(totalGC/nG).toFixed(1)+' GT/Spiel';
   }
 
-  const gesamtScore=hasGameData&&plMRs.length>0?Math.min(100,Math.round(trScore*0.7+gameScore*0.3)):trScore;
+  const gesamtScore=hasGameData?Math.min(100,Math.round(trScore*0.75+gameScore*0.25)):trScore;
   const gsCol=gesamtScore>=80?'#2d7a2d':gesamtScore>=60?'#ca8a04':'#c0392b';
   const gsLabel=gesamtScore>=80?'🔥 Sehr gut':gesamtScore>=65?'💪 Gut':gesamtScore>=50?'📈 Solide':'⚡ Aufholbedarf';
 
@@ -2141,7 +2143,7 @@ function renderScore(pid){
     <div style="border-left:4px solid ${gsCol};padding-left:10px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="font-size:12px;font-weight:800">⚡ Gesamtleistungsscore</div>
-        <div style="font-size:10px;color:var(--muted)">${hasGameData?'Training 70% · Spiel 30%':'nur Training (keine Spieldaten)'}</div>
+        <div style="font-size:10px;color:var(--muted)">${hasGameData?'Training 75% · Spiel 25%':'nur Training (keine Spieldaten)'}</div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
         <div style="font-size:38px;font-weight:900;color:${gsCol};line-height:1">${gesamtScore}</div>
@@ -2153,14 +2155,13 @@ function renderScore(pid){
       <div style="background:var(--bg2);border-radius:99px;height:6px;overflow:hidden;margin-bottom:6px">
         <div style="height:6px;border-radius:99px;background:${gsCol};width:${gesamtScore}%;transition:width .5s"></div>
       </div>
-      ${hasGameData?`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;font-size:10px;text-align:center;margin-bottom:5px">
+      ${hasGameData?`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;font-size:10px;text-align:center;margin-bottom:5px">
         <div><div style="font-weight:700;color:${gsCol}">${minSc}/${W[0]}</div><div style="color:var(--muted)">Einsatz</div></div>
         <div><div style="font-weight:700;color:${gsCol}">${resSc}/${W[1]}</div><div style="color:var(--muted)">Ergebnis</div></div>
         <div><div style="font-weight:700;color:${gsCol}">${offSc}/${W[2]}</div><div style="color:var(--muted)">Offensiv</div></div>
         <div><div style="font-weight:700;color:${gsCol}">${defSc}/${W[3]}</div><div style="color:var(--muted)">Defensiv</div></div>
-        <div><div style="font-weight:700;color:${gsCol}">${gpsSc}/${W[4]}</div><div style="color:var(--muted)">GPS</div></div>
       </div>`:''}
-      <div style="font-size:9px;color:var(--muted);font-style:italic">${hasGameData?'Training 70% + Spieldaten 30% — Gewichte positionsabhängig (Defensiv/Offensiv)':'Nur Trainingsform (keine Spieldaten → 100% Trainingsgewichtung)'}</div>
+      <div style="font-size:9px;color:var(--muted);font-style:italic">${hasGameData?'Training 75% + Pflichtspiele 25% — Offensiv/Defensiv positionsabhängig':'Nur Trainingsform (keine Pflichtspieleinsätze)'}</div>
     </div>
 
   </div>`;

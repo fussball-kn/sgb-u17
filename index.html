@@ -1744,13 +1744,15 @@ function renderStatsOv(){
   const avgET2=mrList.length?(mrList.reduce((a,mr)=>a+(mr.etH2||0),0)/mrList.length).toFixed(1):'–';
   const avgNSZtotal=mrList.length?(mrList.reduce((a,mr)=>a+(mr.etH1||0)+(mr.etH2||0),0)/mrList.length).toFixed(1):'–';
   const avgNSZ=mrList.length?avgNSZtotal+' Min':'–';
+  const attCol=avgAtt>=80?'var(--grn)':avgAtt>=65?'#ca8a04':'var(--red)';
   document.getElementById('sts-ov-cards').innerHTML=`
-    <div class="card"><div class="cv">Team-Tore ⚽ (alle)</div><div class="cn" style="color:var(--grn)">${totalG}</div><div class="cs">Ø ${avgGoals} · P:${avgPflG} · T:${avgTestG}</div></div>
-    <div class="card"><div class="cv">Gegentore Ø</div><div class="cn" style="color:var(--red)">${avgConc}</div><div class="cs">${mrPfl.length} Pflicht · ${mrTest.length} Test · ${mrAll.length} gesamt</div></div>
-    <div class="card"><div class="cv">Zuschauerschnitt</div><div class="cn" style="font-size:18px">${avgZu}</div><div class="cs">${zuArr.length} von ${mrAll.length} Spielen mit Daten</div></div>
+    <div class="card"><div class="cv">Ø Tore/Spiel</div><div class="cn" style="color:var(--grn)">${avgGoals}</div><div class="cs">Gesamt: ${totalG} · Pflicht: ${avgPflG} · Test: ${avgTestG}</div></div>
+    <div class="card"><div class="cv">Ø Gegentore/Spiel</div><div class="cn" style="color:var(--red)">${avgConc}</div><div class="cs">${mrPfl.length} Pflicht · ${mrTest.length} Test · ${mrAll.length} gesamt</div></div>
+    <div class="card"><div class="cv">👟 Ø Anwesenheit Team</div><div class="cn" style="color:${attCol}">${Math.round(avgAtt)}%</div><div class="cs">${D.trainingDays.length} Trainingstage · ${D.players.length} Spieler</div></div>
     <div class="card"><div class="cv">Bester Torschütze</div><div class="cn" style="font-size:14px">${topScorer.p?topScorer.p.name.split(' ')[0]:'–'}</div><div class="cs">${topScorer.g} Tore</div></div>
     <div class="card"><div class="cv">Ergebnis (${mrAll.length} Spiele)</div><div class="cn" style="font-size:14px;color:var(--grn)">${mrAll.filter(m=>res(m)==='win').length}S <span style="color:#ca8a04">${mrAll.filter(m=>res(m)==='draw').length}U</span> <span style="color:var(--red)">${mrAll.filter(m=>res(m)==='loss').length}N</span></div><div class="cs">aus Spielberichten</div></div>
-    <div class="card"><div class="cv">⏱ Ø Nachspielzeit</div><div class="cn" style="font-size:18px">${avgNSZ}</div><div class="cs">1. HZ: Ø ${avgET1} Min · 2. HZ: Ø ${avgET2} Min</div></div>`;
+    <div class="card"><div class="cv">Zuschauerschnitt</div><div class="cn" style="font-size:18px">${avgZu}</div><div class="cs">${zuArr.length} von ${mrAll.length} Spielen mit Daten</div></div>
+    <div class="card"><div class="cv">⏱ Ø Nachspielzeit</div><div class="cn" style="font-size:18px">${avgNSZ}</div><div class="cs">1. HZ: Ø ${avgET1} · 2. HZ: Ø ${avgET2} Min</div></div>`;
 
   // Mannschaftsscore
   const _scoreMR=(stFilter==='all'?mrAll:stFilter==='official'?mrPfl:mrTest);

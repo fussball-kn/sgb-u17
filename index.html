@@ -168,6 +168,7 @@ input:focus,select:focus{border-color:var(--grn);}
       <div style="margin-top:11px"><button class="btn" style="width:100%;background:#1a5e8a;color:#fff" onclick="chkPlayerPin()">Einloggen als Spieler</button></div>
     </div>
   </div>
+  <span class="skip" onclick="viewMode()">👥 Eltern-Ansicht (kein Login)</span>
 </div>
 
 <!-- MODAL: Add Player -->
@@ -618,7 +619,7 @@ function slMode(){
   isTr=false;isSL=true;curPlayer=null;
   document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='👔 Sport. Ltg.';
   document.getElementById('tr-ctrl').style.display='none';
-  document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='none');
+  document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='');
   renderTeam();renderStatsOv();
 }
 function trainerMode(){

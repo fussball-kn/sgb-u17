@@ -145,6 +145,7 @@ input:focus,select:focus{border-color:var(--grn);}
   <div class="pbox">
     <div style="display:flex;gap:0;margin-bottom:14px;border-radius:8px;overflow:hidden;border:1px solid #ddd">
       <button id="ltab-tr" onclick="switchLoginTab('trainer')" style="flex:1;padding:9px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:var(--grn);color:#fff">🏆 Trainer</button>
+      <button id="ltab-sl" onclick="switchLoginTab('sl')" style="flex:1;padding:9px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:#f0f0f0;color:#555">🏅 Sport. Leitung</button>
       <button id="ltab-pl" onclick="switchLoginTab('spieler')" style="flex:1;padding:9px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:#f0f0f0;color:#555">👤 Spieler</button>
     </div>
     <div id="login-trainer">
@@ -152,6 +153,12 @@ input:focus,select:focus{border-color:var(--grn);}
       <input type="password" class="pin-in" id="pin-in" maxlength="6" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')chkPin()">
       <div class="pin-err" id="pin-err"></div>
       <div style="margin-top:11px"><button class="btn btn-g" style="width:100%" onclick="chkPin()">Einloggen als Trainer</button></div>
+    </div>
+    <div id="login-sl" style="display:none">
+      <p style="margin-bottom:9px;font-size:13px;color:#555">Sportliche Leitung — PIN eingeben:</p>
+      <input type="password" class="pin-in" id="sl-pin-in" maxlength="6" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')chkSLPin()">
+      <div class="pin-err" id="sl-pin-err"></div>
+      <div style="margin-top:11px"><button class="btn" style="width:100%;background:#7c3aed;color:#fff" onclick="chkSLPin()">Einloggen als Sport. Leitung</button></div>
     </div>
     <div id="login-spieler" style="display:none">
       <p style="margin-bottom:9px;font-size:13px;color:#555">Spieler auswählen &amp; PIN eingeben:</p>
@@ -161,7 +168,7 @@ input:focus,select:focus{border-color:var(--grn);}
       <div style="margin-top:11px"><button class="btn" style="width:100%;background:#1a5e8a;color:#fff" onclick="chkPlayerPin()">Einloggen als Spieler</button></div>
     </div>
   </div>
-  <span class="skip" onclick="elternMode()">👨‍👩‍👧 Eltern-Ansicht</span><span class="skip" onclick="viewMode()" style="font-size:10px;opacity:.5">Trainer-Vorschau</span>
+  <span class="skip" onclick="elternMode()">👨‍👩‍👧 Eltern-Ansicht</span>
 </div>
 
 <!-- MODAL: Add Player -->
@@ -609,7 +616,9 @@ if(!D.matchReports)D.matchReports=[];
 if(!D.games)D.games=[];if(!D.pstats)D.pstats=[];
 if(!D.playerPins)D.playerPins={};
 let PIN=localStorage.getItem('sgb_pin')||'1927';
+let SL_PIN=localStorage.getItem('sgb_sl_pin')||'2024';
 let isTr=false;
+let isSL=false;
 function sv(){if(_fbdb){_fbdb.collection('sgb').doc('u17data').set(JSON.parse(JSON.stringify(D))).catch(e=>console.error('Firestore:',e));}else{localStorage.setItem('sgb_u17_v2',JSON.stringify(D));}}
 
 const COLS=['#2d7a2d','#c05000','#7b2d8b','#1a5e8a','#8a6000','#8a1a1a','#006a8a','#4a7a00','#8a3a00','#003a8a','#6a1a6a','#005a3a'];
@@ -672,7 +681,7 @@ function chkPin(){
   else{document.getElementById('pin-err').textContent='Falscher PIN.';document.getElementById('pin-in').value='';}
 }
 function trainerMode(){
-  isTr=true;isEltern=false;
+  isTr=true;isSL=false;isEltern=false;
   // Restore all standard nav buttons + cmp sidebar
   document.querySelectorAll('.nb').forEach(b=>b.style.display='');
   const _cmpSide=document.getElementById('cmp-player-list');if(_cmpSide&&_cmpSide.parentElement)_cmpSide.parentElement.style.display='';
@@ -684,9 +693,26 @@ function trainerMode(){
   document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='');
   renderTeam();renderStatsOv();
 }
+function chkSLPin(){
+  const v=document.getElementById('sl-pin-in').value;
+  if(v===SL_PIN){slMode();hidePin();}
+  else{document.getElementById('sl-pin-err').textContent='Falscher PIN.';document.getElementById('sl-pin-in').value='';}
+}
+function slMode(){
+  isSL=true;isTr=false;isEltern=false;curPlayer=null;
+  document.querySelectorAll('.nb').forEach(b=>b.style.display='');
+  const _cmpSide=document.getElementById('cmp-player-list');if(_cmpSide&&_cmpSide.parentElement)_cmpSide.parentElement.style.display='';
+  const _cmpExtra=document.getElementById('cmp-pl-extra');if(_cmpExtra)_cmpExtra.remove();
+  document.getElementById('nb-pl').style.display='none';
+  document.getElementById('nb-eltern').style.display='none';
+  document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🏅 Sport. Leitung';
+  document.getElementById('tr-ctrl').style.display='none'; // kein Bearbeiten
+  document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='none');
+  renderTeam();renderStatsOv();
+}
 function viewMode(){
   curPlayer=null;
-  hidePin();isTr=false;isEltern=false;
+  hidePin();isTr=false;isSL=false;isEltern=false;
   // Restore standard nav buttons (not nb-pl, not nb-eltern)
   document.querySelectorAll('.nb').forEach(b=>b.style.display='');
   document.getElementById('nb-pl').style.display='none';
@@ -699,13 +725,16 @@ function viewMode(){
 let curPlayer=null; // null=trainer or public, else player object
 
 function switchLoginTab(tab){
-  const isTrTab=tab==='trainer';
+  const isTrTab=tab==='trainer',isSLTab=tab==='sl';
   document.getElementById('login-trainer').style.display=isTrTab?'':'none';
-  document.getElementById('login-spieler').style.display=isTrTab?'none':'';
+  document.getElementById('login-sl').style.display=isSLTab?'':'none';
+  document.getElementById('login-spieler').style.display=(!isTrTab&&!isSLTab)?'':'none';
   document.getElementById('ltab-tr').style.background=isTrTab?'var(--grn)':'#f0f0f0';
   document.getElementById('ltab-tr').style.color=isTrTab?'#fff':'#555';
-  document.getElementById('ltab-pl').style.background=isTrTab?'#f0f0f0':'#1a5e8a';
-  document.getElementById('ltab-pl').style.color=isTrTab?'#555':'#fff';
+  document.getElementById('ltab-sl').style.background=isSLTab?'#7c3aed':'#f0f0f0';
+  document.getElementById('ltab-sl').style.color=isSLTab?'#fff':'#555';
+  document.getElementById('ltab-pl').style.background=(!isTrTab&&!isSLTab)?'#1a5e8a':'#f0f0f0';
+  document.getElementById('ltab-pl').style.color=(!isTrTab&&!isSLTab)?'#fff':'#555';
   // populate player dropdown
   if(!isTrTab){
     const sel=document.getElementById('pl-login-sel');
@@ -727,7 +756,7 @@ function chkPlayerPin(){
 }
 
 function playerMode(p){
-  curPlayer=p;isTr=false;isEltern=false;aPl=p.id;
+  curPlayer=p;isTr=false;isSL=false;isEltern=false;aPl=p.id;
   // Nav: hide Training, Spiele, Statistiken (keep Vergleich for team avg)
   ['sessions','games-ov','stats-ov'].forEach(id=>{
     const btn=document.querySelector('.nb[onclick*=\''+id+'\']');
@@ -741,7 +770,7 @@ function playerMode(p){
   document.getElementById('nb-pl').style.display='flex';
   sp('player'); // go straight to their player page
 }
-function togTr(){if(isTr||curPlayer){if(curPlayer){curPlayer=null;viewMode();return;}isTr=false;viewMode();}else{document.getElementById('pin-in').value='';document.getElementById('pin-err').textContent='';showPin();}}
+function togTr(){if(isTr||isSL||curPlayer){if(curPlayer){curPlayer=null;viewMode();return;}isTr=false;isSL=false;viewMode();}else{document.getElementById('pin-in').value='';document.getElementById('pin-err').textContent='';showPin();}}
 function doChgPin(){
   const o=document.getElementById('cp-o').value,n=document.getElementById('cp-n').value,n2=document.getElementById('cp-n2').value,e=document.getElementById('cp-e');
   if(o!==PIN){e.textContent='Aktueller PIN falsch.';return;}
@@ -1985,7 +2014,7 @@ function renderInjurySection(p){
     <div><label style="font-size:11px;color:var(--muted)">Notiz</label><input type="text" id="inj-note" placeholder="z.B. Muskelfaserriss" style="display:block;padding:4px 6px;border-radius:5px;border:1px solid var(--brd);font-size:12px;width:160px"></div>
     <button class="btn btn-g" style="font-size:11px;padding:5px 10px" onclick="addInj('${p.id}')">+ Verletzung</button>
   </div>`:'';
-  if(!injs.length&&!isTr)return '';
+  if(!injs.length&&!isTr&&!isSL)return '';
   return `<div class="card trainer-only" style="margin-bottom:12px;border-left:4px solid var(--red)">
     <div style="font-size:13px;font-weight:800;margin-bottom:8px">🏥 Verletzungshistorie</div>
     ${injs.length?injRows:'<div style="font-size:12px;color:var(--muted)">Keine Verletzungen eingetragen</div>'}

@@ -2298,155 +2298,171 @@ function renderPlRec(p){
   const el=document.getElementById('pl-content');
   if(!allSess.length){el.innerHTML='<p style="color:var(--muted);text-align:center;padding:30px">Noch keine GPS-Trainingsdaten vorhanden.</p>';return;}
 
-  // ── Metrik-Definitionen ───────────────────────────────────────────────────
+  // Metrik-Definitionen: base+step = dynamische Level ohne Obergrenze
   const METRICS=[
-    {key:'maxSprint',lbl:'Max. Speed',emoji:'🏃',unit:'km/h',higher:true,dec:1,
-     levels:[24,26,27,28,29,30,31,32,33]},
-    {key:'distance',lbl:'Distanz',emoji:'📏',unit:'km',higher:true,dec:2,
-     levels:[3,4,5,6,7,8,9,10]},
-    {key:'acc',lbl:'Beschleunigungen',emoji:'⚡',unit:'',higher:true,dec:0,
-     levels:[15,25,35,45,55,65,75,90,100]},
-    {key:'dec',lbl:'Abbremsungen',emoji:'🛑',unit:'',higher:true,dec:0,
-     levels:[15,25,35,45,55,65,75,90,100]},
-    {key:'hiInt',lbl:'Hi-Intensität',emoji:'❤️',unit:'m',higher:true,dec:0,
-     levels:[100,200,400,600,800,1000,1200,1500]},
-    {key:'load',lbl:'Belastungsscore',emoji:'💪',unit:'',higher:true,dec:0,
-     levels:[40,50,60,70,80,90,95,100]},
-    {key:'passes',lbl:'Pässe',emoji:'🔄',unit:'',higher:true,dec:0,
-     levels:[10,20,30,40,60,80,100]},
+    {key:'maxSprint',lbl:'Max. Speed',emoji:'🏃',unit:'km/h',dec:1,base:22,step:1},
+    {key:'distance', lbl:'Distanz',   emoji:'📏',unit:'km',  dec:2,base:2, step:0.5},
+    {key:'acc',      lbl:'Beschl.',   emoji:'⚡',unit:'',    dec:0,base:5, step:10},
+    {key:'dec',      lbl:'Abbrems.',  emoji:'🛑',unit:'',    dec:0,base:5, step:10},
+    {key:'hiInt',    lbl:'Hi-Int.',   emoji:'❤️',unit:'m',   dec:0,base:0, step:200},
+    {key:'load',     lbl:'Belastung', emoji:'💪',unit:'',    dec:0,base:30,step:10},
+    {key:'passes',   lbl:'Pässe',     emoji:'🔄',unit:'',    dec:0,base:0, step:10},
   ];
 
-  // ── Hilfsfunktionen ───────────────────────────────────────────────────────
-  function recVal(m){
+  function rv(m){
     const vals=allSess.map(s=>parseFloat(s[m.key]||0)).filter(v=>v>0);
     return vals.length?Math.max(...vals):null;
   }
-  function recDate(m,rv){
-    const s=[...allSess].reverse().find(s=>parseFloat(s[m.key]||0)===rv);
+  function rdate(m,best){
+    const s=[...allSess].reverse().find(s=>parseFloat(s[m.key]||0)===best);
     return s?s.date:null;
   }
-  function levelInfo(m,best){
-    if(best===null)return{lvl:0,cur:best,from:0,to:m.levels[0],badge:'–'};
-    const lvls=m.levels;
-    let lvl=0;
-    for(let i=0;i<lvls.length;i++){if(best>=lvls[i])lvl=i+1;}
-    const from=lvl>0?lvls[lvl-1]:0;
-    const to=lvl<lvls.length?lvls[lvl]:null;
-    const badges=['🥉','🥉','🥈','🥈','🥇','🥇','💎','💎','💎'];
-    return{lvl,from,to,badge:lvl>0?badges[lvl-1]||'💎':'–'};
+  function lvlOf(m,best){
+    if(best===null||best<m.base)return{lvl:0,from:m.base,to:m.base+m.step,pct:0};
+    const lvl=Math.floor((best-m.base)/m.step);
+    const from=m.base+lvl*m.step;
+    const to=from+m.step;
+    const pct=Math.min(99,Math.round((best-from)/m.step*100));
+    return{lvl,from,to,pct};
   }
-  function fmtV(m,v){return v===null?'–':(parseFloat(v).toFixed(m.dec)+(m.unit?' '+m.unit:''));}
-  function pct(v,from,to){if(to===null)return 100;return Math.min(100,Math.max(0,Math.round((v-from)/(to-from)*100)));}
+  function fv(m,v){return v===null?'–':(parseFloat(v).toFixed(m.dec)+(m.unit?' '+m.unit:''));}
+  const col=['#cd7f32','#cd7f32','#aaa','#aaa','#f59e0b','#f59e0b','#7c3aed','#7c3aed','#7c3aed'];
+  const badge=['🥉','🥉','🥈','🥈','🥇','🥇','💎','💎','💎'];
 
-  // ── Letzte Einheit vs. Rekord ─────────────────────────────────────────────
+  // ── Letzte Einheit ────────────────────────────────────────────────────────
   const last=allSess[allSess.length-1];
   const prev=allSess.length>1?allSess[allSess.length-2]:null;
-  const NEAR=0.95; // "fast geschafft" wenn ≥95% des Rekords
-  let lastCards='';
+  const NEAR=0.95;
+  let newRecHtml='', nearHtml='', normalHtml='';
   METRICS.forEach(m=>{
-    const lastVal=parseFloat(last[m.key]||0)||null;
-    if(!lastVal)return;
-    const rv=recVal(m);
-    const prevVal=prev?parseFloat(prev[m.key]||0)||null:null;
-    const isRec=lastVal>=rv;
-    const isNear=!isRec&&rv>0&&lastVal/rv>=NEAR;
-    const delta=prevVal?lastVal-prevVal:null;
-    const deltaStr=delta!==null?(delta>=0?'+':'')+delta.toFixed(m.dec):null;
-    const deltaCol=delta===null?'var(--muted)':delta>0?'#2d7a2d':delta<0?'#c0392b':'var(--muted)';
+    const lv=parseFloat(last[m.key]||0)||null; if(!lv)return;
+    const best=rv(m);
+    const pv=prev?parseFloat(prev[m.key]||0)||null:null;
+    const delta=pv!==null?lv-pv:null;
+    const dStr=delta!==null?(delta>=0?'+':'')+parseFloat(delta.toFixed(m.dec))+(m.unit?' '+m.unit:''):null;
+    const dCol=delta===null?'var(--muted)':delta>0?'#2d7a2d':delta<0?'#c0392b':'var(--muted)';
+    const isRec=lv>=best;
+    const isNear=!isRec&&best>0&&lv/best>=NEAR;
     if(isRec){
-      lastCards+=`<div style="background:linear-gradient(135deg,#fef9c3,#fef08a);border:2px solid #ca8a04;border-radius:12px;padding:12px;margin-bottom:8px">
-        <div style="font-size:11px;font-weight:800;color:#92400e;letter-spacing:.5px">🏆 NEUER PERSÖNLICHER REKORD</div>
-        <div style="font-size:22px;font-weight:900;color:#92400e;margin:4px 0">${m.emoji} ${fmtV(m,lastVal)}</div>
-        <div style="font-size:11px;color:#a16207">${deltaStr?`+${Math.abs(delta).toFixed(m.dec)} ${m.unit} besser als letztes Training`:'Erstmaliger Rekord'}</div>
+      newRecHtml+=`<div style="background:linear-gradient(135deg,#fef9c3,#fef08a);border:2px solid #ca8a04;border-radius:10px;padding:10px;margin-bottom:7px">
+        <div style="font-size:10px;font-weight:800;color:#92400e;letter-spacing:.5px">🏆 NEUER REKORD · ${m.lbl}</div>
+        <div style="font-size:20px;font-weight:900;color:#92400e">${m.emoji} ${fv(m,lv)}</div>
+        ${dStr?`<div style="font-size:10px;color:#a16207">${dStr} vs. letztes Training</div>`:''}
       </div>`;
     } else if(isNear){
-      const gap=(rv-lastVal).toFixed(m.dec);
-      lastCards+=`<div style="background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:10px;margin-bottom:6px;display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center">
-        <div style="font-size:24px">${m.emoji}</div>
-        <div>
-          <div style="font-size:12px;font-weight:700">👀 Fast geschafft! <span style="color:var(--muted);font-weight:400">${m.lbl}</span></div>
-          <div style="font-size:18px;font-weight:800;color:var(--fg)">${fmtV(m,lastVal)}</div>
-          <div style="font-size:10px;color:#ca8a04">Nur ${gap}${m.unit?(' '+m.unit):''} vom Rekord (${fmtV(m,rv)}) entfernt</div>
-        </div>
+      nearHtml+=`<div style="background:var(--card);border:1px solid #f59e0b;border-radius:8px;padding:8px 10px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-size:10px;font-weight:700">👀 Fast! ${m.emoji} ${m.lbl}</div>
+          <div style="font-size:14px;font-weight:800">${fv(m,lv)}</div></div>
+        <div style="text-align:right;font-size:10px;color:#ca8a04">noch ${parseFloat((best-lv).toFixed(m.dec))}${m.unit?' '+m.unit:''} bis Rekord<br><span style="color:var(--muted)">${fv(m,best)}</span></div>
       </div>`;
     } else {
-      lastCards+=`<div style="background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:8px 10px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
-        <div style="display:flex;gap:8px;align-items:center">
-          <span style="font-size:16px">${m.emoji}</span>
-          <div>
-            <div style="font-size:10px;color:var(--muted)">${m.lbl}</div>
-            <div style="font-size:15px;font-weight:700">${fmtV(m,lastVal)}</div>
-          </div>
-        </div>
-        <div style="text-align:right">
-          ${deltaStr?`<div style="font-size:11px;font-weight:700;color:${deltaCol}">${deltaStr}</div>`:''}
-          <div style="font-size:9px;color:var(--muted)">Rekord: ${fmtV(m,rv)}</div>
+      normalHtml+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--brd)">
+        <div style="font-size:11px">${m.emoji} ${m.lbl}</div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <span style="font-size:12px;font-weight:700">${fv(m,lv)}</span>
+          ${dStr?`<span style="font-size:10px;color:${dCol};min-width:36px;text-align:right">${dStr}</span>`:''}
         </div>
       </div>`;
     }
   });
 
-  // ── Level-Up Meilensteine ─────────────────────────────────────────────────
-  let levelCards='';
+  // ── Level-Up Meilensteine (2-Spalten) ─────────────────────────────────────
+  let levelHtml='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
   METRICS.forEach(m=>{
-    const best=recVal(m);
-    const li=levelInfo(m,best);
-    if(best===null)return;
-    const p2=li.to!==null?pct(best,li.from,li.to):100;
-    const nextLvlLbl=li.to!==null?`Nächstes Ziel: ${li.to.toFixed(m.dec)}${m.unit?' '+m.unit:''}`:'👑 Maximum erreicht!';
-    const col=li.lvl<=2?'#cd7f32':li.lvl<=4?'#aaa':li.lvl<=6?'#f59e0b':'#7c3aed';
-    levelCards+=`<div style="background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:10px;margin-bottom:6px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div style="display:flex;gap:6px;align-items:center">
-          <span style="font-size:16px">${m.emoji}</span>
-          <div>
-            <div style="font-size:11px;font-weight:700">${m.lbl}</div>
-            <div style="font-size:10px;color:var(--muted)">${nextLvlLbl}</div>
-          </div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:16px">${li.badge} <span style="font-size:11px;font-weight:700;color:${col}">Level ${li.lvl}</span></div>
-          <div style="font-size:11px;font-weight:700">${fmtV(m,best)}</div>
-        </div>
+    const best=rv(m); if(best===null)return;
+    const li=lvlOf(m,best);
+    const lvlIdx=Math.min(li.lvl,col.length-1);
+    const c=col[lvlIdx], b=badge[lvlIdx]||'💎';
+    levelHtml+=`<div style="background:var(--card);border:1px solid var(--brd);border-radius:9px;padding:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <div style="font-size:11px;font-weight:700">${m.emoji} ${m.lbl}</div>
+        <div style="font-size:10px;font-weight:800;color:${c}">${b} Lvl ${li.lvl}</div>
       </div>
-      <div style="height:6px;background:var(--brd);border-radius:3px;overflow:hidden">
-        <div style="height:100%;width:${p2}%;background:${col};border-radius:3px;transition:width .6s"></div>
+      <div style="font-size:13px;font-weight:800;color:${c};margin-bottom:4px">${fv(m,best)}</div>
+      <div style="height:4px;background:var(--brd);border-radius:2px;overflow:hidden;margin-bottom:2px">
+        <div style="height:100%;width:${li.pct}%;background:${c};border-radius:2px"></div>
       </div>
-      ${li.to!==null?`<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px"><span>${li.from}${m.unit?' '+m.unit:''}</span><span>${p2}%</span><span>${li.to}${m.unit?' '+m.unit:''}</span></div>`:''}
+      <div style="font-size:9px;color:var(--muted)">Ziel: ${parseFloat(li.to.toFixed(m.dec))}${m.unit?' '+m.unit:''} · ${li.pct}%</div>
     </div>`;
   });
+  levelHtml+='</div>';
 
-  // ── Rekordtafel ───────────────────────────────────────────────────────────
-  let recTable='';
-  METRICS.forEach(m=>{
-    const rv=recVal(m);
-    if(rv===null)return;
-    const rd=recDate(m,rv);
-    recTable+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--brd)">
-      <div style="display:flex;gap:8px;align-items:center">
-        <span style="font-size:18px">${m.emoji}</span>
-        <div style="font-size:12px;color:var(--muted)">${m.lbl}</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:16px;font-weight:800">🥇 ${fmtV(m,rv)}</div>
-        <div style="font-size:10px;color:var(--muted)">${rd?fmtD(rd):''}</div>
-      </div>
-    </div>`;
-  });
+  // ── Saison-Gesamtwerte ────────────────────────────────────────────────────
+  const totDist=allSess.reduce((a,s)=>a+parseFloat(s.distance||0),0);
+  const totAcc=allSess.reduce((a,s)=>a+parseFloat(s.acc||0),0);
+  const totDec=allSess.reduce((a,s)=>a+parseFloat(s.dec||0),0);
+  const totHI=allSess.reduce((a,s)=>a+parseFloat(s.hiInt||0),0);
+  const totPas=allSess.reduce((a,s)=>a+parseFloat(s.passes||0),0);
+  const totSess=allSess.length;
+  const totalsHtml=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
+    ${[['📏','Distanz gesamt',totDist.toFixed(1)+' km'],['⚡','Beschl. gesamt',Math.round(totAcc)+''],
+       ['🛑','Abbrems. gesamt',Math.round(totDec)+''],['❤️','Hi-Int. gesamt',Math.round(totHI)+' m'],
+       ['🔄','Pässe gesamt',Math.round(totPas)+''],['📅','Einheiten',totSess+'']
+      ].map(([e,l,v])=>`<div style="background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:7px;text-align:center">
+        <div style="font-size:16px">${e}</div>
+        <div style="font-size:13px;font-weight:800">${v}</div>
+        <div style="font-size:9px;color:var(--muted)">${l}</div>
+      </div>`).join('')}
+  </div>`;
 
-  el.innerHTML=`
-    <div style="padding:12px 0">
-      <div style="font-size:13px;font-weight:800;margin-bottom:8px">⚡ Letzte Einheit — ${fmtD(last.date)}</div>
-      ${lastCards||'<p style="color:var(--muted);font-size:12px">Keine Daten aus letzter Einheit.</p>'}
+  // ── Streaks ───────────────────────────────────────────────────────────────
+  // GPS-Trainingsstreak (aufeinanderfolgende Einheiten ohne Aussetzer > 14 Tage)
+  let curStreak=1,maxStreak=1;
+  for(let i=1;i<allSess.length;i++){
+    const d1=new Date(allSess[i-1].date),d2=new Date(allSess[i].date);
+    const diff=(d2-d1)/(1000*60*60*24);
+    if(diff<=14){curStreak++;maxStreak=Math.max(maxStreak,curStreak);}
+    else curStreak=1;
+  }
+  // Anwesenheitsstreak aus trainingDays
+  const tds=(D.trainingDays||[]).filter(td=>(td.present||[]).includes(pid)).sort((a,b)=>a.date.localeCompare(b.date));
+  let attCur=1,attMax=1;
+  for(let i=1;i<tds.length;i++){
+    const d1=new Date(tds[i-1].date),d2=new Date(tds[i].date);
+    const diff=(d2-d1)/(1000*60*60*24);
+    if(diff<=8){attCur++;attMax=Math.max(attMax,attCur);}else attCur=1;
+  }
+  const streakHtml=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+    <div style="background:var(--card);border:1px solid var(--brd);border-radius:9px;padding:10px;text-align:center">
+      <div style="font-size:22px;font-weight:900;color:#f59e0b">${attCur}</div>
+      <div style="font-size:11px;font-weight:700">🏃 Trainings in Folge</div>
+      <div style="font-size:9px;color:var(--muted)">Rekord: ${attMax}</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--brd);border-radius:9px;padding:10px;text-align:center">
+      <div style="font-size:22px;font-weight:900;color:#1a5e8a">${curStreak}</div>
+      <div style="font-size:11px;font-weight:700">📡 GPS-Einheiten in Folge</div>
+      <div style="font-size:9px;color:var(--muted)">Rekord: ${maxStreak}</div>
+    </div>
+  </div>`;
 
-      <div style="font-size:13px;font-weight:800;margin:16px 0 8px">📈 Meilensteine & Level-Up</div>
-      ${levelCards}
+  // ── Rekordtafel (kompakt) ─────────────────────────────────────────────────
+  const recHtml='<div style="background:var(--card);border:1px solid var(--brd);border-radius:9px;padding:0 10px">'+
+    METRICS.map(m=>{const best=rv(m);if(best===null)return'';
+      const rd=rdate(m,best);
+      return`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--brd)">
+        <div style="font-size:12px">${m.emoji} ${m.lbl}</div>
+        <div style="text-align:right"><span style="font-size:14px;font-weight:800">🥇 ${fv(m,best)}</span>
+        ${rd?`<div style="font-size:9px;color:var(--muted)">${fmtD(rd)}</div>`:''}</div>
+      </div>`;}).join('')+'</div>';
 
-      <div style="font-size:13px;font-weight:800;margin:16px 0 8px">👑 Persönliche Rekordtafel</div>
-      <div style="background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:0 12px">
-        ${recTable||'<p style="color:var(--muted);font-size:12px;padding:12px 0">Keine Daten</p>'}
-      </div>
-    </div>`;
+  el.innerHTML=`<div style="padding:10px 0">
+    ${newRecHtml?`<div style="margin-bottom:12px">${newRecHtml}</div>`:''}
+    ${nearHtml?`<div style="margin-bottom:12px">${nearHtml}</div>`:''}
+    <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:4px">LETZTE EINHEIT · ${fmtD(last.date)}</div>
+    <div style="background:var(--card);border:1px solid var(--brd);border-radius:9px;padding:4px 10px;margin-bottom:14px">${normalHtml}</div>
+
+    <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:4px">📈 LEVEL-UP</div>
+    <div style="margin-bottom:14px">${levelHtml}</div>
+
+    <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:4px">🔥 STREAKS</div>
+    <div style="margin-bottom:14px">${streakHtml}</div>
+
+    <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:4px">📊 SAISON-GESAMTWERTE</div>
+    <div style="margin-bottom:14px">${totalsHtml}</div>
+
+    <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:4px">👑 PERSÖNLICHE REKORDTAFEL</div>
+    ${recHtml}
+  </div>`;
 }
 
 function renderPlSt(p,col){

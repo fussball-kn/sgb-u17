@@ -3,16 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>U17 Training Dashboard</title>
+<title>SG Bornim U17</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
-
-
-
-
-
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:800;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-800-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:900;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-900-normal.woff2') format('woff2');}
 :root{--font-cond:'Inter',system-ui,sans-serif;color-scheme:light;--blk:#1a1a1a;--blk2:#2d2d2d;--grn:#2d7a2d;--grn-l:#e6f4e6;--grn-m:#4ca64c;--wht:#fff;--bg:#f0f0f0;--brd:#ddd;--txt:#1a1a1a;--muted:#666;--rad:10px;--shd:0 1px 4px rgba(0,0,0,.1);--org:#c05000;--org-l:#fff0e6;--red:#c0392b;--pur:#7b2d8b;--pur-l:#f0e6f8;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;}
@@ -135,6 +133,8 @@ input:focus,select:focus{border-color:var(--grn);}
 .skip:hover{color:#888;}
 .info-box{background:var(--pur-l);border:1px solid #d0b0e8;border-radius:7px;padding:8px 12px;font-size:11px;color:var(--pur);grid-column:1/-1;}
 </style>
+</head>
+<body>
 
 <!-- PIN SCREEN -->
 <div id="pin-scr">
@@ -144,14 +144,21 @@ input:focus,select:focus{border-color:var(--grn);}
   </div>
   <div class="pbox">
     <div style="display:flex;gap:0;margin-bottom:14px;border-radius:8px;overflow:hidden;border:1px solid #ddd">
-      <button id="ltab-tr" onclick="switchLoginTab('trainer')" style="flex:1;padding:9px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:var(--grn);color:#fff">🏆 Trainer</button>
-      <button id="ltab-pl" onclick="switchLoginTab('spieler')" style="flex:1;padding:9px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:#f0f0f0;color:#555">👤 Spieler</button>
+      <button id="ltab-tr" onclick="switchLoginTab('trainer')" style="flex:1;padding:8px 4px;font-size:11px;font-weight:700;border:none;cursor:pointer;background:var(--grn);color:#fff">🏆 Trainer</button>
+      <button id="ltab-sl" onclick="switchLoginTab('sl')" style="flex:1;padding:8px 4px;font-size:11px;font-weight:700;border:none;cursor:pointer;background:#f0f0f0;color:#555">👔 Sportl. Ltg.</button>
+      <button id="ltab-pl" onclick="switchLoginTab('spieler')" style="flex:1;padding:8px 4px;font-size:11px;font-weight:700;border:none;cursor:pointer;background:#f0f0f0;color:#555">👤 Spieler</button>
     </div>
     <div id="login-trainer">
       <p style="margin-bottom:9px;font-size:13px;color:#555">Trainer-PIN eingeben:</p>
       <input type="password" class="pin-in" id="pin-in" maxlength="6" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')chkPin()">
       <div class="pin-err" id="pin-err"></div>
       <div style="margin-top:11px"><button class="btn btn-g" style="width:100%" onclick="chkPin()">Einloggen als Trainer</button></div>
+    </div>
+    <div id="login-sl" style="display:none">
+      <p style="margin-bottom:9px;font-size:13px;color:#555">Sportliche Leitung – PIN eingeben:</p>
+      <input type="password" class="pin-in" id="sl-pin-in" maxlength="6" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')chkSLPin()">
+      <div class="pin-err" id="sl-pin-err"></div>
+      <div style="margin-top:11px"><button class="btn" style="width:100%;background:#5a2d8a;color:#fff" onclick="chkSLPin()">Einloggen als Sportl. Leitung</button></div>
     </div>
     <div id="login-spieler" style="display:none">
       <p style="margin-bottom:9px;font-size:13px;color:#555">Spieler auswählen &amp; PIN eingeben:</p>
@@ -161,7 +168,7 @@ input:focus,select:focus{border-color:var(--grn);}
       <div style="margin-top:11px"><button class="btn" style="width:100%;background:#1a5e8a;color:#fff" onclick="chkPlayerPin()">Einloggen als Spieler</button></div>
     </div>
   </div>
-  <span class="skip" onclick="elternMode()">👨‍👩‍👧 Eltern-Ansicht</span><span class="skip" onclick="viewMode()" style="font-size:10px;opacity:.5">Trainer-Vorschau</span>
+  <span class="skip" onclick="viewMode()">👥 Eltern-Ansicht (kein Login)</span>
 </div>
 
 <!-- MODAL: Add Player -->
@@ -262,8 +269,7 @@ input:focus,select:focus{border-color:var(--grn);}
       <div><label>Datum</label><input type="date" id="mr-dt" style="margin-top:3px"></div>
       <div><label>Gegner</label><input type="text" id="mr-op" placeholder="Vereinsname" style="margin-top:3px"></div>
       <div><label>Heim/Auswärts</label><select id="mr-hm" style="margin-top:3px"><option value="home">Heimspiel</option><option value="away">Auswärtsspiel</option></select></div>
-      <div><label>Spieltyp</label><select id="mr-gtype" style="margin-top:3px" onchange="mrGtypeChange()"><option value="official">Pflichtspiel</option><option value="friendly">Testspiel</option></select></div>
-      <div id="mr-dur-wrap" style="display:none;grid-column:1/-1;background:#e8f0fe;border:1px solid #b0c8f0;border-radius:7px;padding:8px 10px"><div style="font-size:11px;font-weight:800;color:#1a5e8a;margin-bottom:6px">⏱ Spielzeit (Testspiel)</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label>Abschnitte</label><input type="number" id="mr-per" min="1" max="4" value="2" style="margin-top:3px" onchange="mrDurInfo()" oninput="mrDurInfo()"></div><div><label>Min. pro Abschnitt</label><input type="number" id="mr-pmin" min="10" max="60" value="40" style="margin-top:3px" onchange="mrDurInfo()" oninput="mrDurInfo()"></div></div><div style="font-size:11px;color:#1a5e8a;margin-top:5px" id="mr-dur-info">Spielzeit: 80 Min.</div></div>
+      <div><label>Spieltyp</label><select id="mr-gtype" style="margin-top:3px"><option value="official">Pflichtspiel</option><option value="friendly">Testspiel</option></select></div>
       <div><label>Tore Wir</label><input type="number" id="mr-gu" min="0" value="0" style="margin-top:3px"></div>
       <div><label>Tore Gegner</label><input type="number" id="mr-gt" min="0" value="0" style="margin-top:3px"></div>
       <div><label>Zuschauer</label><input type="number" id="mr-zu" min="0" placeholder="0" style="margin-top:3px"></div>
@@ -301,7 +307,6 @@ input:focus,select:focus{border-color:var(--grn);}
   <button class="nb st" onclick="sp('stats-ov')">📊 Statistiken</button>
   <button class="nb" id="nb-cmp" onclick="sp('vergleich')">🔄 Vergleich</button>
   <button class="nb" id="nb-pl" style="display:none" onclick="sp('player')">Spieler</button>
-  <button class="nb" id="nb-eltern" style="display:none" onclick="sp('eltern')">📊 Übersicht</button>
   <div class="nsp"></div>
   <button class="mb pl" id="mode-b" onclick="togTr()">👤 Spieler</button>
   <div id="tr-ctrl" style="display:flex;gap:2px;align-items:center">
@@ -376,11 +381,6 @@ input:focus,select:focus{border-color:var(--grn);}
 <!-- STATS OVERVIEW -->
 <div id="page-stats-ov" class="page">
   <div class="sh"><div class="stt">📊 Saisonstatistiken</div><div style="display:flex;gap:6px;align-items:center"><span class="bdg bdg-p">Übersicht</span><button class="btn trainer-only" style="background:var(--org);color:#fff;font-size:11px;padding:4px 9px;border-radius:6px;border:none;cursor:pointer" onclick="sp('games-ov')">🏆 Spielberichte verwalten</button></div></div>
-  <div class="tabs" style="margin-bottom:12px">
-    <button class="tab active" id="stf-all" onclick="setStFilter('all',this)">Alle Spiele</button>
-    <button class="tab gm" id="stf-official" onclick="setStFilter('official',this)">Nur Pflichtspiele</button>
-    <button class="tab" id="stf-friendly" onclick="setStFilter('friendly',this)" style="background:#1a5e8a;color:#fff">Nur Testspiele</button>
-  </div>
   <div class="g4" id="sts-ov-cards"></div>
   <div class="card" style="margin-bottom:14px">
     <div style="font-size:13px;font-weight:800;margin-bottom:9px">Torschützen & Vorlagen</div>
@@ -395,9 +395,6 @@ input:focus,select:focus{border-color:var(--grn);}
     <div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:9px">Anwesenheit (%)</div><div class="chrt"><canvas id="ch-att"></canvas></div></div>
     <div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:9px">Einsatzminuten</div><div class="chrt"><canvas id="ch-mins"></canvas></div></div>
   </div>
-  <!-- Mannschaftsscore -->
-  <div class="card" id="team-score-card" style="margin-bottom:14px"></div>
-
   <div class="card">
     <div style="font-size:13px;font-weight:800;margin-bottom:9px">Vollständige Statistiken</div>
     <div style="overflow-x:auto">
@@ -463,7 +460,7 @@ input:focus,select:focus{border-color:var(--grn);}
         <button id="cmp-btn-ss" class="btn" onclick="setCmpMode('season')" style="font-size:11px;padding:5px 12px;border-radius:6px;border:none;cursor:pointer;background:var(--card);color:var(--fg);border:1px solid var(--brd)">📊 Saisonwerte</button>
       </div>
       <div style="background:var(--card);border-radius:10px;padding:14px;margin-bottom:12px">
-        <div id="cmp-chart-wrap" class="chrt" style="height:320px"><canvas id="ch-cmp"></canvas></div>
+        <div class="chrt" style="height:320px"><canvas id="ch-cmp"></canvas></div>
       </div>
       <div id="cmp-table" style="background:var(--card);border-radius:10px;padding:12px;overflow-x:auto"></div>
     </div>
@@ -536,66 +533,6 @@ input:focus,select:focus{border-color:var(--grn);}
   </div>
 </div>
 
-
-<div id="page-eltern" class="page">
-  <div class="sh"><div class="stt">📊 Team-Übersicht</div><span class="bdg bdg-g">Eltern-Ansicht</span></div>
-
-  <!-- Spielergebnisse -->
-  <div class="card" style="margin-bottom:13px">
-    <div class="sh"><div style="font-size:14px;font-weight:800">🏆 Spielergebnisse</div></div>
-    <div id="el-games"></div>
-  </div>
-
-  <!-- Spielverlauf -->
-  <div id="el-reports-wrap"></div>
-
-  <!-- Team-Statistiken -->
-  <div class="g3" style="margin-bottom:13px">
-    <div class="card">
-      <div class="cv">Ø Anwesenheit</div>
-      <div class="cn" id="el-att">–</div>
-      <div class="cs" id="el-att-cs" style="line-height:1.7">–</div>
-    </div>
-    <div class="card">
-      <div class="cv">Ø Laufdistanz/Training</div>
-      <div class="cn" id="el-dist">–</div>
-      <div class="cs">km pro Einheit · pro Spieler</div>
-    </div>
-    <div class="card">
-      <div class="cv">Ø Max. Sprint</div>
-      <div class="cn" id="el-sprint">–</div>
-      <div class="cs">km/h · Max. Sprint pro Spieler</div>
-    </div>
-  </div>
-
-  <div class="g3">
-    <div class="card">
-      <div class="cv">Ø Hi-Intensität</div>
-      <div class="cn" id="el-hiint">–</div>
-      <div class="cs">m pro Einheit · pro Spieler</div>
-    </div>
-    <div class="card">
-      <div class="cv">Ø Pässe/Training</div>
-      <div class="cn" id="el-passes">–</div>
-      <div class="cs">pro Einheit · pro Spieler</div>
-    </div>
-    <div class="card">
-      <div class="cv">Ø Schüsse/Training</div>
-      <div class="cn" id="el-shots">–</div>
-      <div class="cs">pro Einheit · pro Spieler</div>
-    </div>
-  </div>
-
-  <!-- Mannschaftsscore -->
-  <div class="card" id="el-team-score" style="margin:13px 0"></div>
-
-  <!-- Training Trend Charts -->
-  <div class="g2" style="margin-bottom:13px">
-    <div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:7px">📈 Distanz-Trend (Training)</div><div class="chrt"><canvas id="el-ch-dist"></canvas></div></div>
-    <div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:7px">👥 Anwesenheit-Trend</div><div class="chrt"><canvas id="el-ch-att"></canvas></div></div>
-  </div>
-</div>
-
 <script>
 // ── LOGO ─────────────────────────────────────────────────────────────────────
 const LOGO='data:image/png;base64,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';
@@ -603,17 +540,19 @@ document.getElementById('pin-logo-img').src=LOGO;
 document.getElementById('nav-logo-img').src=LOGO;
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
-let D={players:[],sessions:[],games:[],pstats:[],trainingDays:[],matchReports:[]};let _fbdb=null;
+let D=JSON.parse(localStorage.getItem('sgb_u17_v2')||'null')||{players:[],sessions:[],games:[],pstats:[],trainingDays:[],matchReports:[]};
 if(!D.trainingDays)D.trainingDays=[];
 if(!D.matchReports)D.matchReports=[];
 if(!D.games)D.games=[];if(!D.pstats)D.pstats=[];
 if(!D.playerPins)D.playerPins={};
 let PIN=localStorage.getItem('sgb_pin')||'1927';
+let SL_PIN=localStorage.getItem('sgb_sl_pin')||'2025';
+let isSL=false;
 let isTr=false;
-function sv(){if(_fbdb){_fbdb.collection('sgb').doc('u17data').set(JSON.parse(JSON.stringify(D))).catch(e=>console.error('Firestore:',e));}else{localStorage.setItem('sgb_u17_v2',JSON.stringify(D));}}
+function sv(){localStorage.setItem('sgb_u17_v2',JSON.stringify(D));}
 
 const COLS=['#2d7a2d','#c05000','#7b2d8b','#1a5e8a','#8a6000','#8a1a1a','#006a8a','#4a7a00','#8a3a00','#003a8a','#6a1a6a','#005a3a'];
-let aPl=null,CHS={},curTT='tr',gmFilter='all',plGmFilter='all',stFilter='all',plStFilter='all';
+let aPl=null,CHS={},curTT='tr',gmFilter='all',plGmFilter='all';
 let tcFilter=new Set(); // selected player IDs for team charts (empty=all)
 let tcFOpen=false;
 function renderTCFilter(){
@@ -658,7 +597,7 @@ function gPS(pid){
   return s;
 }
 // kn × 80 = max possible minutes
-const maxMin=s=>s.maxMinFromMR!=null?s.maxMinFromMR:(s.kn||0)*GAME_MIN;
+const maxMin=s=>(s.kn||0)*GAME_MIN;
 const minPct=s=>maxMin(s)>0?Math.round((s.em||0)/maxMin(s)*100):0;
 const attPct=s=>s.tg?Math.round((s.ta||0)/s.tg*100):0;
 const totalGoals=s=>s.goalsTotal!==undefined?s.goalsTotal:(s.ts||0)+(s.tk||0);
@@ -671,14 +610,20 @@ function chkPin(){
   if(v===PIN){trainerMode();hidePin();}
   else{document.getElementById('pin-err').textContent='Falscher PIN.';document.getElementById('pin-in').value='';}
 }
+function chkSLPin(){
+  const v=document.getElementById('sl-pin-in').value;
+  if(v===SL_PIN){slMode();hidePin();}
+  else{document.getElementById('sl-pin-err').textContent='Falscher PIN.';document.getElementById('sl-pin-in').value='';}
+}
+function slMode(){
+  isTr=false;isSL=true;curPlayer=null;
+  document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='👔 Sport. Ltg.';
+  document.getElementById('tr-ctrl').style.display='none';
+  document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='');
+  renderTeam();renderStatsOv();
+}
 function trainerMode(){
-  isTr=true;isEltern=false;
-  // Restore all standard nav buttons + cmp sidebar
-  document.querySelectorAll('.nb').forEach(b=>b.style.display='');
-  const _cmpSide=document.getElementById('cmp-player-list');if(_cmpSide&&_cmpSide.parentElement)_cmpSide.parentElement.style.display='';
-  const _cmpExtra=document.getElementById('cmp-pl-extra');if(_cmpExtra)_cmpExtra.remove();
-  document.getElementById('nb-pl').style.display='none';
-  document.getElementById('nb-eltern').style.display='none';
+  isTr=true;isSL=false;
   document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🔐 Trainer';
   document.getElementById('tr-ctrl').style.display='flex';
   document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='');
@@ -686,11 +631,10 @@ function trainerMode(){
 }
 function viewMode(){
   curPlayer=null;
-  hidePin();isTr=false;isEltern=false;
-  // Restore standard nav buttons (not nb-pl, not nb-eltern)
+  hidePin();isTr=false;isSL=false;
+  // restore all nav buttons
   document.querySelectorAll('.nb').forEach(b=>b.style.display='');
   document.getElementById('nb-pl').style.display='none';
-  document.getElementById('nb-eltern').style.display='none';
   document.getElementById('mode-b').className='mb pl';document.getElementById('mode-b').textContent='👤 Spieler';
   document.getElementById('tr-ctrl').style.display='none';
   document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='none');
@@ -699,13 +643,16 @@ function viewMode(){
 let curPlayer=null; // null=trainer or public, else player object
 
 function switchLoginTab(tab){
-  const isTrTab=tab==='trainer';
+  const isTrTab=tab==='trainer',isSLTab=tab==='sl',isPlTab=tab==='spieler';
   document.getElementById('login-trainer').style.display=isTrTab?'':'none';
-  document.getElementById('login-spieler').style.display=isTrTab?'none':'';
+  document.getElementById('login-sl').style.display=isSLTab?'':'none';
+  document.getElementById('login-spieler').style.display=isPlTab?'':'none';
   document.getElementById('ltab-tr').style.background=isTrTab?'var(--grn)':'#f0f0f0';
   document.getElementById('ltab-tr').style.color=isTrTab?'#fff':'#555';
-  document.getElementById('ltab-pl').style.background=isTrTab?'#f0f0f0':'#1a5e8a';
-  document.getElementById('ltab-pl').style.color=isTrTab?'#555':'#fff';
+  document.getElementById('ltab-sl').style.background=isSLTab?'#5a2d8a':'#f0f0f0';
+  document.getElementById('ltab-sl').style.color=isSLTab?'#fff':'#555';
+  document.getElementById('ltab-pl').style.background=isPlTab?'#1a5e8a':'#f0f0f0';
+  document.getElementById('ltab-pl').style.color=isPlTab?'#fff':'#555';
   // populate player dropdown
   if(!isTrTab){
     const sel=document.getElementById('pl-login-sel');
@@ -727,21 +674,19 @@ function chkPlayerPin(){
 }
 
 function playerMode(p){
-  curPlayer=p;isTr=false;isEltern=false;aPl=p.id;
-  // Nav: hide Training, Spiele, Statistiken (keep Vergleich for team avg)
-  ['sessions','games-ov','stats-ov'].forEach(id=>{
+  curPlayer=p;isTr=false;
+  // Nav: hide Training, Spiele, Statistiken, Vergleich
+  ['sessions','games-ov','stats-ov','vergleich'].forEach(id=>{
     const btn=document.querySelector('.nb[onclick*=\''+id+'\']');
     if(btn)btn.style.display='none';
   });
-  const cmpBtn=document.querySelector('.nb[onclick*=\'vergleich\']');
-  if(cmpBtn)cmpBtn.style.display='';
   document.getElementById('mode-b').className='mb pl';
   document.getElementById('mode-b').textContent='👤 '+p.name;
   document.getElementById('tr-ctrl').style.display='none';
   document.getElementById('nb-pl').style.display='flex';
-  sp('player'); // go straight to their player page
+  sp('player',p.id); // go straight to their player page
 }
-function togTr(){if(isTr||curPlayer){if(curPlayer){curPlayer=null;viewMode();return;}isTr=false;viewMode();}else{document.getElementById('pin-in').value='';document.getElementById('pin-err').textContent='';showPin();}}
+function togTr(){if(isTr||isSL||curPlayer){if(curPlayer){curPlayer=null;viewMode();return;}isTr=false;isSL=false;viewMode();}else{document.getElementById('pin-in').value='';document.getElementById('pin-err').textContent='';showPin();}}
 function doChgPin(){
   const o=document.getElementById('cp-o').value,n=document.getElementById('cp-n').value,n2=document.getElementById('cp-n2').value,e=document.getElementById('cp-e');
   if(o!==PIN){e.textContent='Aktueller PIN falsch.';return;}
@@ -751,7 +696,7 @@ function doChgPin(){
 }
 
 // ── EXPORT / IMPORT ───────────────────────────────────────────────────────────
-async function expData(){const downloads=await window.claude.use('downloads');if(!downloads){alert('Download nicht verfügbar in dieser Ansicht.');return;}try{await downloads.save({filename:'sgb_u17_'+new Date().toISOString().slice(0,10)+'.json',data:JSON.stringify(D,null,2)});}catch(e){if(e.code!=='cancelled')alert('Export fehlgeschlagen: '+e.message);}}
+function expData(){const b=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='sgb_u17_'+new Date().toISOString().slice(0,10)+'.json';a.click();}
 function impData(inp){const f=inp.files[0];if(!f)return;if(!confirm('Bestehende Daten werden überschrieben. Fortfahren?'))return;const r=new FileReader();r.onload=e=>{try{D=JSON.parse(e.target.result);if(!D.games)D.games=[];if(!D.pstats)D.pstats=[];sv();renderTeam();alert('Importiert!');}catch(e){alert('Fehler beim Import.');}};r.readAsText(f);}
 function clrAll(){if(!confirm('Wirklich ALLES löschen?'))return;D={players:[],sessions:[],games:[],pstats:[]};sv();renderTeam();}
 
@@ -762,13 +707,12 @@ document.querySelectorAll('.mod').forEach(m=>m.addEventListener('click',e=>{if(e
 
 // ── NAV ───────────────────────────────────────────────────────────────────────
 function sp(name,pid){
-  if(isEltern&&name!=='eltern'){sp('eltern');return;}
   if(curPlayer&&!['team','player'].includes(name)){sp('player',curPlayer.id);return;}
   if(name==='player'&&!pid&&curPlayer){pid=curPlayer.id;}
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  const map={team:0,sessions:1,'games-ov':2,'stats-ov':3,player:4,vergleich:5,eltern:6};
+  const map={team:0,sessions:1,'games-ov':2,'stats-ov':3,player:4,vergleich:5};
   const btns=document.querySelectorAll('.nb');
   if(map[name]!==undefined&&btns[map[name]])btns[map[name]].classList.add('active');
   if(name==='team'){renderTeam();setTimeout(()=>renderTCharts(curTT),60);}
@@ -777,7 +721,6 @@ function sp(name,pid){
   if(name==='stats-ov'){renderStatsOv();setTimeout(renderStatsCharts,60);}
   if(name==='settings'){setTimeout(renderPinMgmt,50);}
   if(name==='vergleich'){renderVergleich();}
-  if(name==='eltern'){renderEltern();}
   if(name==='player')renderPlayer();
 }
 function svPlayer(){
@@ -809,39 +752,7 @@ function setCmpMode(m){
   cmpUpdate();
 }
 
-function renderVergleichPlayer(){
-  const p=curPlayer;
-  const myTrSess=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
-  const teamTrSess=D.sessions.filter(s=>parseFloat(s.distance||0)>0);
-  const teamAvg=k=>teamTrSess.length?teamTrSess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/teamTrSess.length:0;
-  const myAvg=k=>myTrSess.length?myTrSess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/myTrSess.length:0;
-  const labels=['Distanz (km)','Hi-Int (/100m)','Max. Sprint','Pässe (/10)','Aktiv-Min'];
-  const meVals=[myAvg('distance'),myAvg('hiInt')/100,myAvg('maxSprint'),myAvg('passes')/10,myAvg('activeMin')];
-  const teamVals=[teamAvg('distance'),teamAvg('hiInt')/100,teamAvg('maxSprint'),teamAvg('passes')/10,teamAvg('activeMin')];
-  const myAtt=D.trainingDays.length?D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length/D.trainingDays.length*100:0;
-  const allAtts=D.players.map(pl=>D.trainingDays.length?D.trainingDays.filter(td=>(td.present||[]).includes(pl.id)).length/D.trainingDays.length*100:0);
-  const teamAttAvg=allAtts.length?allAtts.reduce((a,v)=>a+v,0)/allAtts.length:0;
-  const tInfo=document.getElementById('cmp-tracker-info');
-  if(tInfo)tInfo.innerHTML='Dein Vergleich mit dem <strong>Team-Durchschnitt</strong>';
-  const plSidebar=document.getElementById('cmp-player-list');
-  if(plSidebar&&plSidebar.parentElement)plSidebar.parentElement.style.display='none';
-  const old2=document.getElementById('cmp-pl-extra');if(old2)old2.remove();
-  if(CHS['ch-cmp']){CHS['ch-cmp'].destroy();delete CHS['ch-cmp'];}
-  const parent=document.getElementById('cmp-chart-wrap');
-  if(!parent)return;
-  if(!document.getElementById('ch-cmp')){parent.innerHTML='<canvas id="ch-cmp" style="max-height:320px"></canvas>';}
-  const ctx=document.getElementById('ch-cmp').getContext('2d');
-  CHS['ch-cmp']=new Chart(ctx,{type:'radar',data:{labels,datasets:[
-    {label:p.name,data:meVals,borderColor:'#2d7a2d',backgroundColor:'#2d7a2d22',pointRadius:4,pointBackgroundColor:'#2d7a2d'},
-    {label:'Team-Durchschnitt',data:teamVals,borderColor:'#1a5e8a',backgroundColor:'#1a5e8a22',pointRadius:4,pointBackgroundColor:'#1a5e8a',borderDash:[4,3]}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:11}}}},scales:{r:{beginAtZero:true,ticks:{font:{size:9}}}}}});
-  parent.insertAdjacentHTML('afterend','<div class="g2" style="margin-top:12px" id="cmp-pl-extra">'
-    +'<div class="card"><div class="cv">Deine Anwesenheit</div><div class="cn" style="color:'+(myAtt>=80?'var(--grn)':myAtt>=60?'#ca8a04':'var(--red)')+'">'+Math.round(myAtt)+'%</div><div class="cs">'+D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length+' von '+D.trainingDays.length+' Einheiten</div></div>'
-    +'<div class="card"><div class="cv">Team-Ø Anwesenheit</div><div class="cn" style="color:#1a5e8a">'+Math.round(teamAttAvg)+'%</div><div class="cs">Alle Spieler</div></div></div>');
-}
-
 function renderVergleich(){
-  if(curPlayer){renderVergleichPlayer();return;}
   // tracker info
   const withGPS=D.players.filter(p=>D.sessions.some(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0));
   const withGPSGm=D.players.filter(p=>D.games.some(g=>g.playerId===p.id&&parseFloat(g.distance||0)>0));
@@ -902,13 +813,9 @@ function cmpGetData(pid){
 
 function cmpUpdate(){
   if(CHS['ch-cmp']){CHS['ch-cmp'].destroy();delete CHS['ch-cmp'];}
-  // Ensure the canvas wrapper exists
-  const parent=document.getElementById('cmp-chart-wrap');
-  if(!parent)return;
-  // Restore canvas if it was replaced by placeholder text
-  if(!document.getElementById('ch-cmp')){
-    parent.innerHTML='<canvas id="ch-cmp" style="max-height:320px"></canvas>';
-  }
+  const canvas=document.getElementById('ch-cmp');
+  if(!canvas)return;
+  const parent=canvas.parentElement;
 
   const modeLabels={
     training:['Distanz (km)','Hi-Int (×100m)','Max Sprint (km/h)','Beschl.','Abbrems.','Pässe (×10)','Aktiv-Min'],
@@ -951,9 +858,9 @@ function cmpUpdate(){
     cmpRenderTable(selected,[]);return;
   }
 
-  // Ensure canvas is present (placeholder may have replaced it)
+  // restore canvas if replaced by placeholder
   if(!document.getElementById('ch-cmp')){
-    parent.innerHTML='<canvas id="ch-cmp" style="max-height:320px"></canvas>';
+    parent.innerHTML='<canvas id="ch-cmp"></canvas>';
   }
   const ctx=document.getElementById('ch-cmp');
   CHS['ch-cmp']=new Chart(ctx,{type:'radar',data:{labels,datasets},options:{
@@ -1059,25 +966,14 @@ function computePMS(pid,mr){
   const strs=mr.starters||[],bench=mr.bench||[],evts=mr.events||[];
   const isStr=strs.includes(pid);
   const isBench=bench.includes(pid);
-  const allSubsIn=evts.filter(e=>e.type==='sub'&&e.playerInId===pid);
-  const allSubsOut=evts.filter(e=>e.type==='sub'&&e.playerOutId===pid);
-  const kader=isStr||isBench||allSubsIn.length>0;if(!kader)return null;
-  const REGTIME=mr.matchDuration||80;
-  // Calculate total minutes across all stints (handles multiple sub in/out)
+  const subIn=evts.find(e=>e.type==='sub'&&e.playerInId===pid);
+  const subOut=evts.find(e=>e.type==='sub'&&e.playerOutId===pid);
+  const kader=isStr||isBench||!!subIn;if(!kader)return null;
   let min=0;
-  if(isStr){
-    // Starter: played from 0 until first sub-out (or full game)
-    const firstOut=allSubsOut.length?Math.min(...allSubsOut.map(e=>e.minute)):null;
-    min=firstOut?Math.min(firstOut,REGTIME):REGTIME;
-  }
-  // Add stints for each sub-in event
-  for(const si of allSubsIn){
-    const inMin=Math.min(si.minute,REGTIME);
-    // Find the next sub-out after this sub-in
-    const nextOut=allSubsOut.filter(e=>e.minute>si.minute).sort((a,b)=>a.minute-b.minute)[0];
-    const outMin=nextOut?Math.min(nextOut.minute,REGTIME):REGTIME;
-    min+=Math.max(0,outMin-inMin);
-  }
+  const REGTIME=80; // Nachspielzeit zaehlt NICHT zu Spielminuten
+  if(isStr) min=subOut?Math.min(subOut.minute,REGTIME):REGTIME;
+  else if(subIn) min=subOut?(Math.min(subOut.minute,REGTIME)-Math.min(subIn.minute,REGTIME)):(REGTIME-Math.min(subIn.minute,REGTIME));
+  // bench player not subbed in = 0 minutes (but counts as kader)
   min=Math.max(0,min);
   const goals=evts.filter(e=>e.type==='goal'&&e.playerId===pid).length;
   const eigentore=evts.filter(e=>e.type==='eigentor'&&e.playerId===pid).length;
@@ -1088,20 +984,15 @@ function computePMS(pid,mr){
   const penSaved=evts.filter(e=>e.type==='oppenalty'&&e.savedBy===pid&&e.result==='saved').length;
   const penMissed=evts.filter(e=>e.type==='penalty_miss'&&e.playerId===pid).length;
   const penWon=evts.filter(e=>e.type==='penalty_miss'&&e.rausgeholt===pid).length;
-  return{kader,s11:isStr,bench:isBench&&!allSubsIn.length,ew:allSubsIn.length>0,aw:allSubsOut.length>0,minutes:min,goals,eigentore,assists,gk,grk,rk,penSaved,penMissed,penWon};
+  return{kader,s11:isStr,bench:isBench&&!subIn,ew:!!subIn,aw:!!subOut,minutes:min,goals,eigentore,assists,gk,grk,rk,penSaved,penMissed,penWon};
 }
 
-function getEffStats(pid,mrFilter){
+function getEffStats(pid){
   const ps=gPS(pid);
   const hasTD=D.trainingDays.length>0;
-  const p4inj=D.players.find(x=>x.id===pid);
-  const injs=p4inj?p4inj.injuries||[]:[];
-  const notInjured=td=>!injs.some(inj=>td.date>=inj.from&&(!inj.to||td.date<=inj.to));
-  const validTDs=hasTD?D.trainingDays.filter(notInjured):[];
-  const ta=hasTD?validTDs.filter(t=>t.present&&t.present.includes(pid)).length:ps.ta;
-  const tg=hasTD?validTDs.length:ps.tg;
-  const _allMR=D.matchReports||[];
-  const allMR=mrFilter&&mrFilter!=='all'?_allMR.filter(m=>(m.gameType||'official')===mrFilter):_allMR;
+  const ta=hasTD?D.trainingDays.filter(t=>t.present&&t.present.includes(pid)).length:ps.ta;
+  const tg=hasTD?D.trainingDays.length:ps.tg;
+  const allMR=D.matchReports||[];
   const allPR=allMR.flatMap(mr=>{const r=computePMS(pid,mr);return r?[r]:[];});
   const allEvtsForPid=allMR.flatMap(mr=>mr.events||[]);
   const hasMR=allMR.length>0;
@@ -1127,27 +1018,13 @@ function getEffStats(pid,mrFilter){
   const penScored=hasMR?allEvtsForPid.filter(e=>e.type==='goal'&&e.playerId===pid&&e.goalType==='elfmeter').length:(ps.et||0);
   // Spiele zu null (hasMR: Spiele in Kader wo goalsThem===0)
   const cleanSheets=hasMR?allMR.filter(mr=>{const r=computePMS(pid,mr);return r&&r.kader&&(mr.goalsThem===0||(mr.goalsThem||0)===0);}).length:(ps.sn||0);
-  const maxMinFromMR=hasMR?allPR.reduce((a,r,i)=>{
-    const mr2=allMR[i];return a+(r.kader?(mr2.matchDuration||80):0);
-  },0):null;
   return{ta,tg,kn,s11,em,ew,aw,gk,grk,rk,vl,goalsTotal,
     tib:ps.tib,tao:ps.tao,ts:ps.ts,tk:ps.tk,
     penSaved,penMissed,penWon,penCaused,penScored,
-    sn:cleanSheets,maxMinFromMR,
+    sn:cleanSheets,
     ego:eigenFromMR||(ps.ego||0),hasMR,hasTD};
 }
 
-function mrGtypeChange(){
-  const isFriendly=document.getElementById('mr-gtype').value==='friendly';
-  document.getElementById('mr-dur-wrap').style.display=isFriendly?'':'none';
-  mrDurInfo();
-}
-function mrDurInfo(){
-  const per=parseInt(document.getElementById('mr-per')?.value||2);
-  const pmin=parseInt(document.getElementById('mr-pmin')?.value||40);
-  const info=document.getElementById('mr-dur-info');
-  if(info)info.textContent='Spielzeit: '+(per*pmin)+' Min.';
-}
 function oMR(id){
   const mr=id?D.matchReports.find(m=>m.id===id):null;
   document.getElementById('mr-id').value=id||'';
@@ -1155,11 +1032,6 @@ function oMR(id){
   document.getElementById('mr-op').value=mr?mr.opponent||'':'';
   document.getElementById('mr-hm').value=mr?mr.home||'home':'home';
   document.getElementById('mr-gtype').value=mr?mr.gameType||'official':'official';
-  const _isFr=mr&&mr.gameType==='friendly';
-  document.getElementById('mr-dur-wrap').style.display=_isFr?'':'none';
-  document.getElementById('mr-per').value=mr&&mr.matchPeriods?mr.matchPeriods:2;
-  document.getElementById('mr-pmin').value=mr&&mr.matchPeriodMin?mr.matchPeriodMin:40;
-  mrDurInfo();
   document.getElementById('mr-gu').value=mr?mr.goalsUs||0:0;
   document.getElementById('mr-gt').value=mr?mr.goalsThem||0:0;
   document.getElementById('mr-zu').value=mr?mr.zuschauer||'':'';
@@ -1415,11 +1287,7 @@ function svMR(){
   const id=document.getElementById('mr-id').value||Date.now().toString();
   const date=document.getElementById('mr-dt').value;if(!date){alert('Datum angeben.');return;}
   const g=i=>document.getElementById(i).value;
-  const _mrGtype=g('mr-gtype')||'official';
-  const _mrPer=_mrGtype==='friendly'?parseInt(g('mr-per')||2):2;
-  const _mrPmin=_mrGtype==='friendly'?parseInt(g('mr-pmin')||40):40;
-  const _mrDur=_mrGtype==='friendly'?_mrPer*_mrPmin:80;
-  const rec={id,date,opponent:g('mr-op'),home:g('mr-hm'),gameType:_mrGtype,matchDuration:_mrDur,matchPeriods:_mrPer,matchPeriodMin:_mrPmin,
+  const rec={id,date,opponent:g('mr-op'),home:g('mr-hm'),gameType:g('mr-gtype')||'official',
     goalsUs:parseInt(g('mr-gu')||0),goalsThem:parseInt(g('mr-gt')||0),
     zuschauer:parseInt(g('mr-zu')||0)||0,htUs:parseInt(g('mr-htu')||0),htThem:parseInt(g('mr-htt')||0),etH1:parseInt(g('mr-et1')||0),etH2:parseInt(g('mr-et2')||0),starters:[...mrStrs],bench:[...mrBench],events:mrEvts.map(e=>({...e}))};
   const idx=D.matchReports.findIndex(m=>m.id===id);
@@ -1472,45 +1340,6 @@ function renderMRSection(){
 
 // ── TEAM ──────────────────────────────────────────────────────────────────────
 function renderTeam(){
-  // ── Player mode: hide other players, show team averages + own card ─────────
-  if(curPlayer){
-    const p=curPlayer;
-    const tcf=document.getElementById('tc-filter-panel')?.parentElement;
-    if(tcf)tcf.style.display='none'; // hide chart filter
-    document.getElementById('t-sc').textContent=D.sessions.length+' Trainings';
-    const aA=(arr,k)=>{const v=arr.map(s=>parseFloat(s[k]||0)).filter(v=>v>0);return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'–';};
-    const mA=(arr,k)=>{const v=arr.map(s=>parseFloat(s[k]||0)).filter(v=>v>0);return v.length?Math.max(...v).toFixed(1):'–';};
-    document.getElementById('t-sc-cards').innerHTML=`
-      <div class="card"><div class="cv">Trainings (Team)</div><div class="cn">${D.sessions.length}</div></div>
-      <div class="card"><div class="cv">Ø Distanz (Team)</div><div class="cn">${aA(D.sessions,'distance')} <small>km</small></div></div>
-      <div class="card"><div class="cv">Ø Max. Sprint (Team)</div><div class="cn">${aA(D.sessions,'maxSprint')} <small>km/h</small></div></div>
-      <div class="card"><div class="cv">Ø Hi-Int (Team)</div><div class="cn">${aA(D.sessions,'hiInt')} <small>m</small></div></div>`;
-    const fmGames=filtGames(D.games,gmFilter),w=fmGames.filter(g=>res(g)==='win').length,d=fmGames.filter(g=>res(g)==='draw').length,l=fmGames.filter(g=>res(g)==='loss').length;
-    document.getElementById('t-gc-cards').innerHTML=`
-      <div class="card"><div class="cv">Spiele</div><div class="cn">${fmGames.length}</div><div class="cs">${D.games.filter(g=>(g.gameType||'official')==='official').length} Pflicht · ${D.games.filter(g=>g.gameType==='friendly').length} Test</div></div>
-      <div class="card"><div class="cv">S / U / N</div><div class="cn" style="color:var(--grn)">${w}<span style="color:#999;font-size:14px"> / ${d} / </span><span style="color:var(--red)">${l}</span></div></div>
-      <div class="card"><div class="cv">Ø Distanz (Spiel)</div><div class="cn">${aA(D.games,'distance')} <small>km</small></div></div>
-      <div class="card"><div class="cv">Max. Sprint (Spiel)</div><div class="cn">${mA(D.games,'maxSprint')} <small>km/h</small></div></div>`;
-    // Show only own player card
-    const ps=pSess(p.id),gs=pGames(p.id),col=COLS[D.players.indexOf(p)%COLS.length],st=getEffStats(p.id);
-    document.getElementById('pg').innerHTML=`<div class="pc" style="cursor:default">
-      <div class="pav" style="background:${col}18;color:${col};border-color:${col}">${ini(p.name)}</div>
-      <div class="pn">#${p.number} ${p.name}</div><div class="pp">${p.pos}</div>
-      <div class="ps">
-        <div><div class="psv" style="color:${col}">${ps.length}</div><div class="psl">Trainings</div></div>
-        <div><div class="psv" style="color:var(--org)">${(()=>{const sp=getEffStats(p.id,'official');const st2=getEffStats(p.id,'friendly');const tot=(sp.kn||0)+(st2.kn||0)||gs.length;return tot;})()}</div><div class="psl" style="white-space:nowrap">Spiele<br><span style="font-size:9px;color:var(--muted)">P:${getEffStats(p.id,'official').kn||0} T:${getEffStats(p.id,'friendly').kn||0}</span></div></div>
-        <div><div class="psv" style="color:var(--pur)">${totalGoals(st)}</div><div class="psl">Tore</div></div>
-        <div><div class="psv" style="color:#1a5e8a">${st.em||0}min</div><div class="psl">Einsatz</div></div>
-      </div></div>`;
-    setTimeout(()=>{
-      const filtPl=[p]; // only this player for charts
-      renderTChartsForPlayer(filtPl,'tr');
-    },60);
-    return;
-  }
-  // ── Trainer/public mode ───────────────────────────────────────────────────
-  const tcf=document.getElementById('tc-filter-panel')?.parentElement;
-  if(tcf)tcf.style.display='';
   document.getElementById('t-sc').textContent=D.sessions.length+' Trainings';
   document.getElementById('t-gc').textContent=D.games.length+' Spiele';
   const aA=(arr,k)=>{const v=arr.map(s=>parseFloat(s[k]||0)).filter(v=>v>0);return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'–';};
@@ -1535,7 +1364,7 @@ function renderTeam(){
       <div class="pn">#${p.number} ${p.name}</div><div class="pp">${p.pos}</div>
       <div class="ps">
         <div><div class="psv" style="color:${col}">${ps.length}</div><div class="psl">Trainings</div></div>
-        <div><div class="psv" style="color:var(--org)">${(()=>{const sp=getEffStats(p.id,'official');const st2=getEffStats(p.id,'friendly');const tot=(sp.kn||0)+(st2.kn||0)||gs.length;return tot;})()}</div><div class="psl" style="white-space:nowrap">Spiele<br><span style="font-size:9px;color:var(--muted)">P:${getEffStats(p.id,'official').kn||0} T:${getEffStats(p.id,'friendly').kn||0}</span></div></div>
+        <div><div class="psv" style="color:var(--org)">${gs.length}</div><div class="psl">Spiele</div></div>
         <div><div class="psv" style="color:var(--pur)">${totalGoals(st)}</div><div class="psl">Tore</div></div>
         <div><div class="psv" style="color:#1a5e8a">${st.em||0}min</div><div class="psl">Einsatz</div></div>
       </div></div>`;}).join('');
@@ -1600,43 +1429,6 @@ function noDataMsg(ids,msg){
     p.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:120px;color:var(--muted);font-size:12px;font-style:italic">'+msg+'</div>';
   });
 }
-function renderTChartsForPlayer(filtPl,t){
-  // For player mode: show only this player's chart lines
-  ['ch-td','ch-ts','ch-tr'].forEach(id=>{const el=document.getElementById(id);if(el&&CHS[id]){CHS[id].destroy();delete CHS[id];}});
-  if(t!=='tr')return;
-  const p=filtPl[0];if(!p)return;
-  const col='#2d7a2d';
-  const mySess=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0).sort((a,b)=>a.date.localeCompare(b.date));
-  const teamSess=D.sessions.filter(s=>parseFloat(s.distance||0)>0);
-  const teamAvgByDate=mySess.map(s=>{const same=teamSess.filter(t=>t.date===s.date);return same.length?same.reduce((a,x)=>a+parseFloat(x.distance||0),0)/same.length:null;});
-  const dates=mySess.map(s=>s.date);
-  if(!dates.length)return;
-  // Distance chart
-  const cd=document.getElementById('ch-td');
-  if(cd&&cd.getContext){CHS['ch-td']=new Chart(cd.getContext('2d'),{type:'line',data:{labels:dates,datasets:[
-    {label:p.name,data:mySess.map(s=>parseFloat(s.distance||0)),borderColor:col,backgroundColor:col+'22',tension:.3,pointRadius:4},
-    {label:'Team-Ø',data:teamAvgByDate,borderColor:'#1a5e8a',borderDash:[4,3],backgroundColor:'transparent',tension:.3,pointRadius:3}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},scales:{y:{beginAtZero:true}}}});}
-  // Sprint chart
-  const cs=document.getElementById('ch-ts');
-  if(cs&&cs.getContext){
-    const teamMaxSprint=mySess.map(s=>{const same=teamSess.filter(t=>t.date===s.date);return same.length?Math.max(...same.map(x=>parseFloat(x.maxSprint||0))):null;});
-    CHS['ch-ts']=new Chart(cs.getContext('2d'),{type:'bar',data:{labels:[p.name.split(' ')[0]],datasets:[
-      {label:'Max. Sprint',data:[mySess.length?Math.max(...mySess.map(s=>parseFloat(s.maxSprint||0))):0],backgroundColor:col+'cc',borderRadius:4},
-      {label:'Team-Ø',data:[teamSess.length?teamSess.reduce((a,s)=>a+parseFloat(s.maxSprint||0),0)/teamSess.length:0],backgroundColor:'#1a5e8a55',borderRadius:4}
-    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},scales:{y:{beginAtZero:true}}}});}
-  // Radar chart
-  const cr=document.getElementById('ch-tr');
-  if(cr&&cr.getContext){
-    const teamAvgV=k=>teamSess.length?teamSess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/teamSess.length:0;
-    const myAvgV=k=>mySess.length?mySess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/mySess.length:0;
-    const labels=['Distanz','Hi-Int.','Sprint','Pässe','Aktiv-Min'];
-    CHS['ch-tr']=new Chart(cr.getContext('2d'),{type:'radar',data:{labels,datasets:[
-      {label:p.name,data:[myAvgV('distance'),myAvgV('hiInt')/100,myAvgV('maxSprint'),myAvgV('passes')/10,myAvgV('activeMin')],borderColor:col,backgroundColor:col+'22',pointRadius:3},
-      {label:'Team-Ø',data:[teamAvgV('distance'),teamAvgV('hiInt')/100,teamAvgV('maxSprint'),teamAvgV('passes')/10,teamAvgV('activeMin')],borderColor:'#1a5e8a',borderDash:[4,3],backgroundColor:'#1a5e8a22',pointRadius:3}
-    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:9}}}},scales:{r:{beginAtZero:true,ticks:{font:{size:9}}}}}});}
-}
-
 function renderTCharts(t){
   const filtPl=tcFilter.size>0?D.players.filter(p=>tcFilter.has(p.id)):D.players;
   if(t==='tr'){
@@ -1712,102 +1504,44 @@ function renderGames(){
 }
 
 // ── STATS OVERVIEW ────────────────────────────────────────────────────────────
-
-function setStFilter(f,btn){
-  stFilter=f;
-  document.querySelectorAll('#stf-all,#stf-official,#stf-friendly').forEach(b=>b.classList.remove('active'));
-  if(btn)btn.classList.add('active');
-  renderStatsOv();setTimeout(renderStatsCharts,60);
-}
-
-function renderTeamScore(mrList){
-  if(!mrList.length){
-    document.getElementById('team-score-card').innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px">Noch keine Spielberichte für diesen Filter</div>';
-    return;
-  }
-  const wins=mrList.filter(m=>parseInt(m.goalsUs||0)>parseInt(m.goalsThem||0)).length;
-  const draws=mrList.filter(m=>parseInt(m.goalsUs||0)===parseInt(m.goalsThem||0)).length;
-  const losses=mrList.filter(m=>parseInt(m.goalsUs||0)<parseInt(m.goalsThem||0)).length;
-  const goalsFor=mrList.reduce((a,m)=>a+parseInt(m.goalsUs||0),0);
-  const goalsAgainst=mrList.reduce((a,m)=>a+parseInt(m.goalsThem||0),0);
-  const avgFor=(goalsFor/mrList.length).toFixed(1);
-  const avgAgainst=(goalsAgainst/mrList.length).toFixed(1);
-  const allEvts=mrList.flatMap(m=>m.events||[]);
-  const totalGelb=allEvts.filter(e=>e.type==='card'&&e.cardType==='gelb').length;
-  const totalGelbRot=allEvts.filter(e=>e.type==='card'&&e.cardType==='gelbrot').length;
-  const totalRot=allEvts.filter(e=>e.type==='card'&&e.cardType==='rot').length;
-  const teamAtt=D.players.length&&D.trainingDays.length?
-    Math.round(D.players.reduce((a,p)=>a+(D.trainingDays.filter(t=>(t.present||[]).includes(p.id)).length/D.trainingDays.length*100),0)/D.players.length):0;
-  // Mannschaftsscore (0-100)
-  const winScore=Math.min(40,Math.round(wins/mrList.length*40+(draws/mrList.length*15)));
-  const gdPerGame=(goalsFor-goalsAgainst)/mrList.length;
-  const gdScore=Math.min(30,Math.max(0,Math.round(gdPerGame*6+15)));
-  const attScore2=Math.min(20,Math.round(teamAtt/5));
-  const cardPenalty=Math.min(10,(totalGelb*0.5+totalGelbRot*1.5+totalRot*3));
-  const teamScore=Math.min(100,Math.round(winScore+gdScore+attScore2+Math.max(0,10-cardPenalty)));
-  const tsCol=teamScore>=75?'#2d7a2d':teamScore>=55?'#ca8a04':'#c0392b';
-  const tsLabel=teamScore>=75?'🏆 Starke Saison':teamScore>=60?'💪 Solide Saison':teamScore>=45?'📈 Entwicklung':'⚡ Aufbauphase';
-  document.getElementById('team-score-card').innerHTML=
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
-    +'<div style="font-size:13px;font-weight:800">🏅 Mannschaftsscore</div>'
-    +'<span style="font-size:11px;color:var(--muted)">'+mrList.length+' Spiele</span></div>'
-    +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">'
-    +'<div style="font-size:44px;font-weight:900;color:'+tsCol+';line-height:1">'+teamScore+'</div>'
-    +'<div><div style="font-size:14px;font-weight:700;color:'+tsCol+'">'+tsLabel+'</div>'
-    +'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+wins+'S · '+draws+'U · '+losses+'N</div></div>'
-    +'<div style="margin-left:auto;text-align:right;font-size:11px">'
-    +'<div>⚽ <strong style="color:var(--grn)">'+goalsFor+'</strong> Tore (Ø '+avgFor+')</div>'
-    +'<div>🥅 <strong style="color:var(--red)">'+goalsAgainst+'</strong> Gegentore (Ø '+avgAgainst+')</div>'
-    +'<div>🟨 '+totalGelb+' &nbsp;🟥 '+totalRot+' &nbsp;🟨🟥 '+totalGelbRot+'</div>'
-    +'<div>👟 Anwesenheit Team: <strong>'+teamAtt+'%</strong></div>'
-    +'</div></div>'
-    +'<div style="background:var(--bg2);border-radius:99px;height:8px;overflow:hidden;margin-bottom:6px">'
-    +'<div style="height:8px;border-radius:99px;background:'+tsCol+';width:'+teamScore+'%;transition:width .5s"></div></div>'
-    +'<div style="font-size:9px;color:var(--muted);font-style:italic">Berechnung: Siege/Punkte (40P) + Tordifferenz (30P) + Teamanwesenheit (20P) + Disziplin (10P)</div>';
-}
-
 function renderStatsOv(){
-  const mrAllRaw=D.matchReports||[];
-  const mrPflRaw=mrAllRaw.filter(m=>(m.gameType||'official')==='official');
-  const mrTestRaw=mrAllRaw.filter(m=>m.gameType==='friendly');
-  // filtered MR for all cards/charts
-  const mrAll=stFilter==='official'?mrPflRaw:stFilter==='friendly'?mrTestRaw:mrAllRaw;
-  const mrPfl=mrPflRaw;const mrTest=mrTestRaw;
-  const sfArg=stFilter==='all'?undefined:stFilter;
-  const allSt=D.players.map(p=>getEffStats(p.id,sfArg));
+  const allSt=D.players.map(p=>getEffStats(p.id));
   const totalG=allSt.reduce((a,s)=>a+totalGoals(s),0);
-  const topScorer=D.players.reduce((best,p)=>{const g=totalGoals(getEffStats(p.id,sfArg));return g>best.g?{p,g}:best;},{p:null,g:0});
+  const totalA=allSt.reduce((a,s)=>a+(s.vl||0),0);
+  const topScorer=D.players.reduce((best,p)=>{const g=totalGoals(getEffStats(p.id));return g>best.g?{p,g}:best;},{p:null,g:0});
   const avgAtt=D.players.length?allSt.reduce((a,s)=>a+attPct(s),0)/D.players.length:0;
+  // Team game stats
+  // Spielergebnis-Stats IMMER aus Spielberichten (nicht GPS)
+  const mrAll=D.matchReports||[];
+  const mrPfl=mrAll.filter(m=>(m.gameType||'official')==='official');
+  const mrTest=mrAll.filter(m=>m.gameType==='friendly');
   const avgGoals=mrAll.length?(mrAll.reduce((a,m)=>a+parseInt(m.goalsUs||0),0)/mrAll.length).toFixed(1):'–';
   const avgConc=mrAll.length?(mrAll.reduce((a,m)=>a+parseInt(m.goalsThem||0),0)/mrAll.length).toFixed(1):'–';
   const zuArr=mrAll.map(m=>parseInt(m.zuschauer||0)).filter(v=>v>0);
   const avgZu=zuArr.length?Math.round(zuArr.reduce((a,b)=>a+b,0)/zuArr.length):'–';
   const avgPflG=mrPfl.length?(mrPfl.reduce((a,m)=>a+parseInt(m.goalsUs||0),0)/mrPfl.length).toFixed(1):'–';
   const avgTestG=mrTest.length?(mrTest.reduce((a,m)=>a+parseInt(m.goalsUs||0),0)/mrTest.length).toFixed(1):'–';
-  const mrList=mrAll;
+  // Compat: uniqueGames/uniquePflicht/uniqueTest für Karten-Stats unten
+  const uniqueGames=mrAll;const uniquePflicht=mrPfl;const uniqueTest=mrTest;
+  const mrList=D.matchReports||[];
   const avgET1=mrList.length?(mrList.reduce((a,mr)=>a+(mr.etH1||0),0)/mrList.length).toFixed(1):'–';
   const avgET2=mrList.length?(mrList.reduce((a,mr)=>a+(mr.etH2||0),0)/mrList.length).toFixed(1):'–';
   const avgNSZtotal=mrList.length?(mrList.reduce((a,mr)=>a+(mr.etH1||0)+(mr.etH2||0),0)/mrList.length).toFixed(1):'–';
   const avgNSZ=mrList.length?avgNSZtotal+' Min':'–';
-  const attCol=avgAtt>=80?'var(--grn)':avgAtt>=65?'#ca8a04':'var(--red)';
-  const filterLabel=stFilter==='official'?'Pflichtspiele':stFilter==='friendly'?'Testspiele':'Alle Spiele';
   document.getElementById('sts-ov-cards').innerHTML=`
-    <div class="card"><div class="cv">Ø Tore/Spiel</div><div class="cn" style="color:var(--grn)">${avgGoals}</div><div class="cs">Pflicht: ${avgPflG} · Test: ${avgTestG} · ${mrAll.length} Spiele</div></div>
-    <div class="card"><div class="cv">Ø Gegentore/Spiel</div><div class="cn" style="color:var(--red)">${avgConc}</div><div class="cs">${filterLabel} · ${mrAll.length} Spiele</div></div>
-    <div class="card"><div class="cv">👟 Ø Anwesenheit Team</div><div class="cn" style="color:${attCol}">${Math.round(avgAtt)}%</div><div class="cs">${D.trainingDays.length} Trainingstage · ${D.players.length} Spieler</div></div>
-    <div class="card"><div class="cv">Bester Torschütze</div><div class="cn" style="font-size:14px">${topScorer.p?topScorer.p.name.split(' ')[0]:'–'}</div><div class="cs">${topScorer.g} Tore (${filterLabel})</div></div>
-    <div class="card"><div class="cv">Ergebnis (${mrAll.length} Spiele)</div><div class="cn" style="font-size:14px;color:var(--grn)">${mrAll.filter(m=>res(m)==='win').length}S <span style="color:#ca8a04">${mrAll.filter(m=>res(m)==='draw').length}U</span> <span style="color:var(--red)">${mrAll.filter(m=>res(m)==='loss').length}N</span></div><div class="cs">aus Spielberichten</div></div>
+    <div class="card"><div class="cv">Team-Tore ⚽ (alle)</div><div class="cn" style="color:var(--grn)">${totalG}</div><div class="cs">Ø ${avgGoals} · P:${avgPflG} · T:${avgTestG}</div></div>
+    <div class="card"><div class="cv">Gegentore Ø</div><div class="cn" style="color:var(--red)">${avgConc}</div><div class="cs">${mrPfl.length} Pflicht · ${mrTest.length} Test · ${mrAll.length} gesamt</div></div>
     <div class="card"><div class="cv">Zuschauerschnitt</div><div class="cn" style="font-size:18px">${avgZu}</div><div class="cs">${zuArr.length} von ${mrAll.length} Spielen mit Daten</div></div>
-    <div class="card"><div class="cv">⏱ Ø Nachspielzeit</div><div class="cn" style="font-size:18px">${avgNSZ}</div><div class="cs">1. HZ: Ø ${avgET1} · 2. HZ: Ø ${avgET2} Min</div></div>`;
+    <div class="card"><div class="cv">Bester Torschütze</div><div class="cn" style="font-size:14px">${topScorer.p?topScorer.p.name.split(' ')[0]:'–'}</div><div class="cs">${topScorer.g} Tore</div></div>
+    <div class="card"><div class="cv">Ergebnis (${mrAll.length} Spiele)</div><div class="cn" style="font-size:14px;color:var(--grn)">${mrAll.filter(m=>res(m)==='win').length}S <span style="color:#ca8a04">${mrAll.filter(m=>res(m)==='draw').length}U</span> <span style="color:var(--red)">${mrAll.filter(m=>res(m)==='loss').length}N</span></div><div class="cs">aus Spielberichten</div></div>
+    <div class="card"><div class="cv">⏱ Ø Nachspielzeit</div><div class="cn" style="font-size:18px">${avgNSZ}</div><div class="cs">1. HZ: Ø ${avgET1} Min · 2. HZ: Ø ${avgET2} Min</div></div>`;
 
-  // Mannschaftsscore
-  renderTeamScore(mrAll);
   const tbody=document.getElementById('sts-tbody');
   if(!D.players.length){tbody.innerHTML='<tr><td colspan="23" style="text-align:center;color:var(--muted);padding:20px">Noch keine Spieler</td></tr>';return;}
   const visiblePlayers=curPlayer?D.players.filter(p=>p.id===curPlayer.id):D.players;
   tbody.innerHTML=visiblePlayers.map((p)=>{
     const i=D.players.indexOf(p);
-    const s=getEffStats(p.id,stFilter==='all'?undefined:stFilter),col=COLS[i%COLS.length];
+    const s=getEffStats(p.id),col=COLS[i%COLS.length];
     const att=attPct(s),mp=minPct(s),mx=maxMin(s),tg=totalGoals(s);
     const attColor=att>=80?'var(--grn)':att>=60?'#ca8a04':'var(--red)';
     const minColor=mp>=80?'var(--grn)':mp>=50?'#ca8a04':'var(--red)';
@@ -1848,26 +1582,8 @@ function renderStatsCharts(){
   if(!D.players.length){noDataMsg(['ch-goals','ch-gtypes','ch-att','ch-mins','ch-zones'],'Noch keine Spieler angelegt');return;}
   const sorted=[...D.players].sort((a,b)=>totalGoals(getEffStats(b.id))-totalGoals(getEffStats(a.id))).slice(0,10);
   CHS['ch-goals']=new Chart(document.getElementById('ch-goals'),{type:'bar',data:{labels:sorted.map(p=>p.name.split(' ')[0]),datasets:[{label:'Tore',data:sorted.map(p=>totalGoals(getEffStats(p.id))),backgroundColor:'#2d7a2d',borderRadius:4},{label:'Vorlagen',data:sorted.map(p=>getEffStats(p.id).vl||0),backgroundColor:'#7b2d8b',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
-  const hasMRData=(D.matchReports||[]).length>0;
-  let gtLabels,gtData,gtColors;
-  if(hasMRData){
-    const allGEvts=(D.matchReports||[]).flatMap(mr=>(mr.events||[]).filter(e=>e.type==='goal'));
-    const gtSchuss=allGEvts.filter(e=>!e.goalType||e.goalType==='schuss').length;
-    const gtKopf=allGEvts.filter(e=>e.goalType==='kopf').length;
-    const gtElf=allGEvts.filter(e=>e.goalType==='elfmeter').length;
-    gtLabels=['Schuss','Kopfball','Elfmeter'];
-    gtData=[gtSchuss,gtKopf,gtElf];
-    gtColors=['#2d7a2d','#1a5e8a','#c05000'];
-  } else {
-    const tib=D.players.reduce((a,p)=>a+(getEffStats(p.id).tib||0),0);
-    const tao=D.players.reduce((a,p)=>a+(getEffStats(p.id).tao||0),0);
-    const ts=D.players.reduce((a,p)=>a+(getEffStats(p.id).ts||0),0);
-    const tk=D.players.reduce((a,p)=>a+(getEffStats(p.id).tk||0),0);
-    gtLabels=['In Box','Außerhalb','Schuss','Kopf'];
-    gtData=[tib,tao,ts,tk];
-    gtColors=['#2d7a2d','#c05000','#1a5e8a','#7b2d8b'];
-  }
-  CHS['ch-gtypes']=new Chart(document.getElementById('ch-gtypes'),{type:'doughnut',data:{labels:gtLabels,datasets:[{data:gtData,backgroundColor:gtColors,borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},cutout:'52%'}});
+  const tib=D.players.reduce((a,p)=>a+(getEffStats(p.id).tib||0),0),tao=D.players.reduce((a,p)=>a+(getEffStats(p.id).tao||0),0),ts=D.players.reduce((a,p)=>a+(getEffStats(p.id).ts||0),0),tk=D.players.reduce((a,p)=>a+(getEffStats(p.id).tk||0),0);
+  CHS['ch-gtypes']=new Chart(document.getElementById('ch-gtypes'),{type:'doughnut',data:{labels:['In Box','Außerhalb','Schuss','Kopf'],datasets:[{data:[tib,tao,ts,tk],backgroundColor:['#2d7a2d','#c05000','#1a5e8a','#7b2d8b'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},cutout:'52%'}});
   CHS['ch-att']=new Chart(document.getElementById('ch-att'),{type:'bar',data:{labels:D.players.map(p=>p.name.split(' ')[0]),datasets:[{data:D.players.map(p=>attPct(getEffStats(p.id))),backgroundColor:D.players.map(p=>{const a=attPct(getEffStats(p.id));return a>=80?'#2d7a2d':a>=60?'#ca8a04':'#c0392b';}),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}});
   // Zone chart — events by time period across all match reports
   dch('ch-zones');
@@ -1950,248 +1666,26 @@ function opPl(pid){
   const b=document.getElementById('nb-pl');b.style.display='';b.textContent=p?p.name.split(' ')[0]:'Spieler';
   sp('player');
 }
-
-// ── VERLETZUNGSVERWALTUNG ─────────────────────────────────────────────────────
-function isInjuredNow(p){
-  const today=new Date().toISOString().slice(0,10);
-  return (p.injuries||[]).some(inj=>inj.from<=today&&(!inj.to||inj.to>=today));
-}
-
-function injuryExcludeDates(p){
-  // Returns array of date ranges to exclude
-  return p.injuries||[];
-}
-
-function sessExcludeInjured(pid,sessions){
-  const p=D.players.find(x=>x.id===pid);if(!p)return sessions;
-  const injs=p.injuries||[];
-  if(!injs.length)return sessions;
-  return sessions.filter(s=>!injs.some(inj=>s.date>=inj.from&&(!inj.to||s.date<=inj.to)));
-}
-
-function renderInjurySection(p){
-  const injs=p.injuries||[];
-  const today=new Date().toISOString().slice(0,10);
-  const injRows=injs.map((inj,i)=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12px">
-      <span style="color:var(--red)">🏥</span>
-      <span style="flex:1">${fmtD(inj.from)} – ${inj.to?fmtD(inj.to):'<span style="color:var(--red);font-weight:700">aktuell</span>'}</span>
-      <span style="color:var(--muted);font-size:11px">${inj.note||''}</span>
-      ${isTr?`<button onclick="delInj('${p.id}',${i})" style="border:none;background:none;color:var(--red);cursor:pointer;font-size:12px">✕</button>`:''}
-    </div>`).join('');
-  const addForm=isTr?`<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end">
-    <div><label style="font-size:11px;color:var(--muted)">Von</label><input type="date" id="inj-from" value="${today}" style="display:block;padding:4px 6px;border-radius:5px;border:1px solid var(--brd);font-size:12px"></div>
-    <div><label style="font-size:11px;color:var(--muted)">Bis (leer = noch verletzt)</label><input type="date" id="inj-to" style="display:block;padding:4px 6px;border-radius:5px;border:1px solid var(--brd);font-size:12px"></div>
-    <div><label style="font-size:11px;color:var(--muted)">Notiz</label><input type="text" id="inj-note" placeholder="z.B. Muskelfaserriss" style="display:block;padding:4px 6px;border-radius:5px;border:1px solid var(--brd);font-size:12px;width:160px"></div>
-    <button class="btn btn-g" style="font-size:11px;padding:5px 10px" onclick="addInj('${p.id}')">+ Verletzung</button>
-  </div>`:'';
-  if(!injs.length&&!isTr)return '';
-  return `<div class="card trainer-only" style="margin-bottom:12px;border-left:4px solid var(--red)">
-    <div style="font-size:13px;font-weight:800;margin-bottom:8px">🏥 Verletzungshistorie</div>
-    ${injs.length?injRows:'<div style="font-size:12px;color:var(--muted)">Keine Verletzungen eingetragen</div>'}
-    ${addForm}
-  </div>`;
-}
-
-function addInj(pid){
-  const from=document.getElementById('inj-from')?.value;
-  const to=document.getElementById('inj-to')?.value||null;
-  const note=document.getElementById('inj-note')?.value||'';
-  if(!from){alert('Startdatum angeben.');return;}
-  const p=D.players.find(x=>x.id===pid);if(!p)return;
-  if(!p.injuries)p.injuries=[];
-  p.injuries.push({from,to,note});
-  p.injuries.sort((a,b)=>b.from.localeCompare(a.from));
-  sv();renderPlayer();
-}
-
-function delInj(pid,idx){
-  const p=D.players.find(x=>x.id===pid);if(!p)return;
-  p.injuries.splice(idx,1);
-  sv();renderPlayer();
-}
-
-function renderScore(pid){
-  const allSess=D.sessions.filter(s=>s.playerId===pid&&parseFloat(s.distance||0)>0).sort((a,b)=>a.date.localeCompare(b.date));
-  const sess=sessExcludeInjured(pid,allSess);
-  const recent=sess.slice(-4);
-  if(!recent.length)return '';
-  const seaAvg=k=>sess.length?sess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/sess.length:0;
-  const recAvg=k=>recent.reduce((a,s)=>a+parseFloat(s[k]||0),0)/recent.length;
-
-  // ── TRAININGSLEISTUNGSSCORE (100 Pkt) ────────────────────────────────────
-  const lastTDs=D.trainingDays.slice(-6);
-  const attScore=lastTDs.length?Math.round(lastTDs.filter(td=>(td.present||[]).includes(pid)).length/lastTDs.length*25):0;
-  const dSea=seaAvg('distance'),dRec=recAvg('distance');
-  const dScore=dSea>0?Math.min(25,Math.round((dRec/dSea)*20)):0;
-  const hSea=seaAvg('hiInt'),hRec=recAvg('hiInt');
-  const hScore=hSea>0?Math.min(25,Math.round((hRec/hSea)*20)):0;
-  const sSea=seaAvg('maxSprint'),sRec=recAvg('maxSprint');
-  const sScore=sSea>0?Math.min(25,Math.round((sRec/sSea)*20)):0;
-  const trScore=Math.min(100,attScore+dScore+hScore+sScore);
-  const trCol=trScore>=80?'#2d7a2d':trScore>=60?'#ca8a04':'#c0392b';
-  const trLabel=trScore>=80?'🔥 Top-Form':trScore>=65?'💪 Gute Form':trScore>=50?'📈 Aufsteigend':'⚡ Aufholbedarf';
-  const trend=dRec>dSea&&hRec>hSea?'↑ Besser als Saisonschnitt':dRec<dSea*0.9?'↓ Unter Saisonschnitt':'→ Im Saisonschnitt';
-
-  // ── GESAMTLEISTUNGSSCORE — Training 75% + Spiel 25%, positionsabhängig, nur Pflichtspiele ──
-  const p4s=D.players.find(x=>x.id===pid);
-  const pos4=(p4s?p4s.pos||'':'').toLowerCase();
-  const isTW=pos4.includes('torwart')||pos4.includes('keeper');
-  const isDEF=!isTW&&(pos4.includes('verteidiger')||pos4.includes('libero')||pos4.includes('abwehr'));
-  const isATT=!isTW&&!isDEF&&(pos4.includes('stürmer')||pos4.includes('sturm')||pos4.includes('außenstürmer'));
-  // Feste Komponenten: Einsatz=30, Ergebnis=20, Rest 50 positionsabhängig aufgeteilt
-  // W=[Einsatz, Ergebnis, Offensiv, Defensiv]  — immer Summe 100
-  const W=isTW  ?[30,20, 5,45]
-         :isDEF ?[30,20,10,40]
-         :isATT ?[30,20,40,10]
-                :[30,20,25,25]; // MID
-
-  const st=getEffStats(pid,'official');
-  const allMR=(D.matchReports||[]).filter(m=>(m.gameType||'official')==='official');
-  // nur Pflichtspiele wo Spieler im Kader, älteste zuerst (für Recency-Gewicht)
-  const plMRs=allMR.filter(mr=>computePMS(pid,mr)!==null).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-  const hasGameData=plMRs.length>0;
-  let gameScore=0,gameNote='keine Pflichtspieleinsätze';
-  let minSc=0,resSc=0,offSc=0,defSc=0;
-
-  if(hasGameData){
-    const nG=plMRs.length;
-    // Recency-Gewicht: letztes Spiel=nG, vorletztes=nG-1, ... (linear)
-    const rw=plMRs.map((_,i)=>i+1);
-    const rwSum=rw.reduce((a,b)=>a+b,0)||1;
-    const wAvg=(arr)=>arr.reduce((a,v,i)=>a+(isNaN(v)?0:v)*rw[i],0)/rwSum;
-
-    // 1. Einsatzzeit (max 30) — gewichtete Einsatzquote
-    const minRates=plMRs.map(mr=>{
-      const pms=computePMS(pid,mr);
-      const played=pms?parseFloat(pms.minutes)||0:0;
-      const dur=parseFloat(mr.matchDuration)||80;
-      return Math.min(1,played/dur);
-    });
-    minSc=Math.min(W[0],Math.round(wAvg(minRates)*W[0]));
-
-    // 2. Ergebnis (max 20) — S=1, U=0.4, N=0, recency-gewichtet
-    const resRates=plMRs.map(mr=>{
-      const us=parseInt(mr.goalsUs||0),th=parseInt(mr.goalsThem||0);
-      return us>th?1:us===th?0.4:0;
-    });
-    resSc=Math.min(W[1],Math.round(wAvg(resRates)*W[1]));
-
-    // 3. Offensiv — Tore + Vorlagen pro Spiel vs. Erwartungswert für Position
-    const plGoals=plMRs.map(mr=>{
-      const evts=mr.events||[];
-      const g=evts.filter(e=>e.type==='goal'&&e.playerId===pid).length;
-      const a=evts.filter(e=>e.type==='goal'&&e.assistId===pid).length;
-      return g+a*0.6;
-    });
-    // Erwarteter G+A-Schnitt pro Position (pro Spiel)
-    const offRef=isATT?0.55:isDEF?0.12:isTW?0.04:0.30;
-    const offAvg=wAvg(plGoals);
-    offSc=W[2]>0&&offRef>0?Math.min(W[2],Math.round(Math.min(offAvg/offRef,1.5)*W[2])):0;
-
-    // 4. Defensiv — wenig Gegentore + Clean Sheets (recency-gewichtet)
-    // Score pro Spiel: 0 GT=1.0, 1 GT=0.65, 2 GT=0.30, 3+ GT=0
-    const defRates=plMRs.map(mr=>{
-      const conc=parseInt(mr.goalsThem||0);
-      if(conc===0)return 1;
-      if(conc===1)return 0.65;
-      if(conc===2)return 0.30;
-      return 0;
-    });
-    defSc=Math.min(W[3],Math.round(wAvg(defRates)*W[3]));
-
-    gameScore=Math.min(100,minSc+resSc+offSc+defSc);
-    const wins=plMRs.filter(mr=>parseInt(mr.goalsUs||0)>parseInt(mr.goalsThem||0)).length;
-    const draws=plMRs.filter(mr=>parseInt(mr.goalsUs||0)===parseInt(mr.goalsThem||0)).length;
-    const totalGC=plMRs.reduce((a,mr)=>a+parseInt(mr.goalsThem||0),0);
-    const posLabel=isTW?'Torwart':isDEF?'Verteidiger':isATT?'Angreifer':'Mittelfeld';
-    gameNote=posLabel+' · '+wins+'S/'+draws+'U/'+(nG-wins-draws)+'N · '+totalGoals(st)+'T/'+(st.vl||0)+'V · Ø '+(totalGC/nG).toFixed(1)+' GT/Spiel';
-  }
-
-  const gesamtScore=hasGameData?Math.min(100,Math.round(trScore*0.75+gameScore*0.25)):trScore;
-  const gsCol=gesamtScore>=80?'#2d7a2d':gesamtScore>=60?'#ca8a04':'#c0392b';
-  const gsLabel=gesamtScore>=80?'🔥 Sehr gut':gesamtScore>=65?'💪 Gut':gesamtScore>=50?'📈 Solide':'⚡ Aufholbedarf';
-
-  return `<div class="card" style="margin-bottom:14px">
-
-    <!-- Trainingsleistungsscore -->
-    <div style="border-left:4px solid ${trCol};padding-left:10px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div style="font-size:12px;font-weight:800">🏃 Trainingsleistungsscore</div>
-        <div style="font-size:10px;color:var(--muted)">letzte ${recent.length} Einheiten</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-        <div style="font-size:38px;font-weight:900;color:${trCol};line-height:1">${trScore}</div>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:${trCol}">${trLabel}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px">${trend}</div>
-        </div>
-      </div>
-      <div style="background:var(--bg2);border-radius:99px;height:6px;overflow:hidden;margin-bottom:6px">
-        <div style="height:6px;border-radius:99px;background:${trCol};width:${trScore}%;transition:width .5s"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-size:10px;text-align:center;margin-bottom:4px">
-        <div><div style="font-weight:700;color:${trCol}">${attScore}/25</div><div style="color:var(--muted)">Präsenz</div></div>
-        <div><div style="font-weight:700;color:${trCol}">${dScore}/25</div><div style="color:var(--muted)">Distanz</div></div>
-        <div><div style="font-weight:700;color:${trCol}">${hScore}/25</div><div style="color:var(--muted)">Hi-Int</div></div>
-        <div><div style="font-weight:700;color:${trCol}">${sScore}/25</div><div style="color:var(--muted)">Sprint</div></div>
-      </div>
-      <div style="font-size:9px;color:var(--muted);font-style:italic">Berechnung: Anwesenheit letzte 6 Tage (25P) + Distanz/Hi-Int/Sprint vs. Saisonschnitt (je 25P)</div>
-    </div>
-
-    <!-- Gesamtleistungsscore -->
-    <div style="border-left:4px solid ${gsCol};padding-left:10px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div style="font-size:12px;font-weight:800">⚡ Gesamtleistungsscore</div>
-        <div style="font-size:10px;color:var(--muted)">${hasGameData?'Training 75% · Spiel 25%':'nur Training (keine Spieldaten)'}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-        <div style="font-size:38px;font-weight:900;color:${gsCol};line-height:1">${gesamtScore}</div>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:${gsCol}">${gsLabel}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px">${gameNote}</div>
-        </div>
-      </div>
-      <div style="background:var(--bg2);border-radius:99px;height:6px;overflow:hidden;margin-bottom:6px">
-        <div style="height:6px;border-radius:99px;background:${gsCol};width:${gesamtScore}%;transition:width .5s"></div>
-      </div>
-      ${hasGameData?`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;font-size:10px;text-align:center;margin-bottom:5px">
-        <div><div style="font-weight:700;color:${gsCol}">${minSc}/${W[0]}</div><div style="color:var(--muted)">Einsatz</div></div>
-        <div><div style="font-weight:700;color:${gsCol}">${resSc}/${W[1]}</div><div style="color:var(--muted)">Ergebnis</div></div>
-        <div><div style="font-weight:700;color:${gsCol}">${offSc}/${W[2]}</div><div style="color:var(--muted)">Offensiv</div></div>
-        <div><div style="font-weight:700;color:${gsCol}">${defSc}/${W[3]}</div><div style="color:var(--muted)">Defensiv</div></div>
-      </div>`:''}
-      <div style="font-size:9px;color:var(--muted);font-style:italic">${hasGameData?'Training 75% + Pflichtspiele 25% — Offensiv/Defensiv positionsabhängig':'Nur Trainingsform (keine Pflichtspieleinsätze)'}</div>
-    </div>
-
-  </div>`;
-}
-
 function renderPlayer(){
   if(!aPl)return;
   const p=D.players.find(p=>p.id===aPl);if(!p)return;
   const ps=pSess(p.id),gs=pGames(p.id),idx=D.players.indexOf(p),col=COLS[idx%COLS.length];
   const delBtn=isTr?`<button class="btn-d" style="padding:6px 11px;font-size:11px;border-radius:5px" onclick="delPl('${p.id}')">Entfernen</button>`:'';
-  const scoreHtml=renderScore(p.id);
-  const injHtml=renderInjurySection(p);
   document.getElementById('pl-content').innerHTML=`
-    ${scoreHtml}
-    <div style="display:flex;align-items:center;gap:11px;margin-bottom:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:16px;flex-wrap:wrap">
       <div class="pav" style="width:52px;height:52px;font-size:19px;background:${col}18;color:${col};border-color:${col}">${ini(p.name)}</div>
-      <div><div style="font-size:17px;font-weight:800">#${p.number} ${p.name} ${isInjuredNow(p)?'<span style="font-size:12px;background:#fee2e2;color:#c0392b;padding:2px 8px;border-radius:99px;font-weight:700">🏥 Verletzt</span>':''}</div><div style="color:var(--muted);font-size:11px">${p.pos} · ${ps.length} Trainings · ${gs.length} Spiele</div></div>
+      <div><div style="font-size:17px;font-weight:800">#${p.number} ${p.name}</div><div style="color:var(--muted);font-size:11px">${p.pos} · ${ps.length} Trainings · ${gs.length} Spiele</div></div>
       <div style="margin-left:auto">${delBtn}</div>
     </div>
-    ${injHtml}
     <div class="tabs">
-      <button class="tab active" onclick="setPT('tr',this,'${p.id}')">📡 Tracker-Training</button>
-      <button class="tab gm" onclick="setPT('gm',this,'${p.id}')">📡 Tracker-Spiel</button>
-      <button class="tab st" onclick="setPT('st',this,'${p.id}')">🏅 Saisonwerte</button>
+      <button class="tab active" onclick="setPT('tr',this,'${p.id}')">🏃 Training</button>
+      <button class="tab gm" onclick="setPT('gm',this,'${p.id}')">🏆 Spiele</button>
+      <button class="tab st" onclick="setPT('st',this,'${p.id}')">📊 Saison</button>
     </div>
     <div id="pt-c"></div>`;
   renderPTab('tr',p,ps,gs,col);
 }
 function setPT(type,btn,pid){
-  if(type!=='st')plStFilter='all';
   document.querySelectorAll('#pl-content .tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
   const p=D.players.find(p=>p.id===pid),col=COLS[D.players.indexOf(p)%COLS.length];
   renderPTab(type,p,pSess(pid),pGames(pid),col);
@@ -2201,7 +1695,7 @@ function renderPTab(type,p,ps,gs,col){
   const isGm=type==='gm',baseEntries=isGm?gs:ps;
   const entries=isGm?filtGames(baseEntries,plGmFilter):baseEntries,ac=isGm?'var(--org)':col;
   const avgD=entries.length?avg(entries,'distance').toFixed(1):'–',maxSp=entries.length?Math.max(...entries.map(s=>parseFloat(s.maxSprint||0))).toFixed(1):'–';
-  const extra=isGm&&gs.length?`<div class="card"><div class="cv">Siege</div><div class="cn" style="color:var(--grn)">${gs.filter(g=>res(g)==='win').length}<span style="font-size:11px;color:#999"> / ${gs.length}</span></div></div>`:`<div class="card"><div class="cv">Trainings ges.</div><div class="cn">${entries.length}</div></div>`;
+  const extra=isGm&&gs.length?`<div class="card"><div class="cv">Siege</div><div class="cn" style="color:var(--grn)">${gs.filter(g=>res(g)==='win').length}<span style="font-size:11px;color:#999"> / ${gs.length}</span></div></div>`:`<div class="card"><div class="cv">Ø Pässe</div><div class="cn">${entries.length?avg(entries,'passes').toFixed(0):'–'}</div></div>`;
   const rows=entries.length?[...entries].reverse().map(e=>{
     const ld=parseFloat(e.load||0);
     const del=isTr?`<td><button class="btn-d" onclick="event.stopPropagation();delE('${e.id}','${isGm?'gm':'tr'}');opPl('${p.id}')">✕</button></td>`:'<td></td>';
@@ -2211,34 +1705,20 @@ function renderPTab(type,p,ps,gs,col){
     <button class="tab gm ${plGmFilter==='official'?'active':''}" onclick="plGmFilter='official';setPT('gm',document.querySelector('#pl-content .tab.gm.active'),'${p.id}')">Pflichtspiele</button>
     <button class="tab gm ${plGmFilter==='friendly'?'active':''}" onclick="plGmFilter='friendly';setPT('gm',document.querySelector('#pl-content .tab.gm.active'),'${p.id}')">Testspiele</button>
   </div>`:'';
-  const avgSp=entries.length?avg(entries,'maxSprint').toFixed(1):'–';
-  const avgHI=entries.length?avg(entries,'hiInt').toFixed(0):'–';
-  const avgAcc=entries.length?avg(entries,'acc').toFixed(1):'–';
-  const avgDec=entries.length?avg(entries,'dec').toFixed(1):'–';
   document.getElementById('pt-c').innerHTML=plFiltUI+`
-    <div class="g4" style="margin-bottom:10px">
+    <div class="g4" style="margin-bottom:12px">
       <div class="card"><div class="cv">${isGm?'Spiele':'Trainings'}</div><div class="cn" style="color:${ac}">${entries.length}</div></div>
       <div class="card"><div class="cv">Ø Distanz</div><div class="cn">${avgD} <small style="font-size:10px">km</small></div></div>
-      <div class="card"><div class="cv">Ø Max. Sprint</div><div class="cn">${avgSp} <small style="font-size:10px">km/h</small></div></div>
+      <div class="card"><div class="cv">Max. Sprint</div><div class="cn">${maxSp} <small style="font-size:10px">km/h</small></div></div>
       ${extra}
-    </div>
-    <div class="g4" style="margin-bottom:12px">
-      <div class="card"><div class="cv">Ø Hi-Intensität</div><div class="cn">${avgHI} <small style="font-size:10px">m</small></div></div>
-      <div class="card"><div class="cv">Ø Beschleunigungen</div><div class="cn">${avgAcc}</div></div>
-      <div class="card"><div class="cv">Ø Abbremsungen</div><div class="cn">${avgDec}</div></div>
-      <div class="card"><div class="cv">Ø Pässe</div><div class="cn">${entries.length?avg(entries,'passes').toFixed(0):'–'}</div></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
       <div class="card"><div class="cv" style="margin-bottom:6px">Distanz (km)</div><div class="chrt"><canvas id="ch-pd"></canvas></div></div>
       <div class="card"><div class="cv" style="margin-bottom:6px">Profil-Radar</div><div class="chrt"><canvas id="ch-pr"></canvas></div></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
-      <div class="card"><div class="cv" style="margin-bottom:6px">Ø Max. Sprint (km/h)</div><div class="chrt"><canvas id="ch-psp"></canvas></div></div>
+      <div class="card"><div class="cv" style="margin-bottom:6px">Max. Sprint</div><div class="chrt"><canvas id="ch-psp"></canvas></div></div>
       <div class="card"><div class="cv" style="margin-bottom:6px">Belastungsverlauf (Score)</div><div class="chrt"><canvas id="ch-pl"></canvas></div></div>
-    </div>
-    <div class="g2" style="margin-bottom:12px">
-      <div class="card"><div class="cv" style="margin-bottom:6px">Beschleunigungen</div><div class="chrt"><canvas id="ch-pacc"></canvas></div></div>
-      <div class="card"><div class="cv" style="margin-bottom:6px">Abbremsungen</div><div class="chrt"><canvas id="ch-pdec"></canvas></div></div>
     </div>
     <div class="card">
       <div style="font-size:12px;font-weight:800;margin-bottom:7px">${isGm?'Spielhistorie':'Trainingshistorie'}</div>
@@ -2247,11 +1727,11 @@ function renderPTab(type,p,ps,gs,col){
   setTimeout(()=>renderPChts(p,entries,ac),50);
 }
 function renderPChts(p,entries,col){
-  ['ch-pd','ch-pr','ch-psp','ch-pl','ch-pacc','ch-pdec'].forEach(dch);
+  ['ch-pd','ch-pr','ch-psp','ch-pl'].forEach(dch);
   if(!entries.length)return;
   const dates=entries.map(s=>fmtD(s.date));
   const mkL=(id,key,c)=>{const el=document.getElementById(id);if(!el)return;CHS[id]=new Chart(el,{type:'line',data:{labels:dates,datasets:[{data:entries.map(s=>parseFloat(s[key]||0)),borderColor:c,backgroundColor:c+'20',tension:.3,fill:true,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});};
-  mkL('ch-pd','distance',col);mkL('ch-psp','maxSprint','#c05000');mkL('ch-pl','load','#8a1a1a');mkL('ch-pacc','acc','#1a5e8a');mkL('ch-pdec','dec','#7b2d8b');
+  mkL('ch-pd','distance',col);mkL('ch-psp','maxSprint','#c05000');mkL('ch-pl','load','#8a1a1a');
   const el=document.getElementById('ch-pr');if(!el)return;
   const rL=['Distanz','Hi-Int.','Sprint','Beschl.','Abbrems.','Pässe','Am Ball'],rK=['distance','hiInt','maxSprint','acc','dec','passes','ballMin'];
   const mxV=rK.map(k=>Math.max(...[...D.sessions,...D.games].map(s=>parseFloat(s[k]||0)),1));
@@ -2260,18 +1740,12 @@ function renderPChts(p,entries,col){
 
 // ── PLAYER SEASON STATS TAB ───────────────────────────────────────────────────
 function renderPlSt(p,col){
-  const sfArg=plStFilter==='all'?undefined:plStFilter;
-  const s=getEffStats(p.id,sfArg),tg=totalGoals(s),att=attPct(s),mp=minPct(s),mx=maxMin(s);
+  const s=getEffStats(p.id),tg=totalGoals(s),att=attPct(s),mp=minPct(s),mx=maxMin(s);
   const attC=att>=80?'var(--grn)':att>=60?'#ca8a04':'var(--red)';
   const minC=mp>=80?'var(--grn)':mp>=50?'#ca8a04':'var(--red)';
   const src=s.hasMR?'<span style="font-size:10px;background:#e6f4e6;color:var(--grn);padding:2px 7px;border-radius:8px;font-weight:700;border:1px solid #b0d8b0">📊 aus Spielberichten</span>':s.hasTD?'<span style="font-size:10px;background:#e8f0fe;color:#1a5e8a;padding:2px 7px;border-radius:8px;font-weight:700;border:1px solid #b0c8f0">📋 aus Anwesenheitslisten</span>':'';
   const editBtn=isTr?`<button class="btn btn-p" onclick="opEditSt('${p.id}')">✏️ Manuell bearbeiten</button>`:'';
-  const stFiltUI=`<div class="tabs" style="margin-bottom:12px">
-    <button class="tab gm ${plStFilter==='all'?'active':''}" onclick="plStFilter='all';renderPlSt(D.players.find(x=>x.id==='${p.id}'),'${col}')">Alle Spiele</button>
-    <button class="tab gm ${plStFilter==='official'?'active':''}" onclick="plStFilter='official';renderPlSt(D.players.find(x=>x.id==='${p.id}'),'${col}')">Pflichtspiele</button>
-    <button class="tab ${plStFilter==='friendly'?'active':''}" onclick="plStFilter='friendly';renderPlSt(D.players.find(x=>x.id==='${p.id}'),'${col}')" style="background:#1a5e8a;color:#fff">Testspiele</button>
-  </div>`;
-  document.getElementById('pt-c').innerHTML=stFiltUI+`
+  document.getElementById('pt-c').innerHTML=`
     <div class="g4" style="margin-bottom:12px">
       <div class="card"><div class="cv">Tore ⚽</div><div class="cn" style="color:var(--grn)">${tg}</div><div class="cs">${s.ts||0} Schuss · ${s.tk||0} Kopf</div></div>
       <div class="card"><div class="cv">Vorlagen</div><div class="cn" style="color:var(--pur)">${s.vl||0}</div></div>
@@ -2283,14 +1757,13 @@ function renderPlSt(p,col){
     <div class="g3" style="margin-bottom:12px">
       <div class="card">
         <div style="font-size:12px;font-weight:800;margin-bottom:9px">📋 Einsatzdetails</div>
-        <div class="stat-row"><span class="stat-lbl">Kadernominierungen</span><span class="stat-val" style="color:var(--blk)">${s.kn||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(p.id,'official').kn||0} T:${getEffStats(p.id,'friendly').kn||0})</small></span></div>
-        <div class="stat-row"><span class="stat-lbl">Start-11-Einsätze</span><span class="stat-val" style="color:var(--grn)">${s.s11||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(p.id,'official').s11||0} T:${getEffStats(p.id,'friendly').s11||0})</small></span></div>
-        <div class="stat-row"><span class="stat-lbl">Einwechslungen</span><span class="stat-val">${s.ew||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(p.id,'official').ew||0} T:${getEffStats(p.id,'friendly').ew||0})</small></span></div>
+        <div class="stat-row"><span class="stat-lbl">Kadernominierungen</span><span class="stat-val" style="color:var(--blk)">${s.kn||0}</span></div>
+        <div class="stat-row"><span class="stat-lbl">Start-11-Einsätze</span><span class="stat-val" style="color:var(--grn)">${s.s11||0}</span></div>
+        <div class="stat-row"><span class="stat-lbl">Einwechslungen</span><span class="stat-val">${s.ew||0}</span></div>
         <div class="stat-row"><span class="stat-lbl">Auswechslungen</span><span class="stat-val">${s.aw||0}</span></div>
-        <div class="stat-row"><span class="stat-lbl">Einsatzminuten</span><span class="stat-val">${s.em||0} <small style="font-size:9px;color:var(--muted)">(P:${getEffStats(p.id,'official').em||0} T:${getEffStats(p.id,'friendly').em||0})</small></span></div>
         <div style="margin-top:9px;font-size:10px;font-weight:700;color:var(--muted)">MIN-ANTEIL</div>
         <div style="margin-top:3px"><div class="pct-bar" style="height:9px"><div class="pct-fill" style="width:${mp}%;background:${minC}"></div></div></div>
-        <div style="font-size:10px;color:var(--muted);margin-top:3px">${s.em||0} von ${mx} möglichen Min.</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px">${s.em||0} von ${mx} möglichen Min. (${s.kn||0} Nominierungen × ${GAME_MIN})</div>
       </div>
       <div class="card">
         <div style="font-size:12px;font-weight:800;margin-bottom:9px">⚽ Tore nach Art</div>
@@ -2385,232 +1858,11 @@ function svEntry(e){
   sv();document.getElementById('ef').reset();sp('team');
 }
 
-
-// ── ELTERN MODE ───────────────────────────────────────────────────────────────
-let isEltern=false;
-
-function elToggle(i){
-  const det=document.getElementById('el-det-'+i);
-  const arr=document.getElementById('el-arr-'+i);
-  if(!det)return;
-  const isHidden=det.style.display==='none';
-  det.style.display=isHidden?'table-row':'none';
-  if(arr)arr.textContent=isHidden?'▼':'▶';
-}
-
-function elternMode(){
-  curPlayer=null;isTr=false;isEltern=true;
-  hidePin();
-  // Hide all nav except eltern button
-  document.querySelectorAll('.nb').forEach(b=>b.style.display='none');
-  document.getElementById('nb-eltern').style.display='';
-  document.getElementById('mode-b').className='mb pl';
-  document.getElementById('mode-b').textContent='👨‍👩‍👧 Eltern';
-  document.getElementById('tr-ctrl').style.display='none';
-  sp('eltern');
-}
-
-function renderEltern(){
-  // Games table
-  const elGames=document.getElementById('el-games');
-  if(!elGames)return;
-  const mrs=D.matchReports||[];
-  const pname=id=>{const p=D.players.find(x=>x.id===id);return p?(p.name||'?'):'?';};
-  if(!mrs.length){
-    elGames.innerHTML='<div class="empty"><div class="eico">🏆</div><div class="etit">Noch keine Spielberichte</div></div>';
-  } else {
-    const sorted=[...mrs].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-    elGames.innerHTML='<table class="tbl"><thead><tr><th>Datum</th><th>Gegner</th><th>Heim/Auswärts</th><th class="num">Ergebnis</th><th>Typ</th></tr></thead><tbody>'
-      +sorted.map(m=>{
-        const res=(m.goalsUs!==undefined&&m.goalsThem!==undefined)?m.goalsUs+' : '+m.goalsThem:'–';
-        const won=m.goalsUs>m.goalsThem,draw=m.goalsUs==m.goalsThem;
-        const rc=won?'var(--grn)':draw?'#b45309':'var(--red)';
-        const hw=m.home==='home'?'🏠 Heim':'✈️ Auswärts';
-        const typ=m.gameType==='friendly'?'Freundschaftsspiel':'Pflichtspiel';
-        return '<tr><td>'+fmtD(m.date)+'</td><td style="font-weight:700">'+( m.opponent||'?')+'</td><td>'+hw+'</td>'
-          +'<td class="num"><span style="font-weight:800;color:'+rc+'">'+res+'</span></td><td style="font-size:10px;color:var(--muted)">'+typ+'</td></tr>';
-      }).join('')+'</tbody></table>';
-  }
-
-  // Spielverlauf accordion per game (hidden by default, click row to expand)
-  const wrap=document.getElementById('el-reports-wrap');
-  if(!wrap)return;
-  if(!mrs.length){wrap.innerHTML='';return;}
-  const sorted2=[...mrs].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-
-  function elBuildDetail(m){
-    const evts=m.events||[];
-    const starters=m.starters||[];
-    const bench=m.bench||[];
-    const rc=m.goalsUs>m.goalsThem?'var(--grn)':m.goalsUs<m.goalsThem?'var(--red)':'#ca8a04';
-    let h='<div style="padding:12px 0 4px">';
-    if(m.htUs!==undefined) h+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Halbzeit: '+m.htUs+':'+m.htThem+'</div>';
-    if(starters.length){
-      h+='<div style="font-size:12px;font-weight:700;margin-bottom:4px">⚽ Startelf</div>';
-      h+='<div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.8">'+starters.map(id=>pname(id)).join(' · ')+'</div>';
-    }
-    if(bench.length){
-      h+='<div style="font-size:12px;font-weight:700;margin-bottom:4px">🪑 Bank</div>';
-      h+='<div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.8">'+bench.map(id=>pname(id)).join(' · ')+'</div>';
-    }
-    const evtRows=[
-      ...evts.filter(e=>e.type==='goal').map(e=>({min:e.minute,icon:'⚽',txt:pname(e.playerId)+(e.assistId?'<span style="color:var(--muted)"> (Vorlage: '+pname(e.assistId)+')</span>':'')+(e.goalType==='elfmeter'?' <span style="font-size:10px">(Elfmeter)</span>':'')})),
-      ...evts.filter(e=>e.type==='opgoal'||e.type==='eigentor').map(e=>({min:e.minute,icon:'⚽',txt:'<span style="color:var(--red)">'+(e.type==='eigentor'?'Eigentor ('+pname(e.playerId)+')':'Gegentor')+'</span>'})),
-      ...evts.filter(e=>e.type==='sub').map(e=>({min:e.minute,icon:'🔄',txt:'▲ '+pname(e.playerInId)+' / ▼ '+pname(e.playerOutId)})),
-      ...evts.filter(e=>e.type==='card').map(e=>({min:e.minute,icon:e.cardType==='rot'?'🟥':e.cardType==='gelb-rot'?'🟨🟥':'🟨',txt:pname(e.playerId)})),
-      ...evts.filter(e=>e.type==='penalty_miss').map(e=>({min:e.minute,icon:'❌',txt:'Elfmeter verschossen – '+pname(e.playerId)}))
-    ].sort((a,b)=>(a.min||0)-(b.min||0));
-    if(evtRows.length){
-      h+='<div style="font-size:12px;font-weight:700;margin-bottom:6px">📋 Spielverlauf</div>';
-      h+=evtRows.map(e=>'<div style="display:flex;gap:8px;margin-bottom:5px;font-size:12px;align-items:flex-start"><span style="min-width:28px;color:var(--muted);font-weight:600">'+(e.min?e.min+"'":'')+' </span><span>'+e.icon+'</span><span>'+e.txt+'</span></div>').join('');
-    }
-    h+='</div>';
-    return h;
-  }
-
-  // Rebuild game table rows with click toggle
-  const elGames2=document.getElementById('el-games');
-  if(elGames2){
-    let tbl='<table class="tbl" style="width:100%"><thead><tr><th>Datum</th><th>Gegner</th><th>Heim/Auswärts</th><th class="num">Ergebnis</th><th>Typ</th></tr></thead><tbody>';
-    sorted2.forEach((m,i)=>{
-      const res=(m.goalsUs!==undefined&&m.goalsThem!==undefined)?m.goalsUs+' : '+m.goalsThem:'–';
-      const won=m.goalsUs>m.goalsThem,draw=m.goalsUs==m.goalsThem;
-      const rc=won?'var(--grn)':draw?'#b45309':'var(--red)';
-      const hw=m.home==='home'?'🏠 Heim':'✈️ Auswärts';
-      const typ=m.gameType==='friendly'?'Freundschaftsspiel':'Pflichtspiel';
-      tbl+='<tr style="cursor:pointer" onclick="elToggle('+i+')" title="Details anzeigen">'
-        +'<td>'+fmtD(m.date)+'</td><td style="font-weight:700">'+(m.opponent||'?')+'</td><td>'+hw+'</td>'
-        +'<td class="num"><span style="font-weight:800;color:'+rc+'">'+res+'</span></td>'
-        +'<td style="font-size:10px;color:var(--muted)">'+typ+' <span id="el-arr-'+i+'" style="float:right">▶</span></td></tr>'
-        +'<tr id="el-det-'+i+'" style="display:none"><td colspan="5" style="padding:0 8px 8px;background:var(--bg2)">'+elBuildDetail(m)+'</td></tr>';
-    });
-    tbl+='</tbody></table>';
-    elGames2.innerHTML=tbl;
-  }
-  wrap.innerHTML='';
-
-  // Team averages from training sessions
-  const sess=D.sessions.filter(s=>!s.opponent&&parseFloat(s.distance||0)>0);
-  const avg=k=>sess.length?sess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/sess.length:null;
-  const fmt=(v,dec=1)=>v!=null?v.toFixed(dec):'–';
-
-  document.getElementById('el-dist').textContent=fmt(avg('distance'))+' km';
-  document.getElementById('el-sprint').textContent=fmt(avg('maxSprint'))+' km/h';
-  document.getElementById('el-hiint').textContent=fmt(avg('hiInt'),0)+' m';
-  document.getElementById('el-passes').textContent=fmt(avg('passes'),0);
-  document.getElementById('el-shots').textContent=fmt(avg('shots'),0);
-
-  // Attendance from trainingDays — injury-aware
-  const tds=D.trainingDays||[];
-  function tdAttRate(tdList){
-    if(!tdList.length||!D.players.length)return null;
-    let totalPresent=0,totalPossible=0;
-    tdList.forEach(td=>{
-      // only count non-injured players for this training day
-      const eligible=D.players.filter(p=>{
-        const injs=p.injuries||[];
-        return !injs.some(inj=>td.date>=inj.from&&(!inj.to||td.date<=inj.to));
-      });
-      if(!eligible.length)return;
-      const presentEligible=eligible.filter(p=>(td.present||[]).includes(p.id)).length;
-      totalPresent+=presentEligible;
-      totalPossible+=eligible.length;
-    });
-    return totalPossible>0?Math.round(totalPresent/totalPossible*100):null;
-  }
-  const cutoff2w=new Date();cutoff2w.setDate(cutoff2w.getDate()-14);
-  const cut2w=cutoff2w.toISOString().slice(0,10);
-  const tds2w=tds.filter(td=>(td.date||'')>=cut2w);
-  const attSeason=tdAttRate(tds);
-  const att2w=tdAttRate(tds2w);
-  const attEl=document.getElementById('el-att');
-  const attCs=document.getElementById('el-att-cs');
-  if(attSeason!==null){
-    attEl.textContent=att2w!==null?att2w+'%':attSeason+'%';
-    const attCol=parseInt(attEl.textContent)>=80?'var(--grn)':parseInt(attEl.textContent)>=65?'#ca8a04':'var(--red)';
-    attEl.style.color=attCol;
-    if(attCs){
-      const s2w=att2w!==null?'<span style="font-weight:700">Letzte 2 Wochen: '+att2w+'%</span>':'<span style="color:var(--muted)">Keine Trainings letzte 2 Wochen</span>';
-      const sSea='Saison gesamt: '+attSeason+'% ('+tds.length+' Einheiten)';
-      attCs.innerHTML=s2w+'<br>'+sSea;
-    }
-  } else {
-    if(attEl)attEl.textContent='–';
-    if(attCs)attCs.textContent='Keine Trainingsdaten';
-  }
-
-  // Mannschaftsscore (nur Pflichtspiele)
-  const elPflMR=(D.matchReports||[]).filter(m=>(m.gameType||'official')==='official');
-  renderTeamScore(elPflMR);
-  const tsCard=document.getElementById('team-score-card');
-  const elTS=document.getElementById('el-team-score');
-  if(tsCard&&elTS)elTS.innerHTML=tsCard.innerHTML;
-
-  // Charts
-  ['el-ch-dist','el-ch-att'].forEach(dch);
-  // Distanz-Trend: avg distance per training day (from D.sessions grouped by date)
-  const sessByDate={};
-  sess.forEach(s=>{if(s.date){(sessByDate[s.date]=sessByDate[s.date]||[]).push(parseFloat(s.distance||0));}});
-  const distDates=Object.keys(sessByDate).sort().slice(-12);
-  const distVals=distDates.map(d=>{const vs=sessByDate[d];return vs.length?(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(1):0;});
-  if(distDates.length){
-    const elD=document.getElementById('el-ch-dist');
-    if(elD)CHS['el-ch-dist']=new Chart(elD,{type:'line',data:{labels:distDates.map(fmtD),datasets:[{data:distVals,borderColor:'#2d7a2d',backgroundColor:'#2d7a2d20',tension:.3,fill:true,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false}}}});
-  }
-  // Anwesenheit-Trend
-  if(tds.length&&D.players.length){
-    const recentAll=tds.slice(-12);
-    const attDates=recentAll.map(td=>fmtD(td.date||''));
-    const attVals=recentAll.map(td=>{
-      const eligible=D.players.filter(p=>!((p.injuries||[]).some(inj=>td.date>=inj.from&&(!inj.to||td.date<=inj.to))));
-      return eligible.length?Math.round(eligible.filter(p=>(td.present||[]).includes(p.id)).length/eligible.length*100):0;
-    });
-    const elA=document.getElementById('el-ch-att');
-    if(elA)CHS['el-ch-att']=new Chart(elA,{type:'bar',data:{labels:attDates,datasets:[{data:attVals,backgroundColor:attVals.map(v=>v>=80?'#2d7a2d':v>=65?'#ca8a04':'#c0392b'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}});
-  }
-}
-
-// ── FIREBASE INIT ─────────────────────────────────────────────────────────────
-const firebaseConfig={apiKey:"AIzaSyCprG_2PMcoQfjqfuwQIweEpy6P2_RNEdg",authDomain:"sgb-u17-26-27.firebaseapp.com",projectId:"sgb-u17-26-27",storageBucket:"sgb-u17-26-27.firebasestorage.app",messagingSenderId:"883361577166",appId:"1:883361577166:web:e9726015a3f6fb2a34f89f"};
-firebase.initializeApp(firebaseConfig);
-_fbdb=firebase.firestore();
-
-// Show loading overlay
-const _lo=document.createElement('div');
-_lo.id='fb-loading';
-_lo.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;';
-_lo.innerHTML='<div style="width:40px;height:40px;border:4px solid #2d7a2d;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite"></div><div style="color:#fff;font-size:14px;font-weight:700;">Lade Teamdaten…</div>';
-const _ls=document.createElement('style');_ls.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
-document.head.appendChild(_ls);
-document.body.appendChild(_lo);
-
-// Real-time listener — all viewers get live updates
-let _firstLoad=true;
-_fbdb.collection('sgb').doc('u17data').onSnapshot(snap=>{
-  if(snap.exists){
-    const data=snap.data();
-    D.players=data.players||[];D.sessions=data.sessions||[];D.games=data.games||[];
-    D.pstats=data.pstats||[];D.trainingDays=data.trainingDays||[];D.matchReports=data.matchReports||[];D.playerPins=data.playerPins||{};
-  }
-  if(_firstLoad){
-    _firstLoad=false;
-    if(_lo.parentNode){_lo.remove();}
-    viewMode();showPin();renderTeam();setTimeout(()=>renderTCharts('tr'),100);
-  } else {
-    // Live update: just refresh current view without resetting UI
-    renderTeam();renderStatsOv();
-    setTimeout(()=>renderTCharts('tr'),60);
-  }
-},err=>{
-  console.error('Firestore:',err);
-  const local=JSON.parse(localStorage.getItem('sgb_u17_v2')||'null');
-  if(local){D.players=local.players||[];D.sessions=local.sessions||[];D.games=local.games||[];D.pstats=local.pstats||[];D.trainingDays=local.trainingDays||[];D.matchReports=local.matchReports||[];D.playerPins=local.playerPins||{};}
-  if(_lo.parentNode){_lo.remove();}
-  viewMode();showPin();renderTeam();setTimeout(()=>renderTCharts('tr'),100);
-});
-
-<!-- ELTERN PAGE -->
-
+// ── INIT ──────────────────────────────────────────────────────────────────────
+viewMode();
+showPin();
+renderTeam();
+setTimeout(()=>renderTCharts('tr'),100);
 </script>
-
+</body>
 </html>

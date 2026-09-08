@@ -2215,6 +2215,7 @@ function renderPlayer(){
       <button class="tab active" onclick="setPT('tr',this,'${p.id}')">📡 Tracker-Training</button>
       <button class="tab gm" onclick="setPT('gm',this,'${p.id}')">📡 Tracker-Spiel</button>
       <button class="tab st" onclick="setPT('st',this,'${p.id}')">🏅 Saisonwerte</button>
+      <button class="tab" onclick="setPT('rec',this,'${p.id}')">🏆 Rekorde</button>
     </div>
     <div id="pt-c"></div>`;
   renderPTab('tr',p,ps,gs,col);
@@ -2227,6 +2228,7 @@ function setPT(type,btn,pid){
 }
 function renderPTab(type,p,ps,gs,col){
   if(type==='st'){renderPlSt(p,col);return;}
+  if(type==='rec'){renderPlRec(p);return;}
   const isGm=type==='gm',baseEntries=isGm?gs:ps;
   const entries=isGm?filtGames(baseEntries,plGmFilter):baseEntries,ac=isGm?'var(--org)':col;
   const avgD=entries.length?avg(entries,'distance').toFixed(1):'–',maxSp=entries.length?Math.max(...entries.map(s=>parseFloat(s.maxSprint||0))).toFixed(1):'–';
@@ -2288,6 +2290,165 @@ function renderPChts(p,entries,col){
 }
 
 // ── PLAYER SEASON STATS TAB ───────────────────────────────────────────────────
+
+function renderPlRec(p){
+  const pid=p.id;
+  const allSess=D.sessions.filter(s=>s.playerId===pid&&parseFloat(s.distance||0)>0)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  const el=document.getElementById('pl-content');
+  if(!allSess.length){el.innerHTML='<p style="color:var(--muted);text-align:center;padding:30px">Noch keine GPS-Trainingsdaten vorhanden.</p>';return;}
+
+  // ── Metrik-Definitionen ───────────────────────────────────────────────────
+  const METRICS=[
+    {key:'maxSprint',lbl:'Max. Speed',emoji:'🏃',unit:'km/h',higher:true,dec:1,
+     levels:[24,26,27,28,29,30,31,32,33]},
+    {key:'distance',lbl:'Distanz',emoji:'📏',unit:'km',higher:true,dec:2,
+     levels:[3,4,5,6,7,8,9,10]},
+    {key:'acc',lbl:'Beschleunigungen',emoji:'⚡',unit:'',higher:true,dec:0,
+     levels:[15,25,35,45,55,65,75,90,100]},
+    {key:'dec',lbl:'Abbremsungen',emoji:'🛑',unit:'',higher:true,dec:0,
+     levels:[15,25,35,45,55,65,75,90,100]},
+    {key:'hiInt',lbl:'Hi-Intensität',emoji:'❤️',unit:'m',higher:true,dec:0,
+     levels:[100,200,400,600,800,1000,1200,1500]},
+    {key:'load',lbl:'Belastungsscore',emoji:'💪',unit:'',higher:true,dec:0,
+     levels:[40,50,60,70,80,90,95,100]},
+    {key:'passes',lbl:'Pässe',emoji:'🔄',unit:'',higher:true,dec:0,
+     levels:[10,20,30,40,60,80,100]},
+  ];
+
+  // ── Hilfsfunktionen ───────────────────────────────────────────────────────
+  function recVal(m){
+    const vals=allSess.map(s=>parseFloat(s[m.key]||0)).filter(v=>v>0);
+    return vals.length?Math.max(...vals):null;
+  }
+  function recDate(m,rv){
+    const s=[...allSess].reverse().find(s=>parseFloat(s[m.key]||0)===rv);
+    return s?s.date:null;
+  }
+  function levelInfo(m,best){
+    if(best===null)return{lvl:0,cur:best,from:0,to:m.levels[0],badge:'–'};
+    const lvls=m.levels;
+    let lvl=0;
+    for(let i=0;i<lvls.length;i++){if(best>=lvls[i])lvl=i+1;}
+    const from=lvl>0?lvls[lvl-1]:0;
+    const to=lvl<lvls.length?lvls[lvl]:null;
+    const badges=['🥉','🥉','🥈','🥈','🥇','🥇','💎','💎','💎'];
+    return{lvl,from,to,badge:lvl>0?badges[lvl-1]||'💎':'–'};
+  }
+  function fmtV(m,v){return v===null?'–':(parseFloat(v).toFixed(m.dec)+(m.unit?' '+m.unit:''));}
+  function pct(v,from,to){if(to===null)return 100;return Math.min(100,Math.max(0,Math.round((v-from)/(to-from)*100)));}
+
+  // ── Letzte Einheit vs. Rekord ─────────────────────────────────────────────
+  const last=allSess[allSess.length-1];
+  const prev=allSess.length>1?allSess[allSess.length-2]:null;
+  const NEAR=0.95; // "fast geschafft" wenn ≥95% des Rekords
+  let lastCards='';
+  METRICS.forEach(m=>{
+    const lastVal=parseFloat(last[m.key]||0)||null;
+    if(!lastVal)return;
+    const rv=recVal(m);
+    const prevVal=prev?parseFloat(prev[m.key]||0)||null:null;
+    const isRec=lastVal>=rv;
+    const isNear=!isRec&&rv>0&&lastVal/rv>=NEAR;
+    const delta=prevVal?lastVal-prevVal:null;
+    const deltaStr=delta!==null?(delta>=0?'+':'')+delta.toFixed(m.dec):null;
+    const deltaCol=delta===null?'var(--muted)':delta>0?'#2d7a2d':delta<0?'#c0392b':'var(--muted)';
+    if(isRec){
+      lastCards+=`<div style="background:linear-gradient(135deg,#fef9c3,#fef08a);border:2px solid #ca8a04;border-radius:12px;padding:12px;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:800;color:#92400e;letter-spacing:.5px">🏆 NEUER PERSÖNLICHER REKORD</div>
+        <div style="font-size:22px;font-weight:900;color:#92400e;margin:4px 0">${m.emoji} ${fmtV(m,lastVal)}</div>
+        <div style="font-size:11px;color:#a16207">${deltaStr?`+${Math.abs(delta).toFixed(m.dec)} ${m.unit} besser als letztes Training`:'Erstmaliger Rekord'}</div>
+      </div>`;
+    } else if(isNear){
+      const gap=(rv-lastVal).toFixed(m.dec);
+      lastCards+=`<div style="background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:10px;margin-bottom:6px;display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center">
+        <div style="font-size:24px">${m.emoji}</div>
+        <div>
+          <div style="font-size:12px;font-weight:700">👀 Fast geschafft! <span style="color:var(--muted);font-weight:400">${m.lbl}</span></div>
+          <div style="font-size:18px;font-weight:800;color:var(--fg)">${fmtV(m,lastVal)}</div>
+          <div style="font-size:10px;color:#ca8a04">Nur ${gap}${m.unit?(' '+m.unit):''} vom Rekord (${fmtV(m,rv)}) entfernt</div>
+        </div>
+      </div>`;
+    } else {
+      lastCards+=`<div style="background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:8px 10px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:16px">${m.emoji}</span>
+          <div>
+            <div style="font-size:10px;color:var(--muted)">${m.lbl}</div>
+            <div style="font-size:15px;font-weight:700">${fmtV(m,lastVal)}</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          ${deltaStr?`<div style="font-size:11px;font-weight:700;color:${deltaCol}">${deltaStr}</div>`:''}
+          <div style="font-size:9px;color:var(--muted)">Rekord: ${fmtV(m,rv)}</div>
+        </div>
+      </div>`;
+    }
+  });
+
+  // ── Level-Up Meilensteine ─────────────────────────────────────────────────
+  let levelCards='';
+  METRICS.forEach(m=>{
+    const best=recVal(m);
+    const li=levelInfo(m,best);
+    if(best===null)return;
+    const p2=li.to!==null?pct(best,li.from,li.to):100;
+    const nextLvlLbl=li.to!==null?`Nächstes Ziel: ${li.to.toFixed(m.dec)}${m.unit?' '+m.unit:''}`:'👑 Maximum erreicht!';
+    const col=li.lvl<=2?'#cd7f32':li.lvl<=4?'#aaa':li.lvl<=6?'#f59e0b':'#7c3aed';
+    levelCards+=`<div style="background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:10px;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:16px">${m.emoji}</span>
+          <div>
+            <div style="font-size:11px;font-weight:700">${m.lbl}</div>
+            <div style="font-size:10px;color:var(--muted)">${nextLvlLbl}</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:16px">${li.badge} <span style="font-size:11px;font-weight:700;color:${col}">Level ${li.lvl}</span></div>
+          <div style="font-size:11px;font-weight:700">${fmtV(m,best)}</div>
+        </div>
+      </div>
+      <div style="height:6px;background:var(--brd);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${p2}%;background:${col};border-radius:3px;transition:width .6s"></div>
+      </div>
+      ${li.to!==null?`<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px"><span>${li.from}${m.unit?' '+m.unit:''}</span><span>${p2}%</span><span>${li.to}${m.unit?' '+m.unit:''}</span></div>`:''}
+    </div>`;
+  });
+
+  // ── Rekordtafel ───────────────────────────────────────────────────────────
+  let recTable='';
+  METRICS.forEach(m=>{
+    const rv=recVal(m);
+    if(rv===null)return;
+    const rd=recDate(m,rv);
+    recTable+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--brd)">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:18px">${m.emoji}</span>
+        <div style="font-size:12px;color:var(--muted)">${m.lbl}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:16px;font-weight:800">🥇 ${fmtV(m,rv)}</div>
+        <div style="font-size:10px;color:var(--muted)">${rd?fmtD(rd):''}</div>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML=`
+    <div style="padding:12px 0">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px">⚡ Letzte Einheit — ${fmtD(last.date)}</div>
+      ${lastCards||'<p style="color:var(--muted);font-size:12px">Keine Daten aus letzter Einheit.</p>'}
+
+      <div style="font-size:13px;font-weight:800;margin:16px 0 8px">📈 Meilensteine & Level-Up</div>
+      ${levelCards}
+
+      <div style="font-size:13px;font-weight:800;margin:16px 0 8px">👑 Persönliche Rekordtafel</div>
+      <div style="background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:0 12px">
+        ${recTable||'<p style="color:var(--muted);font-size:12px;padding:12px 0">Keine Daten</p>'}
+      </div>
+    </div>`;
+}
+
 function renderPlSt(p,col){
   const sfArg=plStFilter==='all'?undefined:plStFilter;
   const s=getEffStats(p.id,sfArg),tg=totalGoals(s),att=attPct(s),mp=minPct(s),mx=maxMin(s);

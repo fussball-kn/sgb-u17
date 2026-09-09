@@ -29,15 +29,15 @@
   --blu: #1d4ed8;
   --blu-l: #eff4ff;
 
-  --bg:  #edf0ed;
-  --sfc: #ffffff;
+  --bg:  #d8ddd8;
+  --sfc: #f4f7f4;
   --brd: #dce2dc;
   --brd2: #eaeeea;
   --txt: #0c1220;
   --txt2: #445060;
   --txt3: #8a9aaa;
   --muted: #8a9aaa;
-  --bg2: #edf0ed;
+  --bg2: #d8ddd8;
   --wht: #fff;
   --blk: #0c1220;
 
@@ -467,14 +467,14 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
     <div class="nlt"><strong>SG Bornim</strong><span>U17 Dashboard</span></div>
   </a>
   <div class="nav-sep"></div>
-  <button class="nb active" onclick="sp('team')">🏠 Team</button>
-  <button class="nb" onclick="sp('sessions')">🏃 Training</button>
-  <button class="nb gm" onclick="sp('games-ov')">🏆 Spiele</button>
-  <button class="nb st" onclick="sp('stats-ov')">📊 Statistiken</button>
-  <button class="nb" id="nb-cmp" onclick="sp('vergleich')">🔄 Vergleich</button>
+  <button class="nb active" onclick="sp('team')">TEAM</button>
+  <button class="nb" onclick="sp('sessions')">TRAINING</button>
+  <button class="nb gm" onclick="sp('games-ov')">SPIELE</button>
+  <button class="nb st" onclick="sp('stats-ov')">STATS</button>
+  <button class="nb" id="nb-cmp" onclick="sp('vergleich')">VERGLEICH</button>
   <button class="nb" id="nb-pl" style="display:none" onclick="sp('player')">Spieler</button>
-  <button class="nb" id="nb-eltern" style="display:none" onclick="sp('eltern')">📊 Übersicht</button>
-  <button class="nb" id="nb-liga" style="display:none" onclick="sp('liga')">⚽ Tabelle</button>
+  <button class="nb" id="nb-eltern" style="display:none" onclick="sp('eltern')">ÜBERSICHT</button>
+  <button class="nb" id="nb-liga" style="display:none" onclick="sp('liga')">TABELLE</button>
   <div class="nsp"></div>
   <button class="mb pl" id="mode-b" onclick="togTr()">👤 Spieler</button>
   <div id="tr-ctrl" style="display:flex;gap:2px;align-items:center">
@@ -789,7 +789,7 @@ let isTr=false;
 let isSL=false;
 function sv(){if(_fbdb){_fbdb.collection('sgb').doc('u17data').set(JSON.parse(JSON.stringify(D))).catch(e=>console.error('Firestore:',e));}else{localStorage.setItem('sgb_u17_v2',JSON.stringify(D));}}
 
-const COLS=['#2d7a2d','#c05000','#7b2d8b','#1a5e8a','#8a6000','#8a1a1a','#006a8a','#4a7a00','#8a3a00','#003a8a','#6a1a6a','#005a3a'];
+const COLS=['#1a6a35','#c94f18','#6d28d9','#1d4ed8','#ca8a04','#c0392b','#0891b2','#7c3aed'];
 let aPl=null,CHS={},curTT='tr',gmFilter='all',plGmFilter='all',stFilter='all',plStFilter='all';
 let tcFilter=new Set(); // selected player IDs for team charts (empty=all)
 let tcFOpen=false;
@@ -1049,7 +1049,7 @@ function top4Note(whatIfOvs){
     </div>`;
   }
   const needed=Math.max(0,fifth.pkt-sgbRow.pkt+1);
-  const color=sgbPos<=4?'#1a5e8a':'#c0392b';
+  const color=sgbPos<=4?'#1d4ed8':'#c0392b';
   return`<div style="background:var(--card);border:1px solid ${color};border-radius:8px;padding:10px;font-size:12px">
     <div style="font-weight:800;color:${color}">⚽ SGB aktuell Platz ${sgbPos} · ${sgbRow.pkt} Punkte</div>
     <div style="margin-top:4px">5. Platz: ${LIGA_TEAMS.find(t=>t.id===fifth.id).short} · ${fifth.pkt} Pkt · kann noch max. ${fifthMax} Pkt erreichen</div>
@@ -1213,7 +1213,7 @@ function svPlayer(){
 // ── VERGLEICH ─────────────────────────────────────────────────────────────
 let cmpMode='training';
 let cmpSel=new Set();
-const CMP_COLORS=['#2d7a2d','#1a5e8a','#c05000','#7b2d8b','#c0392b','#0e7490','#b45309','#065f46'];
+const CMP_COLORS=['#1a6a35','#1d4ed8','#c94f18','#6d28d9','#c0392b','#0e7490','#b45309','#065f46'];
 
 function setCmpMode(m){
   cmpMode=m;
@@ -1251,8 +1251,8 @@ function renderVergleichPlayer(){
   if(!document.getElementById('ch-cmp')){parent.innerHTML='<canvas id="ch-cmp" style="max-height:320px"></canvas>';}
   const ctx=document.getElementById('ch-cmp').getContext('2d');
   CHS['ch-cmp']=new Chart(ctx,{type:'radar',data:{labels,datasets:[
-    {label:p.name,data:meVals,borderColor:'#2d7a2d',backgroundColor:'#2d7a2d22',pointRadius:4,pointBackgroundColor:'#2d7a2d'},
-    {label:'Team-Durchschnitt',data:teamVals,borderColor:'#1a5e8a',backgroundColor:'#1a5e8a22',pointRadius:4,pointBackgroundColor:'#1a5e8a',borderDash:[4,3]}
+    {label:p.name,data:meVals,borderColor:'#1a6a35',backgroundColor:'#1a6a3528',pointRadius:4,pointBackgroundColor:'#1a6a35'},
+    {label:'Team-Durchschnitt',data:teamVals,borderColor:'#1d4ed8',backgroundColor:'#1a5e8a22',pointRadius:4,pointBackgroundColor:'#1d4ed8',borderDash:[4,3]}
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:11}}}},scales:{r:{beginAtZero:true,ticks:{font:{size:9}}}}}});
   parent.insertAdjacentHTML('afterend','<div class="g2" style="margin-top:12px" id="cmp-pl-extra">'
     +'<div class="card"><div class="cv">Deine Anwesenheit</div><div class="cn" style="color:'+(myAtt>=80?'var(--grn)':myAtt>=60?'#ca8a04':'var(--red)')+'">'+Math.round(myAtt)+'%</div><div class="cs">'+D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length+' von '+D.trainingDays.length+' Einheiten</div></div>'
@@ -1615,10 +1615,10 @@ function renderMRStarters(){
     let bg,bc,numC,nameC,lbl,extra='';
     if(inStr){
       const pos=mrStrs.indexOf(p.id)+1;
-      bg='#e6f4e6';bc='#2d7a2d';numC='#2d7a2d';nameC='#111';
+      bg='#e6f4e6';bc='#1a6a35';numC='#1a6a35';nameC='#111';
       lbl='<div style="font-size:9px;font-weight:800;color:#2d7a2d">START '+pos+'</div>';
     } else if(inBench){
-      bg='#dbeafe';bc='#1a5e8a';numC='#1a5e8a';nameC='#111';
+      bg='#dbeafe';bc='#1d4ed8';numC='#1d4ed8';nameC='#111';
       lbl='<div style="font-size:9px;font-weight:800;color:#1a5e8a">BANK</div>';
     } else if(isSubIn){
       bg='#f0f8ff';bc='#93c5fd';numC='#6b9fc0';nameC='#555';
@@ -1890,6 +1890,32 @@ function renderMRSection(){
 }
 
 // ── TEAM ──────────────────────────────────────────────────────────────────────
+
+// ── Chart.js global defaults ──────────────────────────────────────
+(function(){
+  if(typeof Chart==='undefined')return;
+  Chart.defaults.font.family="'Inter',system-ui,sans-serif";
+  Chart.defaults.font.size=10;
+  Chart.defaults.color='#8a9aaa';
+  Chart.defaults.plugins.legend.labels.boxWidth=8;
+  Chart.defaults.plugins.legend.labels.padding=12;
+  Chart.defaults.plugins.tooltip.backgroundColor='rgba(12,18,32,.92)';
+  Chart.defaults.plugins.tooltip.titleFont={weight:'700',size:11};
+  Chart.defaults.plugins.tooltip.bodyFont={size:10};
+  Chart.defaults.plugins.tooltip.padding=10;
+  Chart.defaults.plugins.tooltip.cornerRadius=6;
+  Chart.defaults.plugins.tooltip.borderColor='rgba(255,255,255,.08)';
+  Chart.defaults.plugins.tooltip.borderWidth=1;
+  Chart.defaults.scale.grid.color='rgba(0,0,0,.05)';
+  Chart.defaults.scale.grid.drawBorder=false;
+  Chart.defaults.scale.ticks.padding=6;
+  Chart.defaults.elements.line.tension=.35;
+  Chart.defaults.elements.point.radius=3;
+  Chart.defaults.elements.point.hoverRadius=5;
+  Chart.defaults.elements.bar.borderRadius=3;
+  Chart.defaults.elements.arc.borderWidth=0;
+})();
+
 function renderTeam(){
   // ── Player mode: hide other players, show team averages + own card ─────────
   if(curPlayer){
@@ -2032,7 +2058,7 @@ function renderTChartsForPlayer(filtPl,t){
   ['ch-td','ch-ts','ch-tr'].forEach(id=>{const el=document.getElementById(id);if(el&&CHS[id]){CHS[id].destroy();delete CHS[id];}});
   if(t!=='tr')return;
   const p=filtPl[0];if(!p)return;
-  const col='#2d7a2d';
+  const col='#1a6a35';
   const mySess=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0).sort((a,b)=>a.date.localeCompare(b.date));
   const teamSess=D.sessions.filter(s=>parseFloat(s.distance||0)>0);
   const teamAvgByDate=mySess.map(s=>{const same=teamSess.filter(t=>t.date===s.date);return same.length?same.reduce((a,x)=>a+parseFloat(x.distance||0),0)/same.length:null;});
@@ -2041,9 +2067,9 @@ function renderTChartsForPlayer(filtPl,t){
   // Distance chart
   const cd=document.getElementById('ch-td');
   if(cd&&cd.getContext){CHS['ch-td']=new Chart(cd.getContext('2d'),{type:'line',data:{labels:dates,datasets:[
-    {label:p.name,data:mySess.map(s=>parseFloat(s.distance||0)),borderColor:col,backgroundColor:col+'22',tension:.3,pointRadius:4},
-    {label:'Team-Ø',data:teamAvgByDate,borderColor:'#1a5e8a',borderDash:[4,3],backgroundColor:'transparent',tension:.3,pointRadius:3}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},scales:{y:{beginAtZero:true}}}});}
+    {label:p.name,data:mySess.map(s=>parseFloat(s.distance||0)),borderColor:col,backgroundColor:col+'22',tension:.35,pointRadius:4},
+    {label:'Team-Ø',data:teamAvgByDate,borderColor:'#1d4ed8',borderDash:[4,3],backgroundColor:'transparent',tension:.35,pointRadius:3}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9},color:'#64748b'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});}
   // Sprint chart
   const cs=document.getElementById('ch-ts');
   if(cs&&cs.getContext){
@@ -2051,7 +2077,7 @@ function renderTChartsForPlayer(filtPl,t){
     CHS['ch-ts']=new Chart(cs.getContext('2d'),{type:'bar',data:{labels:[p.name.split(' ')[0]],datasets:[
       {label:'Max. Sprint',data:[mySess.length?Math.max(...mySess.map(s=>parseFloat(s.maxSprint||0))):0],backgroundColor:col+'cc',borderRadius:4},
       {label:'Team-Ø',data:[teamSess.length?teamSess.reduce((a,s)=>a+parseFloat(s.maxSprint||0),0)/teamSess.length:0],backgroundColor:'#1a5e8a55',borderRadius:4}
-    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},scales:{y:{beginAtZero:true}}}});}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9},color:'#64748b'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});}
   // Radar chart
   const cr=document.getElementById('ch-tr');
   if(cr&&cr.getContext){
@@ -2060,7 +2086,7 @@ function renderTChartsForPlayer(filtPl,t){
     const labels=['Distanz','Hi-Int.','Sprint','Pässe','Aktiv-Min'];
     CHS['ch-tr']=new Chart(cr.getContext('2d'),{type:'radar',data:{labels,datasets:[
       {label:p.name,data:[myAvgV('distance'),myAvgV('hiInt')/100,myAvgV('maxSprint'),myAvgV('passes')/10,myAvgV('activeMin')],borderColor:col,backgroundColor:col+'22',pointRadius:3},
-      {label:'Team-Ø',data:[teamAvgV('distance'),teamAvgV('hiInt')/100,teamAvgV('maxSprint'),teamAvgV('passes')/10,teamAvgV('activeMin')],borderColor:'#1a5e8a',borderDash:[4,3],backgroundColor:'#1a5e8a22',pointRadius:3}
+      {label:'Team-Ø',data:[teamAvgV('distance'),teamAvgV('hiInt')/100,teamAvgV('maxSprint'),teamAvgV('passes')/10,teamAvgV('activeMin')],borderColor:'#1d4ed8',borderDash:[4,3],backgroundColor:'#1a5e8a22',pointRadius:3}
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:9}}}},scales:{r:{beginAtZero:true,ticks:{font:{size:9}}}}}});}
 }
 
@@ -2070,23 +2096,23 @@ function renderTCharts(t){
     ['ch-td','ch-ts','ch-tr'].forEach(dch);
     const dates=[...new Set(D.sessions.map(s=>s.date))].sort();
     if(!dates.length||!D.players.length){noDataMsg(['ch-td','ch-ts','ch-tr'],'Noch keine GPS-Einheiten eingetragen');return;}
-    CHS['ch-td']=new Chart(document.getElementById('ch-td'),{type:'line',data:{labels:dates,datasets:filtPl.map((p,i)=>({label:p.name,data:dates.map(d=>{const s=D.sessions.find(s=>s.playerId===p.id&&s.date===d);return s?parseFloat(s.distance||0):null;}),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'18',tension:.3,spanGaps:true,pointRadius:3}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},scales:{y:{beginAtZero:true}}}});
-    CHS['ch-ts']=new Chart(document.getElementById('ch-ts'),{type:'bar',data:{labels:filtPl.map(p=>p.name.split(' ')[0]),datasets:[{data:filtPl.map(p=>{const ps=pSess(p.id);return ps.length?Math.max(...ps.map(s=>parseFloat(s.maxSprint||0))):0;}),backgroundColor:filtPl.map((_,i)=>COLS[i%COLS.length]+'cc'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+    CHS['ch-td']=new Chart(document.getElementById('ch-td'),{type:'line',data:{labels:dates,datasets:filtPl.map((p,i)=>({label:p.name,data:dates.map(d=>{const s=D.sessions.find(s=>s.playerId===p.id&&s.date===d);return s?parseFloat(s.distance||0):null;}),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'18',tension:.35,spanGaps:true,pointRadius:3}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9},color:'#64748b'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});
+    CHS['ch-ts']=new Chart(document.getElementById('ch-ts'),{type:'bar',data:{labels:filtPl.map(p=>p.name.split(' ')[0]),datasets:[{data:filtPl.map(p=>{const ps=pSess(p.id);return ps.length?Math.max(...ps.map(s=>parseFloat(s.maxSprint||0))):0;}),backgroundColor:filtPl.map((_,i)=>COLS[i%COLS.length]+'cc'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});
     const rL=['Distanz','Hi-Int.','Sprint','Beschl.','Abbrems.','Pässe','Am Ball'],rK=['distance','hiInt','maxSprint','acc','dec','passes','ballMin'];
     const mxV=rK.map(k=>Math.max(...D.sessions.map(s=>parseFloat(s[k]||0)),1));
-    CHS['ch-tr']=new Chart(document.getElementById('ch-tr'),{type:'radar',data:{labels:rL,datasets:filtPl.slice(0,6).map((p,i)=>{const ps=pSess(p.id);return{label:p.name.split(' ')[0],data:rK.map((k,ki)=>ps.length?(avg(ps,k)/mxV[ki]*100):0),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'15',pointRadius:2};})},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:100,ticks:{display:false}}},plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}}}});
+    CHS['ch-tr']=new Chart(document.getElementById('ch-tr'),{type:'radar',data:{labels:rL,datasets:filtPl.slice(0,6).map((p,i)=>{const ps=pSess(p.id);return{label:p.name.split(' ')[0],data:rK.map((k,ki)=>ps.length?(avg(ps,k)/mxV[ki]*100):0),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'15',pointRadius:2};})},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:100,ticks:{display:false,stepSize:25},grid:{color:'rgba(0,0,0,.06)'},pointLabels:{font:{size:9,weight:'600'},color:'#64748b'}}},plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}}}});
   } else {
     ['ch-gd','ch-gr','ch-gmr'].forEach(dch);
     if(!D.games.length||!D.players.length){noDataMsg(['ch-gd','ch-gr','ch-gmr'],'Noch keine GPS-Spieldaten eingetragen');return;}
     const filteredGms=filtGames(D.games,gmFilter);
     if(!filteredGms.length){noDataMsg(['ch-gd','ch-gr','ch-gmr'],'Keine Spiele für diesen Filter');return;}
     const dates=[...new Set(filteredGms.map(g=>g.date))].sort();
-    CHS['ch-gd']=new Chart(document.getElementById('ch-gd'),{type:'line',data:{labels:dates,datasets:filtPl.map((p,i)=>({label:p.name,data:dates.map(d=>{const g=filteredGms.find(g=>g.playerId===p.id&&g.date===d);return g?parseFloat(g.distance||0):null;}),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'18',tension:.3,spanGaps:true,pointRadius:3}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},scales:{y:{beginAtZero:true}}}});
+    CHS['ch-gd']=new Chart(document.getElementById('ch-gd'),{type:'line',data:{labels:dates,datasets:filtPl.map((p,i)=>({label:p.name,data:dates.map(d=>{const g=filteredGms.find(g=>g.playerId===p.id&&g.date===d);return g?parseFloat(g.distance||0):null;}),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'18',tension:.35,spanGaps:true,pointRadius:3}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9},color:'#64748b'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});
     const w=filteredGms.filter(g=>res(g)==='win').length,dr=filteredGms.filter(g=>res(g)==='draw').length,l=filteredGms.filter(g=>res(g)==='loss').length;
-    CHS['ch-gr']=new Chart(document.getElementById('ch-gr'),{type:'doughnut',data:{labels:['Siege','Unentschieden','Niederlagen'],datasets:[{data:[w,dr,l],backgroundColor:['#2d7a2d','#ca8a04','#c0392b'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},cutout:'58%'}});
+    CHS['ch-gr']=new Chart(document.getElementById('ch-gr'),{type:'doughnut',data:{labels:['Siege','Unentschieden','Niederlagen'],datasets:[{data:[w,dr,l],backgroundColor:['#1a6a35','#ca8a04','#c0392b'],borderWidth:2,borderColor:'rgba(255,255,255,.6)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:9},color:'#64748b',padding:10}}},cutout:'60%'}});
     const rL=['Distanz','Hi-Int.','Sprint','Beschl.','Abbrems.','Pässe','Am Ball'],rK=['distance','hiInt','maxSprint','acc','dec','passes','ballMin'];
     const mxV=rK.map(k=>Math.max(...filteredGms.map(g=>parseFloat(g[k]||0)),1));
-    CHS['ch-gmr']=new Chart(document.getElementById('ch-gmr'),{type:'radar',data:{labels:rL,datasets:filtPl.slice(0,6).map((p,i)=>{const gs=filtGames(pGames(p.id),gmFilter);return{label:p.name.split(' ')[0],data:rK.map((k,ki)=>gs.length?(avg(gs,k)/mxV[ki]*100):0),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'15',pointRadius:2};})},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:100,ticks:{display:false}}},plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}}}});
+    CHS['ch-gmr']=new Chart(document.getElementById('ch-gmr'),{type:'radar',data:{labels:rL,datasets:filtPl.slice(0,6).map((p,i)=>{const gs=filtGames(pGames(p.id),gmFilter);return{label:p.name.split(' ')[0],data:rK.map((k,ki)=>gs.length?(avg(gs,k)/mxV[ki]*100):0),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'15',pointRadius:2};})},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:100,ticks:{display:false,stepSize:25},grid:{color:'rgba(0,0,0,.06)'},pointLabels:{font:{size:9,weight:'600'},color:'#64748b'}}},plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}}}});
   }
 }
 
@@ -2172,7 +2198,7 @@ function renderTeamScore(mrList){
   const attScore2=Math.min(20,Math.round(teamAtt/5));
   const cardPenalty=Math.min(10,(totalGelb*0.5+totalGelbRot*1.5+totalRot*3));
   const teamScore=Math.min(100,Math.round(winScore+gdScore+attScore2+Math.max(0,10-cardPenalty)));
-  const tsCol=teamScore>=75?'#2d7a2d':teamScore>=55?'#ca8a04':'#c0392b';
+  const tsCol=teamScore>=75?'#1a6a35':teamScore>=55?'#ca8a04':'#c0392b';
   const tsLabel=teamScore>=75?'🏆 Starke Saison':teamScore>=60?'💪 Solide Saison':teamScore>=45?'📈 Entwicklung':'⚡ Aufbauphase';
   document.getElementById('team-score-card').innerHTML=
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
@@ -2315,7 +2341,7 @@ function renderStatsCharts(){
   ['ch-goals','ch-gtypes','ch-att','ch-mins','ch-zones'].forEach(dch);
   if(!D.players.length){noDataMsg(['ch-goals','ch-gtypes','ch-att','ch-mins','ch-zones'],'Noch keine Spieler angelegt');return;}
   const sorted=[...D.players].sort((a,b)=>totalGoals(getEffStats(b.id))-totalGoals(getEffStats(a.id))).slice(0,10);
-  CHS['ch-goals']=new Chart(document.getElementById('ch-goals'),{type:'bar',data:{labels:sorted.map(p=>p.name.split(' ')[0]),datasets:[{label:'Tore',data:sorted.map(p=>totalGoals(getEffStats(p.id))),backgroundColor:'#2d7a2d',borderRadius:4},{label:'Vorlagen',data:sorted.map(p=>getEffStats(p.id).vl||0),backgroundColor:'#7b2d8b',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
+  CHS['ch-goals']=new Chart(document.getElementById('ch-goals'),{type:'bar',data:{labels:sorted.map(p=>p.name.split(' ')[0]),datasets:[{label:'Tore',data:sorted.map(p=>totalGoals(getEffStats(p.id))),backgroundColor:'#1a6a35',borderRadius:4},{label:'Vorlagen',data:sorted.map(p=>getEffStats(p.id).vl||0),backgroundColor:'#6d28d9',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9},color:'#64748b'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{stepSize:1,font:{size:9}}}}}});
   const hasMRData=(D.matchReports||[]).length>0;
   let gtLabels,gtData,gtColors;
   if(hasMRData){
@@ -2325,7 +2351,7 @@ function renderStatsCharts(){
     const gtElf=allGEvts.filter(e=>e.goalType==='elfmeter').length;
     gtLabels=['Schuss','Kopfball','Elfmeter'];
     gtData=[gtSchuss,gtKopf,gtElf];
-    gtColors=['#2d7a2d','#1a5e8a','#c05000'];
+    gtColors=['#1a6a35','#1d4ed8','#c94f18'];
   } else {
     const tib=D.players.reduce((a,p)=>a+(getEffStats(p.id).tib||0),0);
     const tao=D.players.reduce((a,p)=>a+(getEffStats(p.id).tao||0),0);
@@ -2333,10 +2359,10 @@ function renderStatsCharts(){
     const tk=D.players.reduce((a,p)=>a+(getEffStats(p.id).tk||0),0);
     gtLabels=['In Box','Außerhalb','Schuss','Kopf'];
     gtData=[tib,tao,ts,tk];
-    gtColors=['#2d7a2d','#c05000','#1a5e8a','#7b2d8b'];
+    gtColors=['#1a6a35','#c94f18','#1d4ed8','#6d28d9'];
   }
-  CHS['ch-gtypes']=new Chart(document.getElementById('ch-gtypes'),{type:'doughnut',data:{labels:gtLabels,datasets:[{data:gtData,backgroundColor:gtColors,borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},cutout:'52%'}});
-  CHS['ch-att']=new Chart(document.getElementById('ch-att'),{type:'bar',data:{labels:D.players.map(p=>p.name.split(' ')[0]),datasets:[{data:D.players.map(p=>attPct(getEffStats(p.id))),backgroundColor:D.players.map(p=>{const a=attPct(getEffStats(p.id));return a>=80?'#2d7a2d':a>=60?'#ca8a04':'#c0392b';}),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}});
+  CHS['ch-gtypes']=new Chart(document.getElementById('ch-gtypes'),{type:'doughnut',data:{labels:gtLabels,datasets:[{data:gtData,backgroundColor:gtColors,borderWidth:2,borderColor:'rgba(255,255,255,.6)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:9},color:'#64748b',padding:10}}},cutout:'60%'}});
+  CHS['ch-att']=new Chart(document.getElementById('ch-att'),{type:'bar',data:{labels:D.players.map(p=>p.name.split(' ')[0]),datasets:[{data:D.players.map(p=>attPct(getEffStats(p.id))),backgroundColor:D.players.map(p=>{const a=attPct(getEffStats(p.id));return a>=80?'#1a6a35':a>=60?'#ca8a04':'#c0392b';}),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{callback:v=>v+'%',font:{size:9}}}}}});
   // Zone chart — events by time period across all match reports
   dch('ch-zones');
   const hasNSZ1=(D.matchReports||[]).some(mr=>(mr.etH1||0)>0);
@@ -2359,12 +2385,12 @@ function renderStatsCharts(){
   const zoneCards=zones.map(z=>allEvts.filter(e=>e.type==='card'&&z.filter(e)).length);
   const zoneEl=document.getElementById('ch-zones');
   if(zoneEl)CHS['ch-zones']=new Chart(zoneEl,{type:'bar',data:{labels:zones.map(z=>z.label),datasets:[
-    {label:'Tore',data:zoneGoals,backgroundColor:'#2d7a2d',borderRadius:4},
+    {label:'Tore',data:zoneGoals,backgroundColor:'#1a6a35',borderRadius:4},
     {label:'Gegentore',data:zoneOG,backgroundColor:'#c0392b',borderRadius:4},
     {label:'Karten',data:zoneCards,backgroundColor:'#f59e0b',borderRadius:4}
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:10}}}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{stepSize:1}}}}});
 
-  CHS['ch-mins']=new Chart(document.getElementById('ch-mins'),{type:'bar',data:{labels:D.players.map(p=>p.name.split(' ')[0]),datasets:[{label:'Gespielt',data:D.players.map(p=>getEffStats(p.id).em||0),backgroundColor:'#2d7a2d',borderRadius:4},{label:'Max. möglich',data:D.players.map(p=>maxMin(gPS(p.id))),backgroundColor:'#e8e8e8',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}},scales:{y:{beginAtZero:true}}}});
+  CHS['ch-mins']=new Chart(document.getElementById('ch-mins'),{type:'bar',data:{labels:D.players.map(p=>p.name.split(' ')[0]),datasets:[{label:'Gespielt',data:D.players.map(p=>getEffStats(p.id).em||0),backgroundColor:'#1a6a35',borderRadius:4},{label:'Max. möglich',data:D.players.map(p=>maxMin(gPS(p.id))),backgroundColor:'#e8e8e8',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9},color:'#64748b'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});
 }
 
 // ── EDIT STATS ────────────────────────────────────────────────────────────────
@@ -2497,7 +2523,7 @@ function renderScore(pid){
   const sSea=seaAvg('maxSprint'),sRec=recAvg('maxSprint');
   const sScore=sSea>0?Math.min(25,Math.round((sRec/sSea)*20)):0;
   const trScore=Math.min(100,attScore+dScore+hScore+sScore);
-  const trCol=trScore>=80?'#2d7a2d':trScore>=60?'#ca8a04':'#c0392b';
+  const trCol=trScore>=80?'#1a6a35':trScore>=60?'#ca8a04':'#c0392b';
   const trLabel=trScore>=80?'🔥 Top-Form':trScore>=65?'💪 Gute Form':trScore>=50?'📈 Aufsteigend':'⚡ Aufholbedarf';
   const trend=dRec>dSea&&hRec>hSea?'↑ Besser als Saisonschnitt':dRec<dSea*0.9?'↓ Unter Saisonschnitt':'→ Im Saisonschnitt';
 
@@ -2577,7 +2603,7 @@ function renderScore(pid){
   }
 
   const gesamtScore=hasGameData?Math.min(100,Math.round(trScore*0.75+gameScore*0.25)):trScore;
-  const gsCol=gesamtScore>=80?'#2d7a2d':gesamtScore>=60?'#ca8a04':'#c0392b';
+  const gsCol=gesamtScore>=80?'#1a6a35':gesamtScore>=60?'#ca8a04':'#c0392b';
   const gsLabel=gesamtScore>=80?'🔥 Sehr gut':gesamtScore>=65?'💪 Gut':gesamtScore>=50?'📈 Solide':'⚡ Aufholbedarf';
 
   const trColDark=trScore>=80?'#1a6a35':trScore>=60?'#92400e':'#991b1b';
@@ -2634,12 +2660,15 @@ function renderPlayer(){
   const scoreHtml=renderScore(p.id);
   const injHtml=renderInjurySection(p);
   // last session stats for broadcast bar
-  const lastSess=(D.sessions||[]).filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0).sort((a,b)=>b.date.localeCompare(a.date))[0];
-  const bsHtml=lastSess?`<div class="bs-grid" style="grid-template-columns:repeat(4,1fr);margin-top:14px">
-    <div class="bs-cell"><div class="bs-val">${parseFloat(lastSess.distance||0).toFixed(1)}</div><div class="bs-unit">km</div><div class="bs-lbl">Distanz</div></div>
-    <div class="bs-cell"><div class="bs-val">${parseFloat(lastSess.maxSprint||0).toFixed(1)}</div><div class="bs-unit">km/h</div><div class="bs-lbl">Max Speed</div></div>
-    <div class="bs-cell"><div class="bs-val">${Math.round(parseFloat(lastSess.hiInt||0))}</div><div class="bs-unit">m</div><div class="bs-lbl">Hi-Intensität</div></div>
-    <div class="bs-cell"><div class="bs-val">${Math.round(parseFloat(lastSess.acc||0))}</div><div class="bs-unit"></div><div class="bs-lbl">Beschleun.</div></div>
+  const _plSess=(D.sessions||[]).filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
+  const _avg=k=>_plSess.length?(_plSess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_plSess.length):0;
+  const _max=k=>_plSess.length?Math.max(..._plSess.map(s=>parseFloat(s[k]||0))):0;
+  const bsHtml=_plSess.length?`<div class="bs-grid" style="grid-template-columns:repeat(5,1fr);margin-top:14px">
+    <div class="bs-cell"><div class="bs-val">${_avg('distance').toFixed(1)}</div><div class="bs-unit">km</div><div class="bs-lbl">Ø Distanz</div></div>
+    <div class="bs-cell"><div class="bs-val">${_max('maxSprint').toFixed(1)}</div><div class="bs-unit">km/h</div><div class="bs-lbl">Max Speed</div></div>
+    <div class="bs-cell"><div class="bs-val">${Math.round(_avg('hiInt'))}</div><div class="bs-unit">m</div><div class="bs-lbl">Ø Hi-Int</div></div>
+    <div class="bs-cell"><div class="bs-val">${Math.round(_avg('acc'))}</div><div class="bs-unit"></div><div class="bs-lbl">Ø Beschl.</div></div>
+    <div class="bs-cell"><div class="bs-val">${_plSess.length}</div><div class="bs-unit"></div><div class="bs-lbl">Trainings</div></div>
   </div>`:'';
   document.getElementById('pl-content').innerHTML=`
     <div class="player-hdr">
@@ -2731,12 +2760,12 @@ function renderPChts(p,entries,col){
   ['ch-pd','ch-pr','ch-psp','ch-pl','ch-pacc','ch-pdec'].forEach(dch);
   if(!entries.length)return;
   const dates=entries.map(s=>fmtD(s.date));
-  const mkL=(id,key,c)=>{const el=document.getElementById(id);if(!el)return;CHS[id]=new Chart(el,{type:'line',data:{labels:dates,datasets:[{data:entries.map(s=>parseFloat(s[key]||0)),borderColor:c,backgroundColor:c+'20',tension:.3,fill:true,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});};
-  mkL('ch-pd','distance',col);mkL('ch-psp','maxSprint','#c05000');mkL('ch-pl','load','#8a1a1a');mkL('ch-pacc','acc','#1a5e8a');mkL('ch-pdec','dec','#7b2d8b');
+  const mkL=(id,key,c)=>{const el=document.getElementById(id);if(!el)return;CHS[id]=new Chart(el,{type:'line',data:{labels:dates,datasets:[{data:entries.map(s=>parseFloat(s[key]||0)),borderColor:c,backgroundColor:c+'20',tension:.35,fill:true,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});};
+  mkL('ch-pd','distance',col);mkL('ch-psp','maxSprint','#c94f18');mkL('ch-pl','load','#8a1a1a');mkL('ch-pacc','acc','#1d4ed8');mkL('ch-pdec','dec','#6d28d9');
   const el=document.getElementById('ch-pr');if(!el)return;
   const rL=['Distanz','Hi-Int.','Sprint','Beschl.','Abbrems.','Pässe','Am Ball'],rK=['distance','hiInt','maxSprint','acc','dec','passes','ballMin'];
   const mxV=rK.map(k=>Math.max(...[...D.sessions,...D.games].map(s=>parseFloat(s[k]||0)),1));
-  CHS['ch-pr']=new Chart(el,{type:'radar',data:{labels:rL,datasets:[{data:rK.map((k,i)=>entries.length?(avg(entries,k)/mxV[i]*100):0),borderColor:col,backgroundColor:col+'18',pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:100,ticks:{display:false}}},plugins:{legend:{display:false}}}});
+  CHS['ch-pr']=new Chart(el,{type:'radar',data:{labels:rL,datasets:[{data:rK.map((k,i)=>entries.length?(avg(entries,k)/mxV[i]*100):0),borderColor:col,backgroundColor:col+'18',pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:100,ticks:{display:false,stepSize:25},grid:{color:'rgba(0,0,0,.06)'},pointLabels:{font:{size:9,weight:'600'},color:'#64748b'}}},plugins:{legend:{display:false}}}});
 }
 
 // ── PLAYER SEASON STATS TAB ───────────────────────────────────────────────────
@@ -3008,7 +3037,7 @@ function renderPlSt(p,col){
       <table class="tbl"><thead><tr><th>Datum</th><th>Gegner</th><th>Typ</th><th class="num">Min</th><th class="num">⚽</th><th class="num">Assist</th><th class="num">Start</th><th class="num">Karten</th></tr></thead>
       <tbody>${plMRs.map(m=>{const pr=computePMS(p.id,m)||{};const tc=(pr.gk||0)+(pr.grk||0)+(pr.rk||0);return`<tr>
         <td>${fmtD(m.date)} ${isTr?`<button onclick="event.stopPropagation();oMR('${m.id}')" style="font-size:10px;padding:2px 6px;background:var(--org);color:#fff;border:none;border-radius:4px;cursor:pointer;margin-left:4px">✏️</button><button onclick="event.stopPropagation();delMR('${m.id}')" style="font-size:10px;padding:2px 6px;background:#fde8e8;color:var(--red);border:none;border-radius:4px;cursor:pointer">✕</button>`:''}</td><td>${m.opponent||'?'} ${m.home==='home'?'🏠':'✈️'}</td>
-        <td><span style="font-size:10px;padding:1px 6px;border-radius:8px;font-weight:700;background:${(m.gameType||'official')==='official'?'#fff0e6':'#e8f0fe'};color:${(m.gameType||'official')==='official'?'var(--org)':'#1a5e8a'}">${(m.gameType||'official')==='official'?'Pflicht':'Test'}</span></td>
+        <td><span style="font-size:10px;padding:1px 6px;border-radius:8px;font-weight:700;background:${(m.gameType||'official')==='official'?'#fff0e6':'#e8f0fe'};color:${(m.gameType||'official')==='official'?'var(--org)':'#1d4ed8'}">${(m.gameType||'official')==='official'?'Pflicht':'Test'}</span></td>
         <td class="num"><strong>${pr.minutes||0}'</strong></td>
         <td class="num" style="color:var(--grn);font-weight:700">${pr.goals||0}</td>
         <td class="num" style="color:var(--pur);font-weight:700">${pr.assists||0}</td>
@@ -3020,7 +3049,7 @@ function renderPlSt(p,col){
   setTimeout(()=>{
     dch('ch-st-g');
     const el=document.getElementById('ch-st-g');if(!el)return;
-    CHS['ch-st-g']=new Chart(el,{type:'bar',data:{labels:['In Box','Außerhalb','Schuss','Kopf'],datasets:[{data:[s.tib||0,s.tao||0,s.ts||0,s.tk||0],backgroundColor:['#2d7a2d','#c05000','#1a5e8a','#7b2d8b'],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
+    CHS['ch-st-g']=new Chart(el,{type:'bar',data:{labels:['In Box','Außerhalb','Schuss','Kopf'],datasets:[{data:[s.tib||0,s.tao||0,s.ts||0,s.tk||0],backgroundColor:['#1a6a35','#c94f18','#1d4ed8','#6d28d9'],borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{stepSize:1,font:{size:9}}}}}});
   },50);
 }
 function delPl(pid){if(!confirm('Spieler und alle Daten löschen?'))return;D.players=D.players.filter(p=>p.id!==pid);D.sessions=D.sessions.filter(s=>s.playerId!==pid);D.games=D.games.filter(g=>g.playerId!==pid);D.pstats=D.pstats.filter(s=>s.playerId!==pid);sv();document.getElementById('nb-pl').style.display='none';aPl=null;sp('team');}
@@ -3047,7 +3076,7 @@ function editSess(id){
   document.getElementById('f-type').value='training';
   document.getElementById('add-title').textContent='Training bearbeiten';
   document.getElementById('gof').style.display='none';
-  const sb=document.getElementById('f-sub');sb.className='btn';sb.style.background='#1a5e8a';sb.style.color='#fff';sb.textContent='Änderungen speichern';
+  const sb=document.getElementById('f-sub');sb.className='btn';sb.style.background='#1d4ed8';sb.style.color='#fff';sb.textContent='Änderungen speichern';
   const sel=document.getElementById('f-pl');
   sel.innerHTML='<option value="">– Spieler wählen –</option>'+D.players.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
   sel.value=s.playerId;
@@ -3240,7 +3269,7 @@ function renderEltern(){
   const distVals=distDates.map(d=>{const vs=sessByDate[d];return vs.length?(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(1):0;});
   if(distDates.length){
     const elD=document.getElementById('el-ch-dist');
-    if(elD)CHS['el-ch-dist']=new Chart(elD,{type:'line',data:{labels:distDates.map(fmtD),datasets:[{data:distVals,borderColor:'#2d7a2d',backgroundColor:'#2d7a2d20',tension:.3,fill:true,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false}}}});
+    if(elD)CHS['el-ch-dist']=new Chart(elD,{type:'line',data:{labels:distDates.map(fmtD),datasets:[{data:distVals,borderColor:'#1a6a35',backgroundColor:'#1a6a3528',tension:.35,fill:true,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});
   }
   // Anwesenheit-Trend
   if(tds.length&&D.players.length){
@@ -3251,7 +3280,7 @@ function renderEltern(){
       return eligible.length?Math.round(eligible.filter(p=>(td.present||[]).includes(p.id)).length/eligible.length*100):0;
     });
     const elA=document.getElementById('el-ch-att');
-    if(elA)CHS['el-ch-att']=new Chart(elA,{type:'bar',data:{labels:attDates,datasets:[{data:attVals,backgroundColor:attVals.map(v=>v>=80?'#2d7a2d':v>=65?'#ca8a04':'#c0392b'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}});
+    if(elA)CHS['el-ch-att']=new Chart(elA,{type:'bar',data:{labels:attDates,datasets:[{data:attVals,backgroundColor:attVals.map(v=>v>=80?'#1a6a35':v>=65?'#ca8a04':'#c0392b'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{callback:v=>v+'%',font:{size:9}}}}}});
   }
 }
 

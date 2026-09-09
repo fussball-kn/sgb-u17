@@ -8,161 +8,295 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-:root{
-  --grn:#16a34a;--grn-l:#dcfce7;--grn-m:#22c55e;--grn-dk:#15803d;
-  --org:#ea580c;--org-l:#fff4ed;
-  --red:#dc2626;--red-l:#fef2f2;
-  --pur:#7c3aed;--pur-l:#f5f3ff;
-  --blu:#2563eb;--blu-l:#eff6ff;
-  --bg:#f1f5f9;--wht:#fff;
-  --nav:#0d1117;
-  --card:#fff;
-  --brd:#e2e8f0;
-  --txt:#0f172a;--muted:#64748b;--subtle:#94a3b8;
-  --rad:12px;
-  --shd:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.06);
-  --shd-sm:0 1px 2px rgba(0,0,0,.06);
-  --shd-lg:0 10px 40px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.08);
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --fd: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --fb: 'Inter', system-ui, sans-serif;
+
+  --dk:  #0c1220;
+  --dk2: #141f30;
+  --dk3: #1e2d42;
+  --grn: #1a6a35;
+  --grn-l: #dcf5e6;
+  --grn-b: #28a050;
+  --org: #c94f18;
+  --org-l: #fff1eb;
+  --red: #c0392b;
+  --red-l: #fef0ef;
+  --pur: #6d28d9;
+  --pur-l: #f3f0ff;
+  --blu: #1d4ed8;
+  --blu-l: #eff4ff;
+
+  --bg:  #edf0ed;
+  --sfc: #ffffff;
+  --brd: #dce2dc;
+  --brd2: #eaeeea;
+  --txt: #0c1220;
+  --txt2: #445060;
+  --txt3: #8a9aaa;
+  --muted: #8a9aaa;
+  --bg2: #edf0ed;
+  --wht: #fff;
+  --blk: #0c1220;
+
+  --rad: 8px;
+  --rad-sm: 4px;
+  --rad-lg: 12px;
+  --shd: 0 1px 2px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.06);
+  --shd-sm: 0 1px 2px rgba(0,0,0,.06);
+  --shd-lg: 0 8px 32px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.08);
 }
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;-webkit-font-smoothing:antialiased;}
-nav{background:var(--nav);padding:0 16px;display:flex;align-items:center;gap:2px;height:52px;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,.06);}
-.nav-logo{display:flex;align-items:center;gap:10px;margin-right:10px;text-decoration:none;}
-.nav-logo img{width:34px;height:34px;border-radius:50%;border:2px solid var(--grn);}
-.nlt{display:flex;flex-direction:column;line-height:1.25;}
-.nlt strong{font-size:12px;font-weight:700;color:#fff;letter-spacing:.04em;text-transform:uppercase;}
-.nlt span{font-size:10px;color:#64748b;}
-.nav-sep{width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 6px;}
-.nb{padding:5px 10px;border-radius:7px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;color:#94a3b8;transition:all .15s;white-space:nowrap;}
-.nb:hover{background:rgba(255,255,255,.08);color:#fff;}
-.nb.active{background:rgba(22,163,74,.2);color:#4ade80;font-weight:700;}
-.nb.gm.active{background:rgba(234,88,12,.2);color:#fb923c;}
-.nb.st.active{background:rgba(124,58,237,.2);color:#a78bfa;}
-.nsp{flex:1;}
-.mb{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;border:none;cursor:pointer;}
-.mb.tr{background:var(--grn);color:#fff;}
-.mb.pl{background:rgba(255,255,255,.1);color:#94a3b8;}
-.bn{padding:5px 11px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:3px;white-space:nowrap;transition:all .15s;}
-.bn-g{background:var(--grn);color:#fff;margin-left:4px;}.bn-g:hover{background:var(--grn-dk);}
-.bn-o{background:var(--org);color:#fff;margin-left:4px;}.bn-o:hover{background:#c2410c;}
-.bn-d{background:rgba(255,255,255,.08);color:#94a3b8;margin-left:4px;border:1px solid rgba(255,255,255,.1);}.bn-d:hover{background:rgba(255,255,255,.12);}
-.btn{padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:4px;transition:all .15s;}
-.btn-g{background:var(--grn);color:#fff;}.btn-g:hover{background:var(--grn-dk);}
-.btn-o{background:var(--org);color:#fff;}.btn-o:hover{background:#c2410c;}
-.btn-gr{background:#f1f5f9;color:var(--txt);border:1px solid var(--brd);}.btn-gr:hover{background:#e2e8f0;}
-.btn-p{background:var(--pur);color:#fff;}.btn-p:hover{background:#6d28d9;}
-.btn-d{background:var(--red-l);color:var(--red);padding:6px 10px;border-radius:7px;border:1px solid #fecaca;cursor:pointer;font-size:12px;font-weight:600;}
-.btn-d:hover{background:#fee2e2;}
-.page{display:none;padding:20px;max-width:1280px;margin:0 auto;}
-.page.active{display:block;}
-.card{background:var(--card);border-radius:var(--rad);border:1px solid var(--brd);padding:16px;box-shadow:var(--shd);}
-.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
-.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--fb); background: var(--bg); color: var(--txt); min-height: 100vh; -webkit-font-smoothing: antialiased; font-size: 13px; }
+
+/* ── NAV ─────────────────────────────────────────── */
+nav {
+  background: var(--dk);
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 52px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.nav-logo { display:flex;align-items:center;gap:10px;margin-right:10px;text-decoration:none; }
+.nav-logo img { width:34px;height:34px;border-radius:50%;border:2px solid var(--grn-b); }
+.nlt { display:flex;flex-direction:column;line-height:1.2; }
+.nlt strong { font-family:var(--fd);font-size:15px;font-weight:700;color:#fff;letter-spacing:.05em;text-transform:uppercase; }
+.nlt span { font-size:9px;color:#5a6a7a;letter-spacing:.04em;text-transform:uppercase; }
+.nav-sep { width:1px;height:16px;background:rgba(255,255,255,.08);margin:0 8px; }
+.nb { padding:5px 10px;border-radius:5px;border:none;background:none;cursor:pointer;font-size:11px;font-weight:600;color:#6a7a8a;transition:all .15s;white-space:nowrap;letter-spacing:.02em; }
+.nb:hover { background:rgba(255,255,255,.07);color:#cdd; }
+.nb.active { background:rgba(26,106,53,.25);color:var(--grn-b);font-weight:700; }
+.nb.gm.active { background:rgba(201,79,24,.2);color:#f07040; }
+.nb.st.active { background:rgba(109,40,217,.2);color:#a78bfa; }
+.nsp { flex:1; }
+.mb { font-size:10px;font-weight:700;padding:4px 10px;border-radius:3px;border:none;cursor:pointer;letter-spacing:.04em;text-transform:uppercase; }
+.mb.tr { background:var(--grn);color:#fff; }
+.mb.pl { background:rgba(255,255,255,.08);color:#6a7a8a;border:1px solid rgba(255,255,255,.08); }
+
+/* ── BUTTONS ─────────────────────────────────────── */
+.bn { padding:5px 11px;border-radius:5px;border:none;cursor:pointer;font-size:11px;font-weight:700;display:flex;align-items:center;gap:3px;white-space:nowrap;transition:all .15s;letter-spacing:.02em; }
+.bn-g { background:var(--grn);color:#fff;margin-left:4px; }.bn-g:hover{ background:var(--grn-b); }
+.bn-o { background:var(--org);color:#fff;margin-left:4px; }.bn-o:hover{ background:#b04010; }
+.bn-d { background:rgba(255,255,255,.06);color:#6a7a8a;margin-left:4px;border:1px solid rgba(255,255,255,.08); }.bn-d:hover{ background:rgba(255,255,255,.1); }
+.btn { padding:7px 14px;border-radius:var(--rad);border:none;cursor:pointer;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;transition:all .15s;letter-spacing:.02em; }
+.btn-g { background:var(--grn);color:#fff; }.btn-g:hover{ background:var(--grn-b); }
+.btn-o { background:var(--org);color:#fff; }.btn-o:hover{ background:#b04010; }
+.btn-gr { background:var(--sfc);color:var(--txt);border:1px solid var(--brd); }.btn-gr:hover{ background:var(--bg); }
+.btn-p { background:var(--pur);color:#fff; }.btn-p:hover{ background:#5b21b6; }
+.btn-d { background:var(--red-l);color:var(--red);padding:6px 10px;border-radius:var(--rad-sm);border:1px solid #fdd;cursor:pointer;font-size:11px;font-weight:700; }
+.btn-d:hover { background:#fdd; }
+
+/* ── LAYOUT ──────────────────────────────────────── */
+.page { display:none;padding:20px;max-width:1320px;margin:0 auto; }
+.page.active { display:block; }
+.card { background:var(--sfc);border-radius:var(--rad);border:1px solid var(--brd);padding:16px;box-shadow:var(--shd); }
+.g4 { display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px; }
+.g3 { display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px; }
+.g2 { display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px; }
 @media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr);}.g2{grid-template-columns:1fr;}.g3{grid-template-columns:repeat(2,1fr);}}
-.cv{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;letter-spacing:.02em;}
-.cn{font-size:22px;font-weight:800;color:var(--txt);}
-.cs{font-size:10px;color:var(--subtle);margin-top:2px;}
-.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.stt{font-size:15px;font-weight:700;letter-spacing:.01em;}
-.bdg{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;}
-.bdg-g{background:var(--grn-l);color:var(--grn-dk);}
-.bdg-o{background:var(--org-l);color:var(--org);}
-.bdg-p{background:var(--pur-l);color:var(--pur);}
-.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px;margin-bottom:16px;}
-.pc{background:var(--card);border:1.5px solid var(--brd);border-radius:var(--rad);padding:14px;cursor:pointer;transition:all .2s;text-align:center;}
-.pc:hover{border-color:var(--grn);box-shadow:0 6px 20px rgba(22,163,74,.12);transform:translateY(-2px);}
-.pav{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;margin:0 auto 9px;border:2px solid;}
-.pn{font-weight:700;font-size:13px;}
-.pp{font-size:10px;color:var(--muted);margin-top:2px;}
-.ps{margin-top:9px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;}
-.psv{font-size:12px;font-weight:700;}
-.psl{font-size:10px;color:var(--muted);}
-.tbl{width:100%;border-collapse:collapse;font-size:12px;}
-.tbl th{text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--brd);background:#f8fafc;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
-.tbl td{padding:8px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
-.tbl tr:hover td{background:#f8fafc;}
-.tbl tr:last-child td{border-bottom:none;}
-.tbl th.num,.tbl td.num{text-align:center;}
-.chrt{position:relative;height:200px;}
-.chrt-t{position:relative;height:260px;}
-.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.fg-g{display:flex;flex-direction:column;gap:4px;}
-.fg-g.full{grid-column:1/-1;}
-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
-input,select{padding:8px 10px;border:1.5px solid var(--brd);border-radius:8px;font-size:13px;color:var(--txt);background:#fff;outline:none;width:100%;transition:border-color .15s;font-family:inherit;}
-input:focus,select:focus{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163,74,.08);}
-.fsec{font-size:10px;font-weight:700;color:var(--grn);text-transform:uppercase;letter-spacing:.06em;padding:8px 0 3px;border-top:1px solid var(--brd);margin-top:4px;grid-column:1/-1;}
-.fsec:first-child{border-top:none;margin-top:0;}
-.fsec.gm{color:var(--org);}
-.fsec.st{color:var(--pur);}
-.fa{display:flex;gap:8px;margin-top:16px;}
-.mod{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;}
-.mod.open{display:flex;}
-.mbox{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:820px;max-height:90vh;overflow-y:auto;box-shadow:var(--shd-lg);}
-.mbox.sm{max-width:380px;}
-.mt{font-size:15px;font-weight:700;margin-bottom:16px;letter-spacing:.01em;}
-.ma{display:flex;gap:8px;margin-top:16px;justify-content:flex-end;}
-.tabs{display:flex;gap:2px;background:#f1f5f9;border-radius:9px;padding:3px;margin-bottom:14px;width:fit-content;flex-wrap:wrap;}
-.tab{padding:5px 13px;border-radius:7px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);transition:all .15s;}
-.tab.active{background:#fff;color:var(--txt);box-shadow:var(--shd-sm);}
-.tab.gm.active{color:var(--org);}
-.tab.st.active{color:var(--pur);}
-.mc{background:#f8fafc;border-radius:9px;padding:11px 12px;border:1px solid var(--brd);}
-.mcl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
-.mcv{font-size:17px;font-weight:800;margin-top:3px;}
-.mcu{font-size:10px;color:var(--subtle);}
-.back{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:14px;font-weight:600;transition:color .15s;}
-.back:hover{color:var(--txt);}
-.empty{text-align:center;padding:36px 20px;color:var(--muted);}
-.eico{font-size:32px;margin-bottom:8px;}
-.etit{font-size:13px;font-weight:700;color:var(--txt);margin-bottom:4px;}
-.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
-.pw{background:#dcfce7;color:#15803d;}
-.pd{background:#fef9c3;color:#854d0e;}
-.pl{background:var(--red-l);color:var(--red);}
-.lb{height:5px;border-radius:4px;background:#e2e8f0;overflow:hidden;margin-top:4px;}
-.lf{height:100%;border-radius:4px;}
-.pct-bar{height:6px;border-radius:4px;background:#e2e8f0;overflow:hidden;margin-top:4px;}
-.pct-fill{height:100%;border-radius:4px;background:var(--grn);}
-.stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9;}
-.stat-row:last-child{border-bottom:none;}
-.stat-lbl{font-size:12px;color:var(--muted);}
-.stat-val{font-size:14px;font-weight:700;}
-.karte-g{background:#fbbf24;color:#000;display:inline-block;width:11px;height:15px;border-radius:2px;vertical-align:middle;}
-.karte-r{background:var(--red);color:#fff;display:inline-block;width:11px;height:15px;border-radius:2px;vertical-align:middle;}
-.karte-gr{background:linear-gradient(to right,#fbbf24 50%,var(--red) 50%);display:inline-block;width:11px;height:15px;border-radius:2px;vertical-align:middle;}
-.info-box{background:var(--pur-l);border:1px solid #ddd6fe;border-radius:8px;padding:9px 13px;font-size:11px;color:var(--pur);grid-column:1/-1;}
-#pin-scr{display:none;position:fixed;inset:0;background:linear-gradient(135deg,#0d1117 0%,#0f1e2e 50%,#0d1117 100%);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:0;}
-#pin-scr.open{display:flex;}
-#pin-scr::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(22,163,74,.12) 0%,transparent 70%);pointer-events:none;}
-.pin-wrap{display:flex;flex-direction:column;align-items:center;gap:28px;position:relative;z-index:1;}
-.pin-logo{display:flex;align-items:center;gap:14px;}
-.pin-logo img{width:62px;height:62px;border-radius:50%;border:3px solid rgba(22,163,74,.5);box-shadow:0 0 30px rgba(22,163,74,.2);}
-.plt{display:flex;flex-direction:column;}
-.plt strong{font-size:22px;color:#f1f5f9;font-weight:800;letter-spacing:-.01em;}
-.plt span{font-size:12px;color:#64748b;margin-top:2px;}
-.pbox{background:rgba(255,255,255,.04);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:28px 32px;width:360px;box-shadow:0 24px 60px rgba(0,0,0,.4);}
-.login-tabs{display:flex;gap:0;margin-bottom:20px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.2);}
-.ltab{flex:1;padding:10px 6px;font-size:11px;font-weight:700;border:none;cursor:pointer;background:transparent;color:#64748b;transition:all .2s;letter-spacing:.01em;font-family:inherit;}
-.ltab.active-tr{background:rgba(22,163,74,.25);color:#4ade80;}
-.ltab.active-sl{background:rgba(124,58,237,.25);color:#a78bfa;}
-.ltab.active-pl{background:rgba(37,99,235,.25);color:#93c5fd;}
-.login-label{font-size:11px;color:#64748b;margin-bottom:8px;}
-.pin-in{width:100%;padding:12px;border-radius:9px;border:1.5px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);color:#f1f5f9;font-size:22px;text-align:center;letter-spacing:8px;outline:none;font-weight:700;font-family:inherit;transition:border-color .2s;}
-.pin-in:focus{border-color:rgba(22,163,74,.6);box-shadow:0 0 0 3px rgba(22,163,74,.1);}
-.pin-err{color:#f87171;font-size:11px;margin-top:6px;min-height:16px;text-align:center;}
-.login-btn{width:100%;padding:11px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;margin-top:14px;transition:all .2s;letter-spacing:.02em;}
-.login-btn-tr{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 4px 14px rgba(22,163,74,.3);}
-.login-btn-tr:hover{box-shadow:0 6px 20px rgba(22,163,74,.4);}
-.login-btn-sl{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.3);}
-.login-btn-sl:hover{box-shadow:0 6px 20px rgba(124,58,237,.4);}
-.login-btn-pl{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;box-shadow:0 4px 14px rgba(37,99,235,.3);}
-.login-btn-pl:hover{box-shadow:0 6px 20px rgba(37,99,235,.4);}
-.login-sel{width:100%;padding:10px 12px;border-radius:9px;border:1.5px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);color:#f1f5f9;font-size:13px;outline:none;margin-bottom:10px;font-family:inherit;cursor:pointer;}
-.skip{color:#334155;font-size:11px;cursor:pointer;text-decoration:none;transition:color .2s;}
-.skip:hover{color:#64748b;}
+
+/* ── STAT MINI-CARDS (Trainer overview) ──────────── */
+.cv { font-size:9px;font-weight:700;color:var(--txt3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em; }
+.cn { font-family:var(--fd);font-size:32px;font-weight:800;color:var(--txt);line-height:1; }
+.cs { font-size:10px;color:var(--txt3);margin-top:3px; }
+.sh { display:flex;align-items:center;justify-content:space-between;margin-bottom:14px; }
+.stt { font-family:var(--fd);font-size:17px;font-weight:700;letter-spacing:.02em;text-transform:uppercase; }
+.bdg { font-size:9px;font-weight:700;padding:3px 9px;border-radius:3px;letter-spacing:.04em;text-transform:uppercase; }
+.bdg-g { background:var(--grn-l);color:var(--grn); }
+.bdg-o { background:var(--org-l);color:var(--org); }
+.bdg-p { background:var(--pur-l);color:var(--pur); }
+
+/* ── PLAYER ROSTER CARDS ─────────────────────────── */
+.pg { display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:10px;margin-bottom:14px; }
+.pc {
+  background:var(--sfc);
+  border:1px solid var(--brd);
+  border-radius:var(--rad);
+  padding:16px 14px 12px;
+  cursor:pointer;
+  transition:all .18s;
+  position:relative;
+  overflow:hidden;
+}
+.pc::before {
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:3px;
+  background:var(--dk);
+  transition:background .18s;
+}
+.pc:hover { border-color:var(--grn);box-shadow:0 4px 16px rgba(26,106,53,.12);transform:translateY(-1px); }
+.pc:hover::before { background:var(--grn); }
+.pc-num { font-family:var(--fd);font-size:36px;font-weight:800;color:var(--brd);line-height:1;margin-bottom:2px;transition:color .18s; }
+.pc:hover .pc-num { color:var(--grn-l); }
+.pc-name { font-family:var(--fd);font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--txt); }
+.pc-pos { font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-top:3px; }
+.pc-divider { height:1px;background:var(--brd2);margin:10px 0; }
+.pc-stats { display:flex;justify-content:space-between; }
+.pc-stat { text-align:center;flex:1; }
+.pc-stat:not(:last-child) { border-right:1px solid var(--brd2); }
+.pc-sv { font-family:var(--fd);font-size:20px;font-weight:700;color:var(--txt);line-height:1; }
+.pc-sl { font-size:8px;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px; }
+
+/* ── PLAYER PROFILE HEADER ───────────────────────── */
+.player-hdr {
+  background:var(--dk);
+  border-radius:var(--rad-lg);
+  padding:24px 24px 20px;
+  position:relative;
+  overflow:hidden;
+  margin-bottom:16px;
+  color:#fff;
+}
+.player-hdr::after {
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:3px;
+  background:var(--grn);
+}
+.ph-bg { position:absolute;right:-8px;bottom:-30px;font-family:var(--fd);font-size:200px;font-weight:800;color:rgba(255,255,255,.03);line-height:1;pointer-events:none;letter-spacing:-.02em; }
+.ph-inner { position:relative;display:flex;justify-content:space-between;align-items:flex-start; }
+.ph-left {}
+.ph-tag { font-family:var(--fd);font-size:10px;font-weight:700;letter-spacing:.2em;color:var(--grn-b);text-transform:uppercase;margin-bottom:6px; }
+.ph-name { font-family:var(--fd);font-size:44px;font-weight:800;text-transform:uppercase;line-height:.95;letter-spacing:.01em; }
+.ph-pos { font-size:10px;color:#6a8a9a;letter-spacing:.12em;text-transform:uppercase;margin-top:8px; }
+.ph-badges { display:flex;gap:6px;margin-top:10px;flex-wrap:wrap; }
+.ph-badge { font-size:9px;font-weight:700;padding:3px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.06em; }
+.ph-badge-grn { background:rgba(40,160,80,.2);color:var(--grn-b);border:1px solid rgba(40,160,80,.3); }
+.ph-badge-red { background:rgba(192,57,43,.2);color:#f87171;border:1px solid rgba(192,57,43,.3); }
+
+/* ── BROADCAST LAST SESSION STATS ────────────────── */
+.bs-grid { display:grid;gap:1px;background:var(--brd);border-radius:var(--rad);overflow:hidden;margin-bottom:16px; }
+.bs-cell { background:var(--sfc);padding:16px 10px;text-align:center; }
+.bs-val { font-family:var(--fd);font-size:38px;font-weight:800;line-height:1;color:var(--txt); }
+.bs-unit { font-family:var(--fd);font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--grn);text-transform:uppercase;margin-top:2px; }
+.bs-lbl { font-size:8px;color:var(--txt3);letter-spacing:.1em;text-transform:uppercase;margin-top:1px; }
+
+/* ── SCORE DISPLAY ───────────────────────────────── */
+.score-block { border-radius:var(--rad);overflow:hidden;margin-bottom:14px; }
+.score-band { background:var(--dk);padding:16px 20px;display:flex;align-items:center;gap:16px; }
+.score-num { font-family:var(--fd);font-size:64px;font-weight:800;line-height:1;color:#fff; }
+.score-meta {}
+.score-label { font-family:var(--fd);font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:.04em; }
+.score-sub { font-size:10px;color:#6a8a9a;margin-top:2px;letter-spacing:.04em; }
+.score-detail { background:var(--sfc);border:1px solid var(--brd);border-top:none;padding:12px 16px; }
+.score-bar-wrap { height:4px;background:var(--brd2);border-radius:99px;overflow:hidden;margin:6px 0 10px; }
+.score-bar { height:100%;border-radius:99px;transition:width .5s; }
+.score-comps { display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:10px;text-align:center; }
+.score-comp-v { font-family:var(--fd);font-size:18px;font-weight:700;line-height:1; }
+.score-comp-l { font-size:8px;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;margin-top:1px; }
+
+/* ── TABLES ──────────────────────────────────────── */
+.tbl { width:100%;border-collapse:collapse;font-size:12px; }
+.tbl th { text-align:left;padding:8px 10px;font-size:9px;font-weight:700;color:var(--txt3);border-bottom:1px solid var(--brd);background:#f8f9f8;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap; }
+.tbl td { padding:8px 10px;border-bottom:1px solid var(--brd2);vertical-align:middle; }
+.tbl tr:hover td { background:#f8f9f8; }
+.tbl tr:last-child td { border-bottom:none; }
+.tbl th.num,.tbl td.num { text-align:center; }
+
+/* ── FORMS ───────────────────────────────────────── */
+.fg { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
+.fg-g { display:flex;flex-direction:column;gap:4px; }
+.fg-g.full { grid-column:1/-1; }
+label { font-size:9px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.07em; }
+input,select { padding:8px 10px;border:1.5px solid var(--brd);border-radius:var(--rad-sm);font-size:13px;color:var(--txt);background:#fff;outline:none;width:100%;transition:border-color .15s;font-family:var(--fb); }
+input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,106,53,.07); }
+.fsec { font-size:9px;font-weight:700;color:var(--grn);text-transform:uppercase;letter-spacing:.08em;padding:8px 0 3px;border-top:1px solid var(--brd);margin-top:4px;grid-column:1/-1; }
+.fsec:first-child { border-top:none;margin-top:0; }
+.fsec.gm { color:var(--org); }
+.fsec.st { color:var(--pur); }
+.fa { display:flex;gap:8px;margin-top:16px; }
+
+/* ── MODAL ───────────────────────────────────────── */
+.mod { display:none;position:fixed;inset:0;background:rgba(12,18,32,.65);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center; }
+.mod.open { display:flex; }
+.mbox { background:#fff;border-radius:var(--rad-lg);padding:24px;width:100%;max-width:820px;max-height:90vh;overflow-y:auto;box-shadow:var(--shd-lg); }
+.mbox.sm { max-width:380px; }
+.mt { font-family:var(--fd);font-size:18px;font-weight:700;margin-bottom:16px;text-transform:uppercase;letter-spacing:.03em; }
+.ma { display:flex;gap:8px;margin-top:16px;justify-content:flex-end; }
+
+/* ── TABS ────────────────────────────────────────── */
+.tabs { display:flex;gap:1px;background:var(--brd);border-radius:var(--rad-sm);padding:2px;margin-bottom:14px;width:fit-content;flex-wrap:wrap; }
+.tab { padding:5px 13px;border-radius:3px;border:none;background:none;cursor:pointer;font-size:11px;font-weight:600;color:var(--txt3);transition:all .15s;letter-spacing:.02em; }
+.tab.active { background:#fff;color:var(--txt);box-shadow:var(--shd-sm); }
+.tab.gm.active { color:var(--org); }
+.tab.st.active { color:var(--pur); }
+
+/* ── MISC COMPONENTS ─────────────────────────────── */
+.mc { background:var(--bg);border-radius:var(--rad-sm);padding:10px 12px;border:1px solid var(--brd); }
+.mcl { font-size:9px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.07em; }
+.mcv { font-family:var(--fd);font-size:22px;font-weight:700;margin-top:3px; }
+.mcu { font-size:9px;color:var(--txt3); }
+.back { display:inline-flex;align-items:center;gap:5px;color:var(--txt3);font-size:11px;cursor:pointer;margin-bottom:14px;font-weight:600;transition:color .15s; }
+.back:hover { color:var(--txt); }
+.empty { text-align:center;padding:40px 20px;color:var(--txt3); }
+.eico { font-size:32px;margin-bottom:8px; }
+.etit { font-size:13px;font-weight:700;color:var(--txt);margin-bottom:4px; }
+.pill { display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em; }
+.pw { background:var(--grn-l);color:var(--grn); }
+.pd { background:#fef9c3;color:#854d0e; }
+.pl { background:var(--red-l);color:var(--red); }
+.lb { height:4px;border-radius:99px;background:var(--brd2);overflow:hidden;margin-top:4px; }
+.lf { height:100%;border-radius:99px; }
+.pct-bar { height:5px;border-radius:99px;background:var(--brd2);overflow:hidden;margin-top:4px; }
+.pct-fill { height:100%;border-radius:99px;background:var(--grn); }
+.stat-row { display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--brd2); }
+.stat-row:last-child { border-bottom:none; }
+.stat-lbl { font-size:11px;color:var(--txt2); }
+.stat-val { font-family:var(--fd);font-size:18px;font-weight:700; }
+.karte-g { background:#fbbf24;color:#000;display:inline-block;width:10px;height:14px;border-radius:1px;vertical-align:middle; }
+.karte-r { background:var(--red);color:#fff;display:inline-block;width:10px;height:14px;border-radius:1px;vertical-align:middle; }
+.karte-gr { background:linear-gradient(to right,#fbbf24 50%,var(--red) 50%);display:inline-block;width:10px;height:14px;border-radius:1px;vertical-align:middle; }
+.info-box { background:var(--pur-l);border:1px solid #ddd6fe;border-radius:var(--rad-sm);padding:9px 13px;font-size:11px;color:var(--pur);grid-column:1/-1; }
+.chrt { position:relative;height:200px; }
+.chrt-t { position:relative;height:260px; }
+.pav { width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;margin:0 auto 9px;border:2px solid; }
+.pn { font-family:var(--fd);font-weight:700;font-size:14px;text-transform:uppercase; }
+.pp { font-size:9px;color:var(--txt3);margin-top:2px;text-transform:uppercase;letter-spacing:.06em; }
+.ps { margin-top:9px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap; }
+.psv { font-family:var(--fd);font-size:15px;font-weight:700; }
+.psl { font-size:9px;color:var(--txt3); }
+
+/* ── LOGIN SCREEN ────────────────────────────────── */
+#pin-scr { display:none;position:fixed;inset:0;background:linear-gradient(155deg,#0a0f18 0%,#0d1a28 60%,#0a0f18 100%);z-index:300;align-items:center;justify-content:center;flex-direction:column; }
+#pin-scr.open { display:flex; }
+#pin-scr::before { content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 50% -5%,rgba(26,106,53,.18) 0%,transparent 70%);pointer-events:none; }
+.pin-wrap { display:flex;flex-direction:column;align-items:center;gap:28px;position:relative;z-index:1; }
+.pin-logo { display:flex;align-items:center;gap:14px; }
+.pin-logo img { width:60px;height:60px;border-radius:50%;border:2px solid rgba(40,160,80,.4); }
+.plt { display:flex;flex-direction:column; }
+.plt strong { font-family:var(--fd);font-size:28px;color:#f0f4f0;font-weight:800;letter-spacing:.04em;text-transform:uppercase; }
+.plt span { font-size:10px;color:#4a6070;margin-top:2px;letter-spacing:.1em;text-transform:uppercase; }
+.pbox { background:rgba(255,255,255,.03);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:28px 30px;width:350px;box-shadow:0 24px 64px rgba(0,0,0,.45); }
+.login-tabs { display:flex;gap:0;margin-bottom:20px;border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.25); }
+.ltab { flex:1;padding:9px 4px;font-size:10px;font-weight:700;border:none;cursor:pointer;background:transparent;color:#4a6070;transition:all .2s;letter-spacing:.04em;text-transform:uppercase;font-family:var(--fb); }
+.ltab.active-tr { background:rgba(26,106,53,.3);color:#4ade80; }
+.ltab.active-sl { background:rgba(109,40,217,.25);color:#a78bfa; }
+.ltab.active-pl { background:rgba(29,78,216,.25);color:#93c5fd; }
+.login-label { font-size:9px;font-weight:700;color:#4a6070;margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em; }
+.pin-in { width:100%;padding:12px;border-radius:6px;border:1.5px solid rgba(255,255,255,.08);background:rgba(0,0,0,.35);color:#f0f4f0;font-size:22px;text-align:center;letter-spacing:8px;outline:none;font-weight:700;font-family:var(--fb);transition:border-color .2s; }
+.pin-in:focus { border-color:rgba(40,160,80,.5);box-shadow:0 0 0 3px rgba(26,106,53,.1); }
+.pin-err { color:#f87171;font-size:10px;margin-top:6px;min-height:15px;text-align:center; }
+.login-btn { width:100%;padding:11px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--fb);margin-top:14px;transition:all .2s;letter-spacing:.05em;text-transform:uppercase; }
+.login-btn-tr { background:linear-gradient(135deg,#1a6a35,#28a050);color:#fff;box-shadow:0 4px 16px rgba(26,106,53,.3); }
+.login-btn-tr:hover { box-shadow:0 6px 24px rgba(26,106,53,.45); }
+.login-btn-sl { background:linear-gradient(135deg,#6d28d9,#5b21b6);color:#fff;box-shadow:0 4px 16px rgba(109,40,217,.3); }
+.login-btn-sl:hover { box-shadow:0 6px 24px rgba(109,40,217,.4); }
+.login-btn-pl { background:linear-gradient(135deg,#1d4ed8,#1e40af);color:#fff;box-shadow:0 4px 16px rgba(29,78,216,.3); }
+.login-btn-pl:hover { box-shadow:0 6px 24px rgba(29,78,216,.4); }
+.login-sel { width:100%;padding:10px 12px;border-radius:6px;border:1.5px solid rgba(255,255,255,.08);background:rgba(0,0,0,.3);color:#f0f4f0;font-size:13px;outline:none;margin-bottom:10px;font-family:var(--fb);cursor:pointer; }
+.skip { color:#2a3a4a;font-size:10px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;transition:color .2s; }
+.skip:hover { color:#4a6a7a; }
 </style>
 
 <!-- PIN SCREEN -->
@@ -1778,14 +1912,17 @@ function renderTeam(){
       <div class="card"><div class="cv">Max. Sprint (Spiel)</div><div class="cn">${mA(D.games,'maxSprint')} <small>km/h</small></div></div>`;
     // Show only own player card
     const ps=pSess(p.id),gs=pGames(p.id),col=COLS[D.players.indexOf(p)%COLS.length],st=getEffStats(p.id);
+    const _sp0c=getEffStats(p.id,'official'),_fr0c=getEffStats(p.id,'friendly');
+    const _tot0c=(_sp0c.kn||0)+(_fr0c.kn||0)||gs.length;
     document.getElementById('pg').innerHTML=`<div class="pc" style="cursor:default">
-      <div class="pav" style="background:${col}18;color:${col};border-color:${col}">${ini(p.name)}</div>
-      <div class="pn">#${p.number} ${p.name}</div><div class="pp">${p.pos}</div>
-      <div class="ps">
-        <div><div class="psv" style="color:${col}">${ps.length}</div><div class="psl">Trainings</div></div>
-        <div><div class="psv" style="color:var(--org)">${(()=>{const sp=getEffStats(p.id,'official');const st2=getEffStats(p.id,'friendly');const tot=(sp.kn||0)+(st2.kn||0)||gs.length;return tot;})()}</div><div class="psl" style="white-space:nowrap">Spiele<br><span style="font-size:9px;color:var(--muted)">P:${getEffStats(p.id,'official').kn||0} T:${getEffStats(p.id,'friendly').kn||0}</span></div></div>
-        <div><div class="psv" style="color:var(--pur)">${totalGoals(st)}</div><div class="psl">Tore</div></div>
-        <div><div class="psv" style="color:#1a5e8a">${st.em||0}min</div><div class="psl">Einsatz</div></div>
+      <div class="pc-num">#${p.number}</div>
+      <div class="pc-name">${p.name}</div>
+      <div class="pc-pos">${p.pos}</div>
+      <div class="pc-divider"></div>
+      <div class="pc-stats">
+        <div class="pc-stat"><div class="pc-sv">${ps.length}</div><div class="pc-sl">Training</div></div>
+        <div class="pc-stat"><div class="pc-sv">${_tot0c}</div><div class="pc-sl">Spiele</div></div>
+        <div class="pc-stat"><div class="pc-sv">${totalGoals(st)}</div><div class="pc-sl">Tore</div></div>
       </div></div>`;
     setTimeout(()=>{
       const filtPl=[p]; // only this player for charts
@@ -1801,10 +1938,10 @@ function renderTeam(){
   const aA=(arr,k)=>{const v=arr.map(s=>parseFloat(s[k]||0)).filter(v=>v>0);return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'–';};
   const mA=(arr,k)=>{const v=arr.map(s=>parseFloat(s[k]||0)).filter(v=>v>0);return v.length?Math.max(...v).toFixed(1):'–';};
   document.getElementById('t-sc-cards').innerHTML=`
-    <div class="card"><div class="cv">Spieler</div><div class="cn">${D.players.length}</div><div class="cs">im Kader</div></div>
-    <div class="card"><div class="cv">Trainings</div><div class="cn">${D.sessions.length}</div></div>
-    <div class="card"><div class="cv">Ø Distanz</div><div class="cn">${aA(D.sessions,'distance')} <small style="font-size:11px">km</small></div></div>
-    <div class="card"><div class="cv">Max. Sprint</div><div class="cn">${mA(D.sessions,'maxSprint')} <small style="font-size:11px">km/h</small></div></div>`;
+    <div class="card"><div class="cv">Kader</div><div class="cn">${D.players.length}</div><div class="cs">Spieler</div></div>
+    <div class="card"><div class="cv">Trainingseinheiten</div><div class="cn">${D.sessions.length}</div></div>
+    <div class="card"><div class="cv">Ø Distanz</div><div class="cn">${aA(D.sessions,'distance')}<small style="font-size:14px;font-weight:500"> km</small></div></div>
+    <div class="card"><div class="cv">Max. Sprint</div><div class="cn">${mA(D.sessions,'maxSprint')}<small style="font-size:14px;font-weight:500"> km/h</small></div></div>`;
   const fmGames=filtGames(D.games,gmFilter),w=fmGames.filter(g=>res(g)==='win').length,d=fmGames.filter(g=>res(g)==='draw').length,l=fmGames.filter(g=>res(g)==='loss').length;
   document.getElementById('t-gc-cards').innerHTML=`
     <div class="card"><div class="cv">Spiele</div><div class="cn">${fmGames.length}</div><div class="cs">${D.games.filter(g=>(g.gameType||'official')==='official').length} Pflicht · ${D.games.filter(g=>g.gameType==='friendly').length} Test</div></div>
@@ -1815,14 +1952,19 @@ function renderTeam(){
   if(!D.players.length){pg.innerHTML='<div class="empty"><div class="eico">👤</div><div class="etit">Noch keine Spieler</div></div>';return;}
   pg.innerHTML=D.players.map((p,i)=>{
     const ps=pSess(p.id),gs=pGames(p.id),col=COLS[i%COLS.length],st=getEffStats(p.id);
+    const spG=getEffStats(p.id,'official'),frG=getEffStats(p.id,'friendly');
+    const totSpiele=(spG.kn||0)+(frG.kn||0)||gs.length;
+    const inj=isInjuredNow(p)?'<div style="font-size:8px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.06em;margin-top:4px">🏥 Verletzt</div>':'';
     return`<div class="pc" onclick="opPl('${p.id}')">
-      <div class="pav" style="background:${col}18;color:${col};border-color:${col}">${ini(p.name)}</div>
-      <div class="pn">#${p.number} ${p.name}</div><div class="pp">${p.pos}</div>
-      <div class="ps">
-        <div><div class="psv" style="color:${col}">${ps.length}</div><div class="psl">Trainings</div></div>
-        <div><div class="psv" style="color:var(--org)">${(()=>{const sp=getEffStats(p.id,'official');const st2=getEffStats(p.id,'friendly');const tot=(sp.kn||0)+(st2.kn||0)||gs.length;return tot;})()}</div><div class="psl" style="white-space:nowrap">Spiele<br><span style="font-size:9px;color:var(--muted)">P:${getEffStats(p.id,'official').kn||0} T:${getEffStats(p.id,'friendly').kn||0}</span></div></div>
-        <div><div class="psv" style="color:var(--pur)">${totalGoals(st)}</div><div class="psl">Tore</div></div>
-        <div><div class="psv" style="color:#1a5e8a">${st.em||0}min</div><div class="psl">Einsatz</div></div>
+      <div class="pc-num">#${p.number}</div>
+      <div class="pc-name">${p.name}</div>
+      <div class="pc-pos">${p.pos}</div>
+      ${inj}
+      <div class="pc-divider"></div>
+      <div class="pc-stats">
+        <div class="pc-stat"><div class="pc-sv">${ps.length}</div><div class="pc-sl">Training</div></div>
+        <div class="pc-stat"><div class="pc-sv">${totSpiele}</div><div class="pc-sl">Spiele</div></div>
+        <div class="pc-stat"><div class="pc-sv">${totalGoals(st)}</div><div class="pc-sl">Tore</div></div>
       </div></div>`;}).join('');
 }
 function setTT(t,btn){curTT=t;document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('tt-tr').style.display=t==='tr'?'':'none';document.getElementById('tt-gm').style.display=t==='gm'?'':'none';setTimeout(()=>renderTCharts(t),60);}
@@ -2438,58 +2580,49 @@ function renderScore(pid){
   const gsCol=gesamtScore>=80?'#2d7a2d':gesamtScore>=60?'#ca8a04':'#c0392b';
   const gsLabel=gesamtScore>=80?'🔥 Sehr gut':gesamtScore>=65?'💪 Gut':gesamtScore>=50?'📈 Solide':'⚡ Aufholbedarf';
 
-  return `<div class="card" style="margin-bottom:14px">
-
-    <!-- Trainingsleistungsscore -->
-    <div style="border-left:4px solid ${trCol};padding-left:10px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div style="font-size:12px;font-weight:800">🏃 Trainingsleistungsscore</div>
-        <div style="font-size:10px;color:var(--muted)">letzte ${recent.length} Einheiten</div>
+  const trColDark=trScore>=80?'#1a6a35':trScore>=60?'#92400e':'#991b1b';
+  const gsColDark=gesamtScore>=80?'#1a6a35':gesamtScore>=60?'#92400e':'#991b1b';
+  return `
+  <!-- TRAINING SCORE -->
+  <div class="score-block" style="margin-bottom:12px">
+    <div class="score-band" style="border-left:4px solid ${trCol}">
+      <div class="score-num" style="color:${trCol}">${trScore}</div>
+      <div class="score-meta">
+        <div class="score-label" style="color:${trCol}">${trLabel}</div>
+        <div class="score-sub">TRAININGSLEISTUNG · letzte ${recent.length} Einheiten</div>
+        <div class="score-sub" style="margin-top:3px">${trend}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-        <div style="font-size:38px;font-weight:900;color:${trCol};line-height:1">${trScore}</div>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:${trCol}">${trLabel}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px">${trend}</div>
-        </div>
-      </div>
-      <div style="background:var(--bg2);border-radius:99px;height:6px;overflow:hidden;margin-bottom:6px">
-        <div style="height:6px;border-radius:99px;background:${trCol};width:${trScore}%;transition:width .5s"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-size:10px;text-align:center;margin-bottom:4px">
-        <div><div style="font-weight:700;color:${trCol}">${attScore}/25</div><div style="color:var(--muted)">Präsenz</div></div>
-        <div><div style="font-weight:700;color:${trCol}">${dScore}/25</div><div style="color:var(--muted)">Distanz</div></div>
-        <div><div style="font-weight:700;color:${trCol}">${hScore}/25</div><div style="color:var(--muted)">Hi-Int</div></div>
-        <div><div style="font-weight:700;color:${trCol}">${sScore}/25</div><div style="color:var(--muted)">Sprint</div></div>
-      </div>
-      <div style="font-size:9px;color:var(--muted);font-style:italic">Berechnung: Anwesenheit letzte 6 Tage (25P) + Distanz/Hi-Int/Sprint vs. Saisonschnitt (je 25P)</div>
     </div>
-
-    <!-- Gesamtleistungsscore -->
-    <div style="border-left:4px solid ${gsCol};padding-left:10px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div style="font-size:12px;font-weight:800">⚡ Gesamtleistungsscore</div>
-        <div style="font-size:10px;color:var(--muted)">${hasGameData?'Training 75% · Spiel 25%':'nur Training (keine Spieldaten)'}</div>
+    <div class="score-detail">
+      <div class="score-bar-wrap"><div class="score-bar" style="width:${trScore}%;background:${trCol}"></div></div>
+      <div class="score-comps">
+        <div><div class="score-comp-v" style="color:${trCol}">${attScore}<span style="font-size:10px;font-weight:400">/25</span></div><div class="score-comp-l">Präsenz</div></div>
+        <div><div class="score-comp-v" style="color:${trCol}">${dScore}<span style="font-size:10px;font-weight:400">/25</span></div><div class="score-comp-l">Distanz</div></div>
+        <div><div class="score-comp-v" style="color:${trCol}">${hScore}<span style="font-size:10px;font-weight:400">/25</span></div><div class="score-comp-l">Hi-Int</div></div>
+        <div><div class="score-comp-v" style="color:${trCol}">${sScore}<span style="font-size:10px;font-weight:400">/25</span></div><div class="score-comp-l">Sprint</div></div>
       </div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-        <div style="font-size:38px;font-weight:900;color:${gsCol};line-height:1">${gesamtScore}</div>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:${gsCol}">${gsLabel}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px">${gameNote}</div>
-        </div>
-      </div>
-      <div style="background:var(--bg2);border-radius:99px;height:6px;overflow:hidden;margin-bottom:6px">
-        <div style="height:6px;border-radius:99px;background:${gsCol};width:${gesamtScore}%;transition:width .5s"></div>
-      </div>
-      ${hasGameData?`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;font-size:10px;text-align:center;margin-bottom:5px">
-        <div><div style="font-weight:700;color:${gsCol}">${minSc}/${W[0]}</div><div style="color:var(--muted)">Einsatz</div></div>
-        <div><div style="font-weight:700;color:${gsCol}">${resSc}/${W[1]}</div><div style="color:var(--muted)">Ergebnis</div></div>
-        <div><div style="font-weight:700;color:${gsCol}">${offSc}/${W[2]}</div><div style="color:var(--muted)">Offensiv</div></div>
-        <div><div style="font-weight:700;color:${gsCol}">${defSc}/${W[3]}</div><div style="color:var(--muted)">Defensiv</div></div>
-      </div>`:''}
-      <div style="font-size:9px;color:var(--muted);font-style:italic">${hasGameData?'Training 75% + Pflichtspiele 25% — Offensiv/Defensiv positionsabhängig':'Nur Trainingsform (keine Pflichtspieleinsätze)'}</div>
     </div>
+  </div>
 
+  <!-- GESAMT SCORE -->
+  <div class="score-block" style="margin-bottom:14px">
+    <div class="score-band" style="border-left:4px solid ${gsCol}">
+      <div class="score-num" style="color:${gsCol}">${gesamtScore}</div>
+      <div class="score-meta">
+        <div class="score-label" style="color:${gsCol}">${gsLabel}</div>
+        <div class="score-sub">GESAMTLEISTUNG · ${hasGameData?'Training 75% + Spiel 25%':'nur Training'}</div>
+        <div class="score-sub" style="margin-top:3px">${gameNote}</div>
+      </div>
+    </div>
+    <div class="score-detail">
+      <div class="score-bar-wrap"><div class="score-bar" style="width:${gesamtScore}%;background:${gsCol}"></div></div>
+      ${hasGameData?`<div class="score-comps">
+        <div><div class="score-comp-v" style="color:${gsCol}">${minSc}<span style="font-size:10px;font-weight:400">/${W[0]}</span></div><div class="score-comp-l">Einsatz</div></div>
+        <div><div class="score-comp-v" style="color:${gsCol}">${resSc}<span style="font-size:10px;font-weight:400">/${W[1]}</span></div><div class="score-comp-l">Ergebnis</div></div>
+        <div><div class="score-comp-v" style="color:${gsCol}">${offSc}<span style="font-size:10px;font-weight:400">/${W[2]}</span></div><div class="score-comp-l">Offensiv</div></div>
+        <div><div class="score-comp-v" style="color:${gsCol}">${defSc}<span style="font-size:10px;font-weight:400">/${W[3]}</span></div><div class="score-comp-l">Defensiv</div></div>
+      </div>`:'<div style="font-size:10px;color:var(--txt3);padding:4px 0">Keine Pflichtspieleinsätze vorhanden</div>'}
+    </div>
   </div>`;
 }
 
@@ -2500,18 +2633,38 @@ function renderPlayer(){
   const delBtn=isTr?`<button class="btn-d" style="padding:6px 11px;font-size:11px;border-radius:5px" onclick="delPl('${p.id}')">Entfernen</button>`:'';
   const scoreHtml=renderScore(p.id);
   const injHtml=renderInjurySection(p);
+  // last session stats for broadcast bar
+  const lastSess=(D.sessions||[]).filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0).sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const bsHtml=lastSess?`<div class="bs-grid" style="grid-template-columns:repeat(4,1fr);margin-top:14px">
+    <div class="bs-cell"><div class="bs-val">${parseFloat(lastSess.distance||0).toFixed(1)}</div><div class="bs-unit">km</div><div class="bs-lbl">Distanz</div></div>
+    <div class="bs-cell"><div class="bs-val">${parseFloat(lastSess.maxSprint||0).toFixed(1)}</div><div class="bs-unit">km/h</div><div class="bs-lbl">Max Speed</div></div>
+    <div class="bs-cell"><div class="bs-val">${Math.round(parseFloat(lastSess.hiInt||0))}</div><div class="bs-unit">m</div><div class="bs-lbl">Hi-Intensität</div></div>
+    <div class="bs-cell"><div class="bs-val">${Math.round(parseFloat(lastSess.acc||0))}</div><div class="bs-unit"></div><div class="bs-lbl">Beschleun.</div></div>
+  </div>`:'';
   document.getElementById('pl-content').innerHTML=`
-    ${scoreHtml}
-    <div style="display:flex;align-items:center;gap:11px;margin-bottom:12px;flex-wrap:wrap">
-      <div class="pav" style="width:52px;height:52px;font-size:19px;background:${col}18;color:${col};border-color:${col}">${ini(p.name)}</div>
-      <div><div style="font-size:17px;font-weight:800">#${p.number} ${p.name} ${isInjuredNow(p)?'<span style="font-size:12px;background:#fee2e2;color:#c0392b;padding:2px 8px;border-radius:99px;font-weight:700">🏥 Verletzt</span>':''}</div><div style="color:var(--muted);font-size:11px">${p.pos} · ${ps.length} Trainings · ${gs.length} Spiele</div></div>
-      <div style="margin-left:auto">${delBtn}</div>
+    <div class="player-hdr">
+      <div class="ph-bg">#${p.number}</div>
+      <div class="ph-inner">
+        <div class="ph-left">
+          <div class="ph-tag">#${p.number} &nbsp;·&nbsp; SG BORNIM U17</div>
+          <div class="ph-name">${p.name}</div>
+          <div class="ph-pos">${p.pos}</div>
+          <div class="ph-badges">
+            <span class="ph-badge ph-badge-grn">${ps.length} Trainings</span>
+            <span class="ph-badge ph-badge-grn">${gs.length} Spiele</span>
+            ${isInjuredNow(p)?'<span class="ph-badge ph-badge-red">🏥 Verletzt</span>':''}
+          </div>
+        </div>
+        <div>${delBtn}</div>
+      </div>
+      ${bsHtml}
     </div>
+    ${scoreHtml}
     ${injHtml}
     <div class="tabs">
-      <button class="tab active" onclick="setPT('tr',this,'${p.id}')">📡 Tracker-Training</button>
-      <button class="tab gm" onclick="setPT('gm',this,'${p.id}')">📡 Tracker-Spiel</button>
-      <button class="tab st" onclick="setPT('st',this,'${p.id}')">🏅 Saisonwerte</button>
+      <button class="tab active" onclick="setPT('tr',this,'${p.id}')">📡 Training</button>
+      <button class="tab gm" onclick="setPT('gm',this,'${p.id}')">⚽ Spiele</button>
+      <button class="tab st" onclick="setPT('st',this,'${p.id}')">🏅 Saison</button>
       <button class="tab" onclick="setPT('rec',this,'${p.id}')">🏆 Rekorde</button>
     </div>
     <div id="pt-c"></div>`;

@@ -404,6 +404,7 @@ input:focus,select:focus{border-color:var(--grn);}
   </div>
   <!-- Mannschaftsscore -->
   <div class="card" id="team-score-card" style="margin-bottom:14px"></div>
+  <div id="team-records-wrap" style="display:none;margin-bottom:14px"></div>
 
   <div class="card">
     <div style="font-size:13px;font-weight:800;margin-bottom:9px">Vollständige Statistiken</div>
@@ -1831,6 +1832,7 @@ function renderStatsOv(){
 
   // Mannschaftsscore
   renderTeamScore(mrAll);
+  renderTeamRecords();
   const tbody=document.getElementById('sts-tbody');
   if(!D.players.length){tbody.innerHTML='<tr><td colspan="23" style="text-align:center;color:var(--muted);padding:20px">Noch keine Spieler</td></tr>';return;}
   const visiblePlayers=curPlayer?D.players.filter(p=>p.id===curPlayer.id):D.players;
@@ -1872,6 +1874,46 @@ function renderStatsOv(){
       ${del}
     </tr>`;}).join('');
 }
+
+function renderTeamRecords(){
+  const wrap=document.getElementById('team-records-wrap');
+  if(!wrap)return;
+  if(!isTr&&!isSL){wrap.style.display='none';return;}
+  wrap.style.display='';
+  const allSess=D.sessions.filter(s=>parseFloat(s.distance||0)>0);
+  if(!allSess.length){wrap.innerHTML='';return;}
+  const TREC=[
+    {key:'maxSprint',lbl:'Max. Speed',   emoji:'🏃',unit:'km/h',dec:1},
+    {key:'distance', lbl:'Distanz',      emoji:'📏',unit:'km',  dec:2},
+    {key:'acc',      lbl:'Beschl.',      emoji:'⚡',unit:'',    dec:0},
+    {key:'dec',      lbl:'Abbrems.',     emoji:'🛑',unit:'',    dec:0},
+    {key:'hiInt',    lbl:'Hi-Intensität',emoji:'❤️',unit:'m',   dec:0},
+    {key:'load',     lbl:'Belastung',    emoji:'💪',unit:'',    dec:0},
+    {key:'passes',   lbl:'Pässe',        emoji:'🔄',unit:'',    dec:0},
+    {key:'shots',    lbl:'Schüsse',      emoji:'⚽',unit:'',    dec:0},
+  ];
+  function pname(id){const p=D.players.find(x=>x.id===id);return p?p.name.split(' ')[0]+'&nbsp;#'+p.number:'?';}
+  let rows='';
+  TREC.forEach(m=>{
+    const best=allSess.reduce((a,s)=>{
+      const v=parseFloat(s[m.key]||0);
+      return v>a.val?{val:v,pid:s.playerId,date:s.date}:a;
+    },{val:0,pid:null,date:null});
+    if(!best.pid)return;
+    rows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--brd)">
+      <div style="font-size:11px">${m.emoji} ${m.lbl}</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div style="text-align:right">
+          <div style="font-size:13px;font-weight:800">🥇 ${parseFloat(best.val).toFixed(m.dec)}${m.unit?' '+m.unit:''}</div>
+          <div style="font-size:10px;color:var(--muted)">${pname(best.pid)} · ${fmtD(best.date)}</div>
+        </div>
+      </div>
+    </div>`;
+  });
+  wrap.innerHTML=`<div style="font-size:13px;font-weight:800;margin-bottom:8px">🏆 Team-Rekorde (beste Einzelleistung)</div>
+    <div style="background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:0 12px">${rows}</div>`;
+}
+
 function renderStatsCharts(){
   ['ch-goals','ch-gtypes','ch-att','ch-mins','ch-zones'].forEach(dch);
   if(!D.players.length){noDataMsg(['ch-goals','ch-gtypes','ch-att','ch-mins','ch-zones'],'Noch keine Spieler angelegt');return;}
@@ -2300,13 +2342,17 @@ function renderPlRec(p){
 
   // Metrik-Definitionen: base+step = dynamische Level
   const METRICS=[
-    {key:'maxSprint',lbl:'Max. Speed',     emoji:'🏃',unit:'km/h',dec:1,base:22,step:1},
-    {key:'distance', lbl:'Distanz',        emoji:'📏',unit:'km',  dec:2,base:2, step:0.5},
-    {key:'acc',      lbl:'Beschl.',        emoji:'⚡',unit:'',    dec:0,base:5, step:10},
-    {key:'dec',      lbl:'Abbrems.',       emoji:'🛑',unit:'',    dec:0,base:5, step:10},
-    {key:'hiInt',    lbl:'Hi-Intensität',  emoji:'❤️',unit:'m',   dec:0,base:0, step:200},
-    {key:'load',     lbl:'Belastung',      emoji:'💪',unit:'',    dec:0,base:30,step:10},
-    {key:'passes',   lbl:'Pässe',          emoji:'🔄',unit:'',    dec:0,base:0, step:10},
+    {key:'maxSprint',lbl:'Max. Speed',      emoji:'🏃',unit:'km/h',dec:1,base:22,step:1},
+    {key:'distance', lbl:'Distanz',         emoji:'📏',unit:'km',  dec:2,base:2, step:0.5},
+    {key:'acc',      lbl:'Beschl.',         emoji:'⚡',unit:'',    dec:0,base:5, step:10},
+    {key:'dec',      lbl:'Abbrems.',        emoji:'🛑',unit:'',    dec:0,base:5, step:10},
+    {key:'hiInt',    lbl:'Hi-Intensität',   emoji:'❤️',unit:'m',   dec:0,base:0, step:200},
+    {key:'load',     lbl:'Belastung',       emoji:'💪',unit:'',    dec:0,base:30,step:10},
+    {key:'passes',   lbl:'Pässe',           emoji:'🔄',unit:'',    dec:0,base:0, step:10},
+    {key:'shots',    lbl:'Schüsse',         emoji:'⚽',unit:'',    dec:0,base:0, step:5},
+    {key:'maxShot',  lbl:'Max. Schuss',     emoji:'🎯',unit:'km/h',dec:1,base:50,step:5},
+    {key:'activeMin',lbl:'Aktivitätszeit',  emoji:'⏱️',unit:'min', dec:0,base:20,step:5},
+    {key:'ballMin',  lbl:'Zeit am Ball',    emoji:'🎮',unit:'min', dec:0,base:0, step:2},
   ];
   // Alle aufgezeichneten Felder für "Letzte Einheit"
   const ALL_STATS=[

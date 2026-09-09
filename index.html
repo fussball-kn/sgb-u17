@@ -2405,19 +2405,18 @@ function renderPlRec(p){
   });
   levelHtml+='</div>';
 
-  // ── Streaks (korrekt: reset wenn Aussetzer) ───────────────────────────────
-  // Anwesenheitsstreak
-  const tds=(D.trainingDays||[]).filter(td=>(td.present||[]).includes(pid))
-    .sort((a,b)=>a.date.localeCompare(b.date));
-  let attCur=tds.length?1:0,attMax=tds.length?1:0,attTemp=tds.length?1:0;
-  for(let i=1;i<tds.length;i++){
-    const diff=(new Date(tds[i].date)-new Date(tds[i-1].date))/(1000*60*60*24);
-    if(diff<=8){attTemp++;attMax=Math.max(attMax,attTemp);}
-    else attTemp=1;
-  }
-  attCur=attTemp; // Streak des letzten Segments = aktuelle Streak
+  // ── Streaks ───────────────────────────────────────────────────────────────
+  // Anwesenheitsstreak: ALLE Trainingstage prüfen — absent = reset auf 0
+  const allTDs=(D.trainingDays||[]).sort((a,b)=>a.date.localeCompare(b.date));
+  let attCur=0,attMax=0,attTemp=0;
+  allTDs.forEach(td=>{
+    const wasPresent=(td.present||[]).includes(pid);
+    if(wasPresent){attTemp++;attMax=Math.max(attMax,attTemp);}
+    else attTemp=0;
+  });
+  attCur=attTemp; // letzter Wert = aktuelle Streak
 
-  // GPS-Session-Streak
+  // GPS-Session-Streak: Lücke > 14 Tage = Reset
   let gpsCur=allSess.length?1:0,gpsMax=allSess.length?1:0,gpsTemp=allSess.length?1:0;
   for(let i=1;i<allSess.length;i++){
     const diff=(new Date(allSess[i].date)-new Date(allSess[i-1].date))/(1000*60*60*24);

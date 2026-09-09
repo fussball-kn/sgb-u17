@@ -309,6 +309,7 @@ input:focus,select:focus{border-color:var(--grn);}
   <button class="nb" id="nb-cmp" onclick="sp('vergleich')">🔄 Vergleich</button>
   <button class="nb" id="nb-pl" style="display:none" onclick="sp('player')">Spieler</button>
   <button class="nb" id="nb-eltern" style="display:none" onclick="sp('eltern')">📊 Übersicht</button>
+  <button class="nb" id="nb-liga" style="display:none" onclick="sp('liga')">⚽ Tabelle</button>
   <div class="nsp"></div>
   <button class="mb pl" id="mode-b" onclick="togTr()">👤 Spieler</button>
   <div id="tr-ctrl" style="display:flex;gap:2px;align-items:center">
@@ -692,6 +693,7 @@ function trainerMode(){
   document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🔐 Trainer';
   document.getElementById('tr-ctrl').style.display='flex';
   document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='');
+  document.getElementById('nb-liga').style.display='';
   renderTeam();renderStatsOv();
 }
 function chkSLPin(){
@@ -709,6 +711,7 @@ function slMode(){
   document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🏅 Sport. Leitung';
   document.getElementById('tr-ctrl').style.display='none'; // kein Bearbeiten
   document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='none');
+  document.getElementById('nb-liga').style.display='';
   renderTeam();renderStatsOv();
 }
 function viewMode(){
@@ -718,6 +721,7 @@ function viewMode(){
   document.querySelectorAll('.nb').forEach(b=>b.style.display='');
   document.getElementById('nb-pl').style.display='none';
   document.getElementById('nb-eltern').style.display='none';
+  document.getElementById('nb-liga').style.display='none';
   document.getElementById('mode-b').className='mb pl';document.getElementById('mode-b').textContent='👤 Spieler';
   document.getElementById('tr-ctrl').style.display='none';
   document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='none');
@@ -791,6 +795,229 @@ function cmod(id){document.getElementById('mod-'+id).classList.remove('open');}
 document.querySelectorAll('.mod').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 
 // ── NAV ───────────────────────────────────────────────────────────────────────
+
+// ── LIGA ──────────────────────────────────────────────────────────────────────
+const LIGA_TEAMS=[
+  {id:'sgb',name:'SG Bornim',          short:'SGB'},
+  {id:'msv',name:'MSV Neuruppin',      short:'MSV'},
+  {id:'rsv',name:'RSV Eintracht',      short:'RSV'},
+  {id:'bsg',name:'BSG Stahl Brbg.',    short:'BSG'},
+  {id:'ofc',name:'Oranienburg',        short:'OFC'},
+  {id:'ffo',name:'1.FC Frankfurt U16', short:'FFO'},
+  {id:'b03',name:'Babelsberg 03 U16',  short:'B03'},
+  {id:'rat',name:'Rathenow',           short:'RAT'},
+];
+const LIGA_MATCHES=[
+  // SD1
+  {id:'m1', sd:1,home:'msv',away:'ffo',hg:5,ag:4,played:true},
+  {id:'m2', sd:1,home:'bsg',away:'ofc',hg:1,ag:0,played:true},
+  {id:'m3', sd:1,home:'rsv',away:'b03',hg:3,ag:1,played:true},
+  {id:'m4', sd:1,home:'sgb',away:'rat',hg:4,ag:2,played:true},
+  // SD2
+  {id:'m5', sd:2,home:'ofc',away:'sgb',hg:1,ag:2,played:true},
+  {id:'m6', sd:2,home:'rat',away:'msv',hg:0,ag:2,played:true},
+  {id:'m7', sd:2,home:'b03',away:'bsg',hg:3,ag:4,played:true},
+  {id:'m8', sd:2,home:'ffo',away:'rsv',hg:3,ag:4,played:true},
+  // SD3
+  {id:'m9', sd:3,home:'msv',away:'rsv',hg:2,ag:3,played:true},
+  {id:'m10',sd:3,home:'rat',away:'ofc',hg:3,ag:6,played:true},
+  {id:'m11',sd:3,home:'bsg',away:'ffo',hg:2,ag:4,played:true},
+  {id:'m12',sd:3,home:'sgb',away:'b03',hg:1,ag:1,played:true},
+  // SD4
+  {id:'m13',sd:4,home:'ofc',away:'msv',played:false},
+  {id:'m14',sd:4,home:'b03',away:'rat',played:false},
+  {id:'m15',sd:4,home:'ffo',away:'sgb',played:false},
+  {id:'m16',sd:4,home:'rsv',away:'bsg',played:false},
+  // SD5
+  {id:'m17',sd:5,home:'rat',away:'ffo',played:false},
+  {id:'m18',sd:5,home:'msv',away:'bsg',played:false},
+  {id:'m19',sd:5,home:'ofc',away:'b03',played:false},
+  {id:'m20',sd:5,home:'sgb',away:'rsv',played:false},
+  // SD6
+  {id:'m21',sd:6,home:'msv',away:'b03',played:false},
+  {id:'m22',sd:6,home:'bsg',away:'sgb',played:false},
+  {id:'m23',sd:6,home:'ffo',away:'ofc',played:false},
+  {id:'m24',sd:6,home:'rsv',away:'rat',played:false},
+  // SD7
+  {id:'m25',sd:7,home:'sgb',away:'msv',played:false},
+  {id:'m26',sd:7,home:'b03',away:'ffo',played:false},
+  {id:'m27',sd:7,home:'ofc',away:'rsv',played:false},
+  {id:'m28',sd:7,home:'rat',away:'bsg',played:false},
+];
+// What-if overrides {matchId: {hg,ag}}
+let _whatIf={};
+
+function calcTable(matchOverrides){
+  const tbl={};
+  LIGA_TEAMS.forEach(t=>{tbl[t.id]={id:t.id,sp:0,s:0,u:0,n:0,tg:0,gt:0,pkt:0};});
+  LIGA_MATCHES.forEach(m=>{
+    const ov=matchOverrides&&matchOverrides[m.id];
+    const hg=ov!==undefined?ov.hg:(m.played?m.hg:null);
+    const ag=ov!==undefined?ov.ag:(m.played?m.ag:null);
+    if(hg===null||ag===null)return;
+    tbl[m.home].sp++;tbl[m.home].tg+=hg;tbl[m.home].gt+=ag;
+    tbl[m.away].sp++;tbl[m.away].tg+=ag;tbl[m.away].gt+=hg;
+    if(hg>ag){tbl[m.home].s++;tbl[m.home].pkt+=3;tbl[m.away].n++;}
+    else if(hg<ag){tbl[m.away].s++;tbl[m.away].pkt+=3;tbl[m.home].n++;}
+    else{tbl[m.home].u++;tbl[m.home].pkt++;tbl[m.away].u++;tbl[m.away].pkt++;}
+  });
+  return Object.values(tbl).sort((a,b)=>b.pkt-a.pkt||(b.tg-b.gt)-(a.tg-a.gt)||b.tg-a.tg);
+}
+
+function top4Note(whatIfOvs){
+  // How many points does SGB need to guarantee top 4?
+  const tbl=calcTable(whatIfOvs||{});
+  const sgbRow=tbl.find(r=>r.id==='sgb');
+  const sgbPos=tbl.indexOf(sgbRow)+1;
+  // remaining games for SGB
+  const sgbRemaining=LIGA_MATCHES.filter(m=>!m.played&&!((whatIfOvs||{})[m.id])&&(m.home==='sgb'||m.away==='sgb')).length;
+  // max reachable by SGB
+  const sgbMax=sgbRow.pkt+sgbRemaining*3;
+  // current 5th place
+  const fifth=tbl[4];
+  if(!fifth)return'<div style="color:var(--grn);font-weight:700">✅ Weniger als 5 Teams — Top 4 gesichert</div>';
+  // max reachable by 5th
+  const fifthRemaining=LIGA_MATCHES.filter(m=>!m.played&&!((whatIfOvs||{})[m.id])&&(m.home===fifth.id||m.away===fifth.id)).length;
+  const fifthMax=fifth.pkt+fifthRemaining*3;
+  const td=sgbRow.tg-sgbRow.gt;
+  const fifthTd=fifth.tg-fifth.gt;
+  // SGB already secured?
+  if(sgbPos<=4&&fifthMax<sgbRow.pkt){
+    return`<div style="background:#d1fae5;border:1px solid var(--grn);border-radius:8px;padding:10px;font-size:12px">
+      ✅ <strong>Top-4 gesichert!</strong> Platz ${sgbPos} · ${sgbRow.pkt} Punkte · Verfolger (${LIGA_TEAMS.find(t=>t.id===fifth.id).short}) max. ${fifthMax} Pkt.
+    </div>`;
+  }
+  const needed=Math.max(0,fifth.pkt-sgbRow.pkt+1);
+  const color=sgbPos<=4?'#1a5e8a':'#c0392b';
+  return`<div style="background:var(--card);border:1px solid ${color};border-radius:8px;padding:10px;font-size:12px">
+    <div style="font-weight:800;color:${color}">⚽ SGB aktuell Platz ${sgbPos} · ${sgbRow.pkt} Punkte</div>
+    <div style="margin-top:4px">5. Platz: ${LIGA_TEAMS.find(t=>t.id===fifth.id).short} · ${fifth.pkt} Pkt · kann noch max. ${fifthMax} Pkt erreichen</div>
+    ${needed>0?`<div style="margin-top:4px;color:#ca8a04;font-weight:700">Noch mind. ${needed} Punkt${needed>1?'e':''} nötig für gesichertes Top-4</div>`:'<div style="margin-top:4px;color:var(--grn);font-weight:700">Aktuell in den Top 4 ✓</div>'}
+    <div style="margin-top:2px;font-size:10px;color:var(--muted)">SGB noch ${sgbRemaining} Spiele · max. erreichbar: ${sgbMax} Pkt</div>
+  </div>`;
+}
+
+function renderLeague(){
+  const wrap=document.getElementById('liga-wrap');
+  if(!wrap)return;
+  function tname(id){return LIGA_TEAMS.find(t=>t.id===id)?.short||id;}
+  function tlong(id){return LIGA_TEAMS.find(t=>t.id===id)?.name||id;}
+
+  // Build table
+  function tableHtml(ovs){
+    const rows=calcTable(ovs);
+    return`<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--brd)">
+        <th style="padding:6px 4px;text-align:left">#</th>
+        <th style="padding:6px 4px;text-align:left">Team</th>
+        <th style="padding:6px 4px;text-align:center">Sp</th>
+        <th style="padding:6px 4px;text-align:center">S</th>
+        <th style="padding:6px 4px;text-align:center">U</th>
+        <th style="padding:6px 4px;text-align:center">N</th>
+        <th style="padding:6px 4px;text-align:center">Tore</th>
+        <th style="padding:6px 4px;text-align:center">TD</th>
+        <th style="padding:6px 4px;text-align:center;font-weight:900">Pkt</th>
+      </tr></thead><tbody>
+      ${rows.map((r,i)=>{
+        const isSGB=r.id==='sgb';
+        const isTop4=i<4;
+        const bg=isSGB?'rgba(45,122,45,0.08)':i===3?'rgba(202,138,4,0.06)':'';
+        const border=i===3?'border-bottom:2px solid #ca8a04':'';
+        return`<tr style="background:${bg};${border}">
+          <td style="padding:5px 4px;font-weight:700;color:${isTop4?'var(--grn)':'var(--muted)'}">${i+1}</td>
+          <td style="padding:5px 4px;font-weight:${isSGB?'900':'400'};color:${isSGB?'var(--grn)':'var(--fg)'}">${tlong(r.id)}</td>
+          <td style="padding:5px 4px;text-align:center">${r.sp}</td>
+          <td style="padding:5px 4px;text-align:center">${r.s}</td>
+          <td style="padding:5px 4px;text-align:center">${r.u}</td>
+          <td style="padding:5px 4px;text-align:center">${r.n}</td>
+          <td style="padding:5px 4px;text-align:center">${r.tg}:${r.gt}</td>
+          <td style="padding:5px 4px;text-align:center;color:${r.tg-r.gt>0?'var(--grn)':r.tg-r.gt<0?'var(--red)':'var(--fg)'}">${r.tg-r.gt>0?'+':''}${r.tg-r.gt}</td>
+          <td style="padding:5px 4px;text-align:center;font-weight:900;font-size:13px">${r.pkt}</td>
+        </tr>`;}).join('')}
+      </tbody></table>
+      <div style="font-size:9px;color:var(--muted);margin-top:4px">— Strich: Top-4 Qualifikation für Meisterrunde</div>`;
+  }
+
+  // Spielplan
+  const sds=[...new Set(LIGA_MATCHES.map(m=>m.sd))].sort((a,b)=>a-b);
+  const spielplanHtml=sds.map(sd=>{
+    const ms=LIGA_MATCHES.filter(m=>m.sd===sd);
+    return`<div style="margin-bottom:10px">
+      <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:4px">${sd}. Spieltag</div>
+      ${ms.map(m=>{
+        const isSGB=m.home==='sgb'||m.away==='sgb';
+        const res=m.played?`<span style="font-weight:900">${m.hg}:${m.ag}</span>`:'<span style="color:var(--muted)">–:–</span>';
+        return`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;border-radius:5px;background:${isSGB?'rgba(45,122,45,0.07)':'var(--card)'};margin-bottom:2px;border:1px solid var(--brd)">
+          <span style="font-size:11px;font-weight:${isSGB?'700':'400'}">${tname(m.home)} vs ${tname(m.away)}</span>
+          <span style="font-size:12px">${res}</span>
+        </div>`;}).join('')}
+    </div>`;}).join('');
+
+  // Tabellenrechner — offene Spiele mit Input
+  const openMs=LIGA_MATCHES.filter(m=>!m.played);
+  const calcHtml=openMs.map(m=>{
+    const isSGB=m.home==='sgb'||m.away==='sgb';
+    return`<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--brd)">
+      <span style="font-size:11px;min-width:90px;font-weight:${isSGB?700:400}">${tname(m.home)} – ${tname(m.away)}</span>
+      <input type="number" min="0" max="20" placeholder="–" style="width:36px;padding:3px;text-align:center;border:1px solid var(--brd);border-radius:4px;font-size:12px"
+        id="wi-h-${m.id}" oninput="updateWhatIf()" >
+      <span>:</span>
+      <input type="number" min="0" max="20" placeholder="–" style="width:36px;padding:3px;text-align:center;border:1px solid var(--brd);border-radius:4px;font-size:12px"
+        id="wi-a-${m.id}" oninput="updateWhatIf()">
+    </div>`;}).join('');
+
+  wrap.innerHTML=`
+    <div style="font-size:13px;font-weight:800;margin-bottom:8px">📊 Aktuelle Tabelle</div>
+    <div style="background:var(--card);border:1px solid var(--brd);border-radius:10px;overflow:hidden;margin-bottom:6px">${tableHtml({})}</div>
+    <div id="liga-top4" style="margin-bottom:14px">${top4Note({})}</div>
+
+    <div style="font-size:13px;font-weight:800;margin-bottom:8px">📅 Spielplan</div>
+    <div style="background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:10px;margin-bottom:14px">${spielplanHtml}</div>
+
+    <div style="font-size:13px;font-weight:800;margin-bottom:4px">🧮 Tabellenrechner</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Ergebnisse eintragen → Tabelle aktualisiert sich live</div>
+    <div style="background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:8px 12px;margin-bottom:10px">${calcHtml}</div>
+    <button style="font-size:11px;background:none;border:1px solid var(--brd);border-radius:5px;padding:4px 10px;cursor:pointer;color:var(--muted);margin-bottom:10px" onclick="resetWhatIf()">Zurücksetzen</button>
+    <div style="font-size:13px;font-weight:800;margin-bottom:6px">📊 Hochgerechnete Tabelle</div>
+    <div id="liga-wi-table" style="background:var(--card);border:1px solid var(--brd);border-radius:10px;overflow:hidden;margin-bottom:6px">${tableHtml({})}</div>
+    <div id="liga-wi-top4">${top4Note({})}</div>
+  `;
+}
+
+function updateWhatIf(){
+  const ovs={};
+  LIGA_MATCHES.filter(m=>!m.played).forEach(m=>{
+    const hEl=document.getElementById('wi-h-'+m.id);
+    const aEl=document.getElementById('wi-a-'+m.id);
+    const hv=hEl?hEl.value:'';
+    const av=aEl?aEl.value:'';
+    if(hv!==''&&av!=='')ovs[m.id]={hg:parseInt(hv),ag:parseInt(av)};
+  });
+  _whatIf=ovs;
+  const wrap=document.getElementById('liga-wrap');
+  function tname(id){return LIGA_TEAMS.find(t=>t.id===id)?.short||id;}
+  function tlong(id){return LIGA_TEAMS.find(t=>t.id===id)?.name||id;}
+  function tableHtml(ov){
+    const rows=calcTable(ov);
+    return`<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--brd)"><th style="padding:6px 4px;text-align:left">#</th><th style="padding:6px 4px;text-align:left">Team</th><th style="padding:6px 4px;text-align:center">Sp</th><th style="padding:6px 4px;text-align:center">S</th><th style="padding:6px 4px;text-align:center">U</th><th style="padding:6px 4px;text-align:center">N</th><th style="padding:6px 4px;text-align:center">Tore</th><th style="padding:6px 4px;text-align:center">TD</th><th style="padding:6px 4px;text-align:center;font-weight:900">Pkt</th></tr></thead><tbody>
+      ${rows.map((r,i)=>{const isSGB=r.id==='sgb';const bg=isSGB?'rgba(45,122,45,0.08)':'';const border=i===3?'border-bottom:2px solid #ca8a04':'';
+      return`<tr style="background:${bg};${border}"><td style="padding:5px 4px;font-weight:700;color:${i<4?'var(--grn)':'var(--muted)'}">${i+1}</td><td style="padding:5px 4px;font-weight:${isSGB?900:400};color:${isSGB?'var(--grn)':'var(--fg)'}">${tlong(r.id)}</td><td style="padding:5px 4px;text-align:center">${r.sp}</td><td style="padding:5px 4px;text-align:center">${r.s}</td><td style="padding:5px 4px;text-align:center">${r.u}</td><td style="padding:5px 4px;text-align:center">${r.n}</td><td style="padding:5px 4px;text-align:center">${r.tg}:${r.gt}</td><td style="padding:5px 4px;text-align:center;color:${r.tg-r.gt>0?'var(--grn)':r.tg-r.gt<0?'var(--red)':'var(--fg)'}">${r.tg-r.gt>0?'+':''}${r.tg-r.gt}</td><td style="padding:5px 4px;text-align:center;font-weight:900;font-size:13px">${r.pkt}</td></tr>`;}).join('')}
+      </tbody></table><div style="font-size:9px;color:var(--muted);margin-top:4px">— Strich: Top-4 Qualifikation</div>`;
+  }
+  const wiTbl=document.getElementById('liga-wi-table');
+  const wiTop4=document.getElementById('liga-wi-top4');
+  if(wiTbl)wiTbl.innerHTML=tableHtml(ovs);
+  if(wiTop4)wiTop4.innerHTML=top4Note(ovs);
+}
+function resetWhatIf(){
+  LIGA_MATCHES.filter(m=>!m.played).forEach(m=>{
+    const h=document.getElementById('wi-h-'+m.id),a=document.getElementById('wi-a-'+m.id);
+    if(h)h.value='';if(a)a.value='';
+  });
+  _whatIf={};updateWhatIf();
+}
+
 function sp(name,pid){
   if(isEltern&&name!=='eltern'){sp('eltern');return;}
   if(curPlayer&&!['team','player'].includes(name)){sp('player',curPlayer.id);return;}
@@ -808,6 +1035,7 @@ function sp(name,pid){
   if(name==='settings'){setTimeout(renderPinMgmt,50);}
   if(name==='vergleich'){renderVergleich();}
   if(name==='eltern'){renderEltern();}
+  if(name==='liga'){renderLeague();}
   if(name==='player')renderPlayer();
 }
 function svPlayer(){

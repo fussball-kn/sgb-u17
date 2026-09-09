@@ -474,6 +474,8 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
   <button class="nb st" onclick="sp('stats-ov')">STATS</button>
   <button class="nb" id="nb-cmp" onclick="sp('vergleich')">VERGLEICH</button>
   <button class="nb" id="nb-pl" style="display:none" onclick="sp('player')">Spieler</button>
+  <button class="nb" id="nb-saison" style="display:none" onclick="sp('player');setTimeout(()=>{const b=document.querySelector('#pl-content .tab.st');if(b)b.click();},80)">SAISON</button>
+  <button class="nb" id="nb-rekorde" style="display:none" onclick="sp('player');setTimeout(()=>{const b=document.querySelector('#pl-content .tab:last-child');if(b)b.click();},80)">REKORDE</button>
   <button class="nb" id="nb-eltern" style="display:none" onclick="sp('eltern')">ÜBERSICHT</button>
   <button class="nb" id="nb-liga" style="display:none" onclick="sp('liga')">TABELLE</button>
   <div class="nsp"></div>
@@ -856,6 +858,8 @@ function trainerMode(){
   const _cmpSide=document.getElementById('cmp-player-list');if(_cmpSide&&_cmpSide.parentElement)_cmpSide.parentElement.style.display='';
   const _cmpExtra=document.getElementById('cmp-pl-extra');if(_cmpExtra)_cmpExtra.remove();
   document.getElementById('nb-pl').style.display='none';
+  document.getElementById('nb-saison').style.display='none';
+  document.getElementById('nb-rekorde').style.display='none';
   document.getElementById('nb-eltern').style.display='none';
   document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🔐 Trainer';
   document.getElementById('tr-ctrl').style.display='flex';
@@ -874,6 +878,8 @@ function slMode(){
   const _cmpSide=document.getElementById('cmp-player-list');if(_cmpSide&&_cmpSide.parentElement)_cmpSide.parentElement.style.display='';
   const _cmpExtra=document.getElementById('cmp-pl-extra');if(_cmpExtra)_cmpExtra.remove();
   document.getElementById('nb-pl').style.display='none';
+  document.getElementById('nb-saison').style.display='none';
+  document.getElementById('nb-rekorde').style.display='none';
   document.getElementById('nb-eltern').style.display='none';
   document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🏅 Sport. Leitung';
   document.getElementById('tr-ctrl').style.display='none'; // kein Bearbeiten
@@ -887,6 +893,8 @@ function viewMode(){
   // Restore standard nav buttons (not nb-pl, not nb-eltern)
   document.querySelectorAll('.nb').forEach(b=>b.style.display='');
   document.getElementById('nb-pl').style.display='none';
+  document.getElementById('nb-saison').style.display='none';
+  document.getElementById('nb-rekorde').style.display='none';
   document.getElementById('nb-eltern').style.display='none';
   document.getElementById('nb-liga').style.display='none';
   document.getElementById('mode-b').className='mb pl';document.getElementById('mode-b').textContent='👤 Spieler';
@@ -935,6 +943,8 @@ function playerMode(p){
   document.getElementById('mode-b').textContent='👤 '+p.name;
   document.getElementById('tr-ctrl').style.display='none';
   document.getElementById('nb-pl').style.display='flex';
+  document.getElementById('nb-saison').style.display='';
+  document.getElementById('nb-rekorde').style.display='';
   sp('player'); // go straight to their player page
 }
 function togTr(){if(isTr||isSL||curPlayer){if(curPlayer){curPlayer=null;viewMode();return;}isTr=false;isSL=false;viewMode();}else{document.getElementById('pin-in').value='';document.getElementById('pin-err').textContent='';showPin();}}
@@ -1416,23 +1426,29 @@ function oTA(id){
   document.getElementById('ta-dt').value=td?td.date:new Date().toISOString().slice(0,10);
   document.getElementById('ta-lb').value=td?td.label:'';
   const present=td?td.present:D.players.map(p=>p.id);
+  const excused=td?td.excused||[]:[];
   const box=document.getElementById('ta-players');
   box.innerHTML=D.players.map((p,i)=>{
-    const col=COLS[i%COLS.length],chk=present.includes(p.id)?'checked':'';
-    return`<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;background:${chk?'#e6f4e6':'#fafafa'};border:1px solid ${chk?'#b0d8b0':'#eee'}" id="ta-lbl-${p.id}">
+    const col=COLS[i%COLS.length],chk=present.includes(p.id)?'checked':'',exc=excused.includes(p.id);
+    const bg=chk?'#e6f4e6':exc?'#fffbe6':'#fafafa';
+    const bc=chk?'#b0d8b0':exc?'#f59e0b':'#eee';
+    return`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:${bg};border:1px solid ${bc};margin-bottom:2px" id="ta-lbl-${p.id}">
       <input type="checkbox" id="ta-cb-${p.id}" ${chk} onchange="updTAColor('${p.id}')" style="width:15px;height:15px;accent-color:var(--grn)">
       <span style="width:26px;height:26px;border-radius:50%;background:${col}18;color:${col};font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center">${ini(p.name)}</span>
-      <span style="font-weight:600;font-size:12px">#${p.number} ${p.name}</span>
-      <span style="font-size:10px;color:var(--muted)">${p.pos}</span>
-    </label>`;}).join('');
+      <span style="font-weight:600;font-size:12px;flex:1">#${p.number} ${p.name}</span>
+      <label style="display:flex;align-items:center;gap:3px;font-size:10px;color:#ca8a04;cursor:pointer"><input type="checkbox" id="ta-exc-${p.id}" ${exc&&!chk?'checked':''} ${chk?'disabled':''} style="accent-color:#ca8a04">entsch.</label>
+    </div>`;}).join('');
   updTACount();
   omod('ta');
 }
 function updTAColor(pid){
   const chk=document.getElementById('ta-cb-'+pid).checked;
+  const excEl=document.getElementById('ta-exc-'+pid);
+  const exc=excEl&&excEl.checked&&!chk;
+  if(excEl){excEl.disabled=chk;if(chk)excEl.checked=false;}
   const lbl=document.getElementById('ta-lbl-'+pid);
-  lbl.style.background=chk?'#e6f4e6':'#fafafa';
-  lbl.style.borderColor=chk?'#b0d8b0':'#eee';
+  lbl.style.background=chk?'#e6f4e6':exc?'#fffbe6':'#fafafa';
+  lbl.style.borderColor=chk?'#b0d8b0':exc?'#f59e0b':'#eee';
   updTACount();
 }
 function updTACount(){
@@ -1444,8 +1460,9 @@ function svTA(){
   const date=document.getElementById('ta-dt').value,label=document.getElementById('ta-lb').value;
   if(!date){alert('Datum angeben.');return;}
   const present=D.players.filter(p=>document.getElementById('ta-cb-'+p.id)?.checked).map(p=>p.id);
+  const excused=D.players.filter(p=>!present.includes(p.id)&&document.getElementById('ta-exc-'+p.id)?.checked).map(p=>p.id);
   const existing=D.trainingDays.findIndex(t=>t.id===id);
-  const rec={id,date,label,present};
+  const rec={id,date,label,present,excused};
   if(existing>=0)D.trainingDays[existing]=rec;else D.trainingDays.push(rec);
   D.trainingDays.sort((a,b)=>a.date.localeCompare(b.date));
   sv();cmod('ta');renderTDSection();renderStatsOv();setTimeout(renderStatsCharts,60);
@@ -2793,7 +2810,7 @@ function renderPlRec(p){
   let s2=0;for(const td of _tdsAll){if(((td.present)||[]).includes(pid)){s2++;maxStreak=Math.max(maxStreak,s2);}else{s2=0;}}
   const attPctVal=_tdsAll.length?Math.round(_present.length/_tdsAll.length*100):null;
   const attCol=attPctVal===null?'var(--txt3)':attPctVal>=80?'#1a6a35':attPctVal>=60?'#ca8a04':'#c0392b';
-  const _dotHtml=_tdsAll.slice(-30).map(td=>{const p2=((td.present)||[]).includes(pid);return '<div title="'+td.date+'" style="width:18px;height:18px;border-radius:3px;background:'+(p2?'#1a6a35':'#e0e0e0')+'"></div>';}).join('');
+  const _dotHtml=_tdsAll.slice(-30).map(td=>{const p2=((td.present)||[]).includes(pid),exc=((td.excused)||[]).includes(pid);const dc=p2?'#1a6a35':exc?'#fbbf24':'#ef4444';const lbl=p2?'Anwesend':exc?'Entschuldigt':'Unentschuldigt fehlt';return '<div title="'+td.date+' · '+lbl+'" style="width:18px;height:18px;border-radius:3px;background:'+dc+'"></div>';}).join('');
   const _streakCol=curStreak>=5?'#1a6a35':curStreak>=3?'#ca8a04':'var(--txt)';
   const attStreakHtml='<div style="margin-bottom:16px">'
     +'<div style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--txt3);margin-bottom:10px">⚡ Anwesenheits-Streaks</div>'
@@ -2959,14 +2976,29 @@ function renderPlRec(p){
   const totHI=allSess.reduce((a,s)=>a+parseFloat(s.hiInt||0),0);
   const totPas=allSess.reduce((a,s)=>a+parseFloat(s.passes||0),0);
   const totSess=allSess.length;
-  const totalsHtml=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
-    ${[['📏','Distanz',totDist.toFixed(1)+' km'],['⚡','Beschleunigungen',Math.round(totAcc)+''],
-       ['🛑','Abbremsungen',Math.round(totDec)+''],['❤️','Hi-Intensität',Math.round(totHI)+' m'],
-       ['🔄','Pässe',Math.round(totPas)+''],['📅','Einheiten',totSess+'']
-      ].map(([e,l,v])=>`<div style="background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:7px;text-align:center">
-        <div style="font-size:15px">${e}</div>
-        <div style="font-size:13px;font-weight:800">${v}</div>
-        <div style="font-size:9px;color:var(--muted)">${l}</div>
+  const totMax=k=>allSess.length?Math.max(...allSess.map(s=>parseFloat(s[k]||0))):0;
+  const totLoad=allSess.reduce((a,s)=>a+parseFloat(s.load||0),0);
+  const totActMin=allSess.reduce((a,s)=>a+parseFloat(s.activeMin||0),0);
+  const totBallMin=allSess.reduce((a,s)=>a+parseFloat(s.ballMin||0),0);
+  const totShots=allSess.reduce((a,s)=>a+parseFloat(s.shots||0),0);
+  const bestSprint=totMax('maxSprint');
+  const totalsHtml=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+    ${[['📏','Gesamt-Distanz',totDist.toFixed(1)+' km'],
+       ['❤️','Hi-Int. gesamt',Math.round(totHI)+' m'],
+       ['🏃','Best. Sprint',bestSprint.toFixed(1)+' km/h'],
+       ['⚡','Beschleunig.',Math.round(totAcc)+''],
+       ['🛑','Abbremsungen',Math.round(totDec)+''],
+       ['🔄','Pässe gesamt',Math.round(totPas)+''],
+       ['⏱️','Aktivzeit',Math.round(totActMin)+' min'],
+       ['🎮','Zeit am Ball',Math.round(totBallMin)+' min'],
+       ['💪','Belastung ges.',Math.round(totLoad)+''],
+       ['⚽','Schüsse',Math.round(totShots)+''],
+       ['📅','Einheiten',totSess+''],
+       ['📆','Ø / Einheit',(totSess?totDist/totSess:0).toFixed(1)+' km']
+      ].map(([e,l,v])=>`<div style="background:var(--sfc);border:1px solid var(--brd);border-radius:8px;padding:8px;text-align:center">
+        <div style="font-size:14px;margin-bottom:2px">${e}</div>
+        <div style="font-family:var(--fd);font-size:15px;font-weight:800;color:var(--dk)">${v}</div>
+        <div style="font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">${l}</div>
       </div>`).join('')}
   </div>`;
 

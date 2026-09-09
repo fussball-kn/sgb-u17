@@ -131,20 +131,21 @@ nav {
   position:absolute;
   top:0;left:0;right:0;
   height:3px;
-  background:var(--dk);
-  transition:background .18s;
+  background:var(--grn);
+  opacity:.4;
+  transition:all .18s;
 }
 .pc:hover { border-color:var(--grn);box-shadow:0 4px 16px rgba(26,106,53,.12);transform:translateY(-1px); }
-.pc:hover::before { background:var(--grn); }
-.pc-num { font-family:var(--fd);font-size:36px;font-weight:800;color:var(--brd);line-height:1;margin-bottom:2px;transition:color .18s; }
-.pc:hover .pc-num { color:var(--grn-l); }
+.pc:hover::before { background:var(--grn);opacity:1; }
+.pc-num { font-family:var(--fd);font-size:36px;font-weight:800;color:var(--grn);line-height:1;margin-bottom:2px;transition:color .18s; }
+.pc:hover .pc-num { color:var(--grn-b); }
 .pc-name { font-family:var(--fd);font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--txt); }
 .pc-pos { font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-top:3px; }
 .pc-divider { height:1px;background:var(--brd2);margin:10px 0; }
 .pc-stats { display:flex;justify-content:space-between; }
 .pc-stat { text-align:center;flex:1; }
 .pc-stat:not(:last-child) { border-right:1px solid var(--brd2); }
-.pc-sv { font-family:var(--fd);font-size:20px;font-weight:700;color:var(--txt);line-height:1; }
+.pc-sv { font-family:var(--fd);font-size:17px;font-weight:800;color:var(--dk);line-height:1; }
 .pc-sl { font-size:8px;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px; }
 
 /* ── PLAYER PROFILE HEADER ───────────────────────── */
@@ -799,8 +800,8 @@ function renderTCFilter(){
   const badge=document.getElementById('tc-filter-badge');
   if(!panel||!list)return;
   panel.style.display=tcFOpen?'':'none';
-  // Init: wenn leer, alle auswählen
-  if(tcFilter.size===0)D.players.forEach(p=>tcFilter.add(p.id));
+  // Sync: alle neuen Spieler ergänzen
+  D.players.forEach(p=>{if(!tcFilter.has(p.id))tcFilter.add(p.id);});
   list.innerHTML=D.players.map((p,i)=>{
     const sel=tcFilter.has(p.id);
     const col=COLS[i%COLS.length];
@@ -1181,7 +1182,7 @@ function resetWhatIf(){
 
 function sp(name,pid){
   if(isEltern&&name!=='eltern'){sp('eltern');return;}
-  if(curPlayer&&!['team','player'].includes(name)){sp('player',curPlayer.id);return;}
+  if(curPlayer&&!['team','player','vergleich'].includes(name)){sp('player',curPlayer.id);return;}
   if(name==='player'&&!pid&&curPlayer){pid=curPlayer.id;}
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
@@ -1947,7 +1948,8 @@ function renderTeam(){
       <div class="pc-divider"></div>
       <div class="pc-stats">
         <div class="pc-stat"><div class="pc-sv">${ps.length}</div><div class="pc-sl">Training</div></div>
-        <div class="pc-stat"><div class="pc-sv">${_tot0c}</div><div class="pc-sl">Spiele</div></div>
+        <div class="pc-stat"><div class="pc-sv">${st.em||0}</div><div class="pc-sl">Minuten</div></div>
+        <div class="pc-stat"><div class="pc-sv">${(()=>{const _tds=(D.trainingDays||[]).slice(-8);return _tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*100)+'%':'–';})()}</div><div class="pc-sl">Anwesen.</div></div>
         <div class="pc-stat"><div class="pc-sv">${totalGoals(st)}</div><div class="pc-sl">Tore</div></div>
       </div></div>`;
     setTimeout(()=>{
@@ -1989,8 +1991,9 @@ function renderTeam(){
       <div class="pc-divider"></div>
       <div class="pc-stats">
         <div class="pc-stat"><div class="pc-sv">${ps.length}</div><div class="pc-sl">Training</div></div>
-        <div class="pc-stat"><div class="pc-sv">${totSpiele}</div><div class="pc-sl">Spiele</div></div>
-        <div class="pc-stat"><div class="pc-sv">${totalGoals(st)}</div><div class="pc-sl">Tore</div></div>
+        <div class="pc-stat"><div class="pc-sv">${st.em||0}</div><div class="pc-sl">Minuten</div></div>
+        <div class="pc-stat"><div class="pc-sv" style="color:${(()=>{const _tds=(D.trainingDays||[]).slice(-8),_a=_tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*100):null;return _a===null?'var(--txt3)':_a>=80?'#1a6a35':_a>=60?'#ca8a04':'#c0392b';})()}">${(()=>{const _tds=(D.trainingDays||[]).slice(-8);return _tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*100)+'%':'–';})()}</div><div class="pc-sl">Anwesen.</div></div>
+        <div class="pc-stat"><div class="pc-sv" style="color:${(()=>{const _ps=(D.sessions||[]).filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0).sort((a,b)=>a.date.localeCompare(b.date)),_r=_ps.slice(-4);if(!_r.length)return 'var(--txt3)';const _av=k=>_ps.length?_ps.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_ps.length:0,_rv=k=>_r.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_r.length,_tds=(D.trainingDays||[]).slice(-6),_att=_tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*25):0,sc=Math.min(100,_att+(_av('distance')>0?Math.min(25,Math.round((_rv('distance')/_av('distance'))*20)):0)+(_av('hiInt')>0?Math.min(25,Math.round((_rv('hiInt')/_av('hiInt'))*20)):0)+(_av('maxSprint')>0?Math.min(25,Math.round((_rv('maxSprint')/_av('maxSprint'))*20)):0));return sc>=80?'#1a6a35':sc>=60?'#ca8a04':'#c0392b';})()}">${(()=>{const _ps=(D.sessions||[]).filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0).sort((a,b)=>a.date.localeCompare(b.date)),_r=_ps.slice(-4);if(!_r.length)return '–';const _av=k=>_ps.length?_ps.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_ps.length:0,_rv=k=>_r.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_r.length,_tds=(D.trainingDays||[]).slice(-6),_att=_tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*25):0;return Math.min(100,_att+(_av('distance')>0?Math.min(25,Math.round((_rv('distance')/_av('distance'))*20)):0)+(_av('hiInt')>0?Math.min(25,Math.round((_rv('hiInt')/_av('hiInt'))*20)):0)+(_av('maxSprint')>0?Math.min(25,Math.round((_rv('maxSprint')/_av('maxSprint'))*20)):0));})()}</div><div class="pc-sl">Score</div></div>
       </div></div>`;}).join('');
 }
 function setTT(t,btn){curTT=t;document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('tt-tr').style.display=t==='tr'?'':'none';document.getElementById('tt-gm').style.display=t==='gm'?'':'none';setTimeout(()=>renderTCharts(t),60);}
@@ -2694,7 +2697,7 @@ function renderPlayer(){
       <button class="tab active" onclick="setPT('tr',this,'${p.id}')">📡 Training</button>
       <button class="tab gm" onclick="setPT('gm',this,'${p.id}')">⚽ Spiele</button>
       <button class="tab st" onclick="setPT('st',this,'${p.id}')">🏅 Saison</button>
-      <button class="tab" onclick="setPT('rec',this,'${p.id}')">🏆 Rekorde</button>
+      <button class="tab" onclick="setPT('rec',this,'${p.id}')">🏆 Rekorde &amp; Streaks</button>
     </div>
     <div id="pt-c"></div>`;
   renderPTab('tr',p,ps,gs,col);
@@ -2758,7 +2761,13 @@ function renderPTab(type,p,ps,gs,col){
 }
 function renderPChts(p,entries,col){
   ['ch-pd','ch-pr','ch-psp','ch-pl','ch-pacc','ch-pdec'].forEach(dch);
-  if(!entries.length)return;
+  if(!entries.length){
+    ['ch-pd','ch-pr','ch-psp','ch-pl','ch-pacc','ch-pdec'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el&&el.parentElement)el.parentElement.innerHTML+='<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--txt3)">Keine GPS-Daten</div>';
+    });
+    return;
+  }
   const dates=entries.map(s=>fmtD(s.date));
   const mkL=(id,key,c)=>{const el=document.getElementById(id);if(!el)return;CHS[id]=new Chart(el,{type:'line',data:{labels:dates,datasets:[{data:entries.map(s=>parseFloat(s[key]||0)),borderColor:c,backgroundColor:c+'20',tension:.35,fill:true,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});};
   mkL('ch-pd','distance',col);mkL('ch-psp','maxSprint','#c94f18');mkL('ch-pl','load','#8a1a1a');mkL('ch-pacc','acc','#1d4ed8');mkL('ch-pdec','dec','#6d28d9');
@@ -2774,8 +2783,28 @@ function renderPlRec(p){
   const pid=p.id;
   const allSess=D.sessions.filter(s=>s.playerId===pid&&parseFloat(s.distance||0)>0)
     .sort((a,b)=>a.date.localeCompare(b.date));
-  const el=document.getElementById('pl-content');
-  if(!allSess.length){el.innerHTML='<p style="color:var(--muted);text-align:center;padding:30px">Noch keine GPS-Trainingsdaten vorhanden.</p>';return;}
+  const el=document.getElementById('pt-c');
+  // ── Always compute and show streaks first ──────────────────────────────────
+  const _tdsAll=(D.trainingDays||[]).sort((a,b)=>a.date.localeCompare(b.date));
+  const _present=_tdsAll.filter(td=>(td.present||[]).includes(pid));
+  let curStreak=0,maxStreak=0,cur=0;
+  for(let i=_tdsAll.length-1;i>=0;i--){const isP=((_tdsAll[i].present)||[]).includes(pid);if(i===_tdsAll.length-1){cur=isP?1:0;}else if(isP){cur++;}else if(cur>0)break;}
+  curStreak=cur;
+  let s2=0;for(const td of _tdsAll){if(((td.present)||[]).includes(pid)){s2++;maxStreak=Math.max(maxStreak,s2);}else{s2=0;}}
+  const attPctVal=_tdsAll.length?Math.round(_present.length/_tdsAll.length*100):null;
+  const attCol=attPctVal===null?'var(--txt3)':attPctVal>=80?'#1a6a35':attPctVal>=60?'#ca8a04':'#c0392b';
+  const streakHtml=`<div style="margin-bottom:16px">
+    <div style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--txt3);margin-bottom:10px">⚡ Anwesenheits-Streaks</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+      <div class="card"><div class="cv">Aktueller Streak</div><div class="cn" style="color:${curStreak>=5?'#1a6a35':curStreak>=3?'#ca8a04':'var(--txt)'}">${curStreak} <small style="font-size:11px;font-weight:400">Einheiten</small></div></div>
+      <div class="card"><div class="cv">Bester Streak</div><div class="cn" style="color:#1a6a35">${maxStreak} <small style="font-size:11px;font-weight:400">Einheiten</small></div></div>
+      <div class="card"><div class="cv">Gesamte Anwesenheit</div><div class="cn" style="color:${attCol}">${attPctVal!==null?attPctVal+'%':'–'}</div><div class="cs">${_present.length} / ${_tdsAll.length} Einheiten</div></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">${_tdsAll.slice(-30).map(td=>{const p2=(td.present||[]).includes(pid);return \`<div title="${td.date}" style="width:18px;height:18px;border-radius:3px;background:\${p2?'#1a6a35':'#e0e0e0'}" ></div>\`;}).join('')}</div>
+    <div style="font-size:9px;color:var(--txt3);margin-top:4px">Letzte 30 Trainingseinheiten <span style="margin-left:6px">🟩 anwesend &nbsp; ◻ gefehlt</span></div>
+  </div>`;
+  if(!allSess.length){el.innerHTML=streakHtml+'<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;border-top:1px solid var(--brd2)">Noch keine GPS-Trainingsdaten vorhanden.</div>';return;}
+  el.innerHTML=streakHtml;
 
   // Metrik-Definitionen: base+step = dynamische Level
   const METRICS=[
@@ -2949,7 +2978,7 @@ function renderPlRec(p){
         ${rd?`<div style="font-size:9px;color:var(--muted)">${fmtD(rd)}</div>`:''}</div>
       </div>`;}).join('')+'</div>';
 
-  el.innerHTML=`<div style="padding:10px 0">
+    el.innerHTML+=`iv style="padding:10px 0">
     ${newRecHtml?`<div style="margin-bottom:10px">${newRecHtml}</div>`:''}
     ${nearHtml?`<div style="margin-bottom:10px">${nearHtml}</div>`:''}
 

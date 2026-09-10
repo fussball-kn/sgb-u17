@@ -3102,8 +3102,8 @@ function renderPTab(type,p,ps,gs,col){
       <div class="card"><div class="cv">Ø Pässe</div><div class="cn">${entries.length?avg(entries,'passes').toFixed(0):'–'}</div></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
-      <div class="card"><div class="cv" style="margin-bottom:6px">Distanz (km)</div><div class="chrt"><canvas id="ch-pd"></canvas></div></div>
       <div class="card" style="grid-column:1/-1"><div class="cv" style="margin-bottom:6px">Score-Verlauf (wöchentlich)</div><div style="display:flex;gap:14px;margin-bottom:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em"><span style="color:#1a6a35">&#9644; Trainingsscore</span><span style="color:#1d4ed8">&#9644; Gesamtscore</span></div><div class="chrt" style="height:180px"><canvas id="ch-score-trend"></canvas></div></div>
+      <div class="card"><div class="cv" style="margin-bottom:6px">Distanz (km)</div><div class="chrt"><canvas id="ch-pd"></canvas></div></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
       <div class="card"><div class="cv" style="margin-bottom:6px">Ø Max. Sprint (km/h)</div><div class="chrt"><canvas id="ch-psp"></canvas></div></div>
@@ -3113,6 +3113,14 @@ function renderPTab(type,p,ps,gs,col){
       <div class="card"><div class="cv" style="margin-bottom:6px">Beschleunigungen</div><div class="chrt"><canvas id="ch-pacc"></canvas></div></div>
       <div class="card"><div class="cv" style="margin-bottom:6px">Abbremsungen</div><div class="chrt"><canvas id="ch-pdec"></canvas></div></div>
     </div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="card"><div class="cv" style="margin-bottom:6px">Hi-Intensität (m)</div><div class="chrt"><canvas id="ch-phi"></canvas></div></div>
+      <div class="card"><div class="cv" style="margin-bottom:6px">Pässe</div><div class="chrt"><canvas id="ch-ppa"></canvas></div></div>
+    </div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="card"><div class="cv" style="margin-bottom:6px">Aktivitätszeit (min)</div><div class="chrt"><canvas id="ch-pam"></canvas></div></div>
+      <div class="card"><div class="cv" style="margin-bottom:6px">Schüsse · Max. Geschw. (km/h)</div><div class="chrt"><canvas id="ch-pms"></canvas></div></div>
+    </div>
     <div class="card">
       <div style="font-size:12px;font-weight:800;margin-bottom:7px">${isGm?'Spielhistorie':'Trainingshistorie'}</div>
       <table class="tbl"><thead><tr><th>Datum</th><th>${isGm?'Gegner':'Einheit'}</th><th>Distanz</th><th>Hi-Int.</th><th>Sprint</th><th>Pässe</th><th>Belastung</th><th class="trainer-only"></th></tr></thead><tbody>${rows}</tbody></table>
@@ -3120,9 +3128,9 @@ function renderPTab(type,p,ps,gs,col){
   setTimeout(()=>renderPChts(p,entries,ac),50);
 }
 function renderPChts(p,entries,col){
-  ['ch-pd','ch-score-trend','ch-psp','ch-pl','ch-pacc','ch-pdec'].forEach(dch);
+  ['ch-pd','ch-score-trend','ch-psp','ch-pl','ch-pacc','ch-pdec','ch-phi','ch-ppa','ch-pam','ch-pms'].forEach(dch);
   if(!entries.length){
-    ['ch-pd','ch-score-trend','ch-psp','ch-pl','ch-pacc','ch-pdec'].forEach(id=>{
+    ['ch-pd','ch-score-trend','ch-psp','ch-pl','ch-pacc','ch-pdec','ch-phi','ch-ppa','ch-pam','ch-pms'].forEach(id=>{
       const el=document.getElementById(id);
       if(el&&el.parentElement)el.parentElement.innerHTML+='<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--txt3)">Keine GPS-Daten</div>';
     });
@@ -3131,6 +3139,7 @@ function renderPChts(p,entries,col){
   const dates=entries.map(s=>fmtD(s.date));
   const mkL=(id,key,c)=>{const el=document.getElementById(id);if(!el)return;CHS[id]=new Chart(el,{type:'line',data:{labels:dates,datasets:[{data:entries.map(s=>parseFloat(s[key]||0)),borderColor:c,backgroundColor:c+'20',tension:.35,fill:true,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});};
   mkL('ch-pd','distance',col);mkL('ch-psp','maxSprint','#c94f18');mkL('ch-pl','load','#8a1a1a');mkL('ch-pacc','acc','#1d4ed8');mkL('ch-pdec','dec','#6d28d9');
+  mkL('ch-phi','hiInt','#0e7490');mkL('ch-ppa','passes','#7c3aed');mkL('ch-pam','activeMin','#ca8a04');mkL('ch-pms','maxShot','#c94f18');
   // Score-Verlauf wöchentlich
   const elSc=document.getElementById('ch-score-trend');if(!elSc)return;
   // Group sessions by ISO week (YYYY-WW)

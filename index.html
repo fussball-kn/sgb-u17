@@ -1013,8 +1013,7 @@ function playerMode(p){
   document.querySelectorAll('.nb').forEach(b=>b.style.display='none');
   document.getElementById('nb-deine').style.display='';
   document.getElementById('nb-plteam').style.display='';
-  document.getElementById('mode-b').className='mb pl';
-  document.getElementById('mode-b').textContent='👤 '+p.name;
+  document.getElementById('mode-b').style.display='none';
   document.getElementById('tr-ctrl').style.display='none';
   sp('player');
 }
@@ -2912,22 +2911,21 @@ function renderPlayer(){
   const _avg=k=>_plSess.length?(_plSess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_plSess.length):0;
   const _max=k=>_plSess.length?Math.max(..._plSess.map(s=>parseFloat(s[k]||0))):0;
 
-  // Hero performance bar – only when GPS data exists
-  let perfBarHtml='';
-  if(_plSess.length){
-    const avgD=_avg('distance'),maxSp=_max('maxSprint'),avgHI=_avg('hiInt'),avgAcc=_avg('acc');
-    const _prev2=_plSess.length>1?_plSess[_plSess.length-2]:null;
-    const items=[];
-    if(avgD>0)items.push({num:avgD,from:_prev2?parseFloat(_prev2.distance||0):0,dec:1,unit:'KM',lbl:'DISTANZ'});
-    if(maxSp>0)items.push({num:maxSp,from:_prev2?parseFloat(_prev2.maxSprint||0):0,dec:1,unit:'KM/H',lbl:'MAX SPEED'});
-    if(avgHI>0)items.push({num:Math.round(avgHI),from:_prev2?Math.round(parseFloat(_prev2.hiInt||0)):0,dec:0,unit:'M',lbl:'HI-INT'});
-    if(avgAcc>0)items.push({num:Math.round(avgAcc),from:_prev2?Math.round(parseFloat(_prev2.acc||0)):0,dec:0,unit:'',lbl:'BESCHL.'});
-    if(items.length){
-      perfBarHtml='<div class="ph-perf-bar" id="ph-perf-bar-'+p.id+'">'+items.map(it=>
-        `<div class="ph-perf-item"><div class="ph-perf-val"><span data-cu="${it.from},${it.num},${it.dec}">${it.num.toFixed(it.dec)}</span>${it.unit?' <span class="ph-perf-unit">'+it.unit+'</span>':''}</div><div class="ph-perf-lbl">${it.lbl}</div></div>`
-      ).join('')+'</div>';
-    }
-  }
+  // Hero performance bar – 5 fixed KPIs
+  const _avgDist=_plSess.length?_avg('distance'):null;
+  const _avgSpeed=_plSess.length?_avg('maxSprint'):null;
+  const _allTDs=(D.trainingDays||[]);
+  const _attPct=_allTDs.length?Math.round(_allTDs.filter(td=>(td.present||[]).includes(p.id)).length/_allTDs.length*100):null;
+  const _offMins=(D.matchReports||[]).filter(mr=>(mr.gameType||'official')!=='friendly').reduce((sum,mr)=>{const m=computePMS(p.id,mr);return sum+(m!=null?m:0);},0);
+  const _friMins=(D.matchReports||[]).filter(mr=>mr.gameType==='friendly').reduce((sum,mr)=>{const m=computePMS(p.id,mr);return sum+(m!=null?m:0);},0);
+  const _kpi=(valHtml,lbl)=>`<div class="ph-perf-item"><div class="ph-perf-val">${valHtml}</div><div class="ph-perf-lbl">${lbl}</div></div>`;
+  const perfBarHtml='<div class="ph-perf-bar" id="ph-perf-bar-'+p.id+'">'
+    +_kpi(_avgDist!==null?`<span data-cu="0,${_avgDist.toFixed(1)},1">${_avgDist.toFixed(1)}</span> <span class="ph-perf-unit">KM</span>`:'<span>–</span>','Ø DISTANZ')
+    +_kpi(_avgSpeed!==null?`<span data-cu="0,${_avgSpeed.toFixed(1)},1">${_avgSpeed.toFixed(1)}</span> <span class="ph-perf-unit">KM/H</span>`:'<span>–</span>','Ø TOP SPEED')
+    +_kpi(_attPct!==null?`<span data-cu="0,${_attPct},0">${_attPct}</span> <span class="ph-perf-unit">%</span>`:'<span>–</span>','ANWESENHEIT')
+    +_kpi(`<span data-cu="0,${_offMins},0">${_offMins}</span> <span class="ph-perf-unit">MIN</span>`,'PFLICHTSPIELE')
+    +_kpi(`<span data-cu="0,${_friMins},0">${_friMins}</span> <span class="ph-perf-unit">MIN</span>`,'TESTSPIELE')
+    +'</div>';
 
   // Compute trScore & label from renderScore logic (without full HTML)
   let trScore=0,trLabelTxt='';
@@ -3074,7 +3072,7 @@ function renderPTab(type,p,ps,gs,col){
   const isGm=type==='gm',baseEntries=isGm?gs:ps;
   const entries=isGm?filtGames(baseEntries,plGmFilter):baseEntries,ac=isGm?'var(--org)':col;
   const avgD=entries.length?avg(entries,'distance').toFixed(1):'–',maxSp=entries.length?Math.max(...entries.map(s=>parseFloat(s.maxSprint||0))).toFixed(1):'–';
-  const extra=isGm&&gs.length?`<div class="card"><div class="cv">Siege</div><div class="cn" style="color:var(--grn)">${gs.filter(g=>res(g)==='win').length}<span style="font-size:11px;color:#999"> / ${gs.length}</span></div></div>`:`<div class="card"><div class="cv">Trainings ges.</div><div class="cn">${entries.length}</div></div>`;
+  const extra=isGm&&gs.length?`<div class="card"><div class="cv">Siege</div><div class="cn" style="color:var(--grn)">${gs.filter(g=>res(g)==='win').length}<span style="font-size:11px;color:#999"> / ${gs.length}</span></div></div>`:`<div class="card"><div class="cv">Ø Max. Schuss</div><div class="cn">${entries.length?avg(entries,'maxShot').toFixed(0):'–'} <small style="font-size:10px">km/h</small></div></div>`;
   const rows=entries.length?[...entries].reverse().map(e=>{
     const ld=parseFloat(e.load||0);
     const del=isTr?`<td><button class="btn-d" onclick="event.stopPropagation();delE('${e.id}','${isGm?'gm':'tr'}');opPl('${p.id}')">✕</button></td>`:'<td></td>';
@@ -3103,7 +3101,10 @@ function renderPTab(type,p,ps,gs,col){
     </div>
     <div class="g2" style="margin-bottom:12px">
       <div class="card" style="grid-column:1/-1"><div class="cv" style="margin-bottom:6px">Score-Verlauf (wöchentlich)</div><div style="display:flex;gap:14px;margin-bottom:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em"><span style="color:#1a6a35">&#9644; Trainingsscore</span><span style="color:#1d4ed8">&#9644; Gesamtscore</span></div><div class="chrt" style="height:180px"><canvas id="ch-score-trend"></canvas></div></div>
+    </div>
+    <div class="g2" style="margin-bottom:12px">
       <div class="card"><div class="cv" style="margin-bottom:6px">Distanz (km)</div><div class="chrt"><canvas id="ch-pd"></canvas></div></div>
+      <div class="card"><div class="cv" style="margin-bottom:6px">Schüsse · Max. Geschw. (km/h)</div><div class="chrt"><canvas id="ch-pms"></canvas></div></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
       <div class="card"><div class="cv" style="margin-bottom:6px">Ø Max. Sprint (km/h)</div><div class="chrt"><canvas id="ch-psp"></canvas></div></div>
@@ -3118,8 +3119,7 @@ function renderPTab(type,p,ps,gs,col){
       <div class="card"><div class="cv" style="margin-bottom:6px">Pässe</div><div class="chrt"><canvas id="ch-ppa"></canvas></div></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
-      <div class="card"><div class="cv" style="margin-bottom:6px">Aktivitätszeit (min)</div><div class="chrt"><canvas id="ch-pam"></canvas></div></div>
-      <div class="card"><div class="cv" style="margin-bottom:6px">Schüsse · Max. Geschw. (km/h)</div><div class="chrt"><canvas id="ch-pms"></canvas></div></div>
+      <div class="card" style="grid-column:1/-1"><div class="cv" style="margin-bottom:6px">Aktivitätszeit (min)</div><div class="chrt"><canvas id="ch-pam"></canvas></div></div>
     </div>
     <div class="card">
       <div style="font-size:12px;font-weight:800;margin-bottom:7px">${isGm?'Spielhistorie':'Trainingshistorie'}</div>

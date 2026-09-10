@@ -711,7 +711,7 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
   </div>
 </div>
 <div id="page-player" class="page">
-  <span class="back" onclick="sp('team')">← Zurück</span>
+  <span class="back" id="pl-back-btn" onclick="sp('team')">← Zurück</span>
   <div id="pl-content"></div>
 </div>
 
@@ -976,6 +976,7 @@ function viewMode(){
   document.getElementById('nb-deine').style.display='none';
   document.getElementById('nb-plteam').style.display='none';
   document.getElementById('mode-b').className='mb pl';document.getElementById('mode-b').textContent='👤 Spieler';
+  const _pb2=document.getElementById('pl-back-btn');if(_pb2)_pb2.style.display='';
   document.getElementById('tr-ctrl').style.display='none';
   document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='none');
 }
@@ -1015,6 +1016,7 @@ function playerMode(p){
   document.getElementById('nb-deine').style.display='';
   document.getElementById('nb-plteam').style.display='';
   document.getElementById('mode-b').style.display='none';
+  const _pb=document.getElementById('pl-back-btn');if(_pb)_pb.style.display='none';
   document.getElementById('tr-ctrl').style.display='none';
   sp('player');
 }

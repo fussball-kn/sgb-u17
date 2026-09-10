@@ -3074,7 +3074,7 @@ function renderPTab(type,p,ps,gs,col){
     </div>
     <div class="g2" style="margin-bottom:12px">
       <div class="card"><div class="cv" style="margin-bottom:6px">Distanz (km)</div><div class="chrt"><canvas id="ch-pd"></canvas></div></div>
-      <div class="card" style="grid-column:1/-1"><div class="cv" style="margin-bottom:6px">Score-Verlauf (wöchentlich)</div><div style="margin-bottom:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#1a6a35">&#9644; Score (identisch mit Profilkarte)</div><div class="chrt" style="height:180px"><canvas id="ch-score-trend"></canvas></div></div>
+      <div class="card" style="grid-column:1/-1"><div class="cv" style="margin-bottom:6px">Score-Verlauf (wöchentlich)</div><div style="display:flex;gap:14px;margin-bottom:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em"><span style="color:#1a6a35">&#9644; Trainingsscore</span><span style="color:#1d4ed8">&#9644; Gesamtscore</span></div><div class="chrt" style="height:180px"><canvas id="ch-score-trend"></canvas></div></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
       <div class="card"><div class="cv" style="margin-bottom:6px">Ø Max. Sprint (km/h)</div><div class="chrt"><canvas id="ch-psp"></canvas></div></div>
@@ -3154,11 +3154,17 @@ function renderPChts(p,entries,col){
     const dS=_av('distance')>0?Math.min(25,Math.round(_rv('distance')/_av('distance')*20)):0;
     const hS=_av('hiInt')>0?Math.min(25,Math.round(_rv('hiInt')/_av('hiInt')*20)):0;
     const spS=_av('maxSprint')>0?Math.min(25,Math.round(_rv('maxSprint')/_av('maxSprint')*20)):0;
-    return Math.min(100,_att+dS+hS+spS);
+    const gpsPts=dS+hS+spS;
+    // Trainingsscore: GPS only, scaled 0-100 (null if no GPS data yet)
+    const trScore=_ps.length>0?Math.min(100,Math.round(gpsPts/75*100)):null;
+    // Gesamtscore: attendance + GPS (exact profile card formula)
+    const gsScore=Math.min(100,_att+gpsPts);
+    return {tr:trScore,gs:gsScore};
   });
   const _wkLabels=_allWeeks.map(w=>w.replace('-W','·W'));
     CHS['ch-score-trend']=new Chart(elSc,{type:'line',data:{labels:_wkLabels,datasets:[
-    {label:'Score',data:_scorePoints,borderColor:'#1a6a35',backgroundColor:'#1a6a3522',tension:.3,fill:true,pointRadius:3,pointBackgroundColor:'#1a6a35'}
+    {label:'Trainingsscore',data:_scorePoints.map(v=>v.tr),borderColor:'#1a6a35',backgroundColor:'#1a6a3520',tension:.3,fill:true,pointRadius:3,pointBackgroundColor:'#1a6a35',spanGaps:true},
+    {label:'Gesamtscore',data:_scorePoints.map(v=>v.gs),borderColor:'#1d4ed8',backgroundColor:'#1d4ed808',tension:.3,fill:false,pointRadius:3,pointBackgroundColor:'#1d4ed8',borderDash:[5,3]}
   ]},options:{responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y}}},
     scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9},stepSize:25}},

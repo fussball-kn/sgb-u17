@@ -2919,9 +2919,9 @@ function renderPlayer(){
     ${scoreHtml}
     ${injHtml}
     <div class="tabs">
-      <button class="tab active" onclick="setPT('tr',this,'${p.id}')">Training</button>
-      <button class="tab gm" onclick="setPT('gm',this,'${p.id}')">Spiele</button>
-      <button class="tab st" onclick="setPT('st',this,'${p.id}')">Saison</button>
+      <button class="tab active" onclick="setPT('tr',this,'${p.id}')">Trackerdaten · Training</button>
+      <button class="tab gm" onclick="setPT('gm',this,'${p.id}')">Trackerdaten · Spiele</button>
+      <button class="tab st" onclick="setPT('st',this,'${p.id}')">Pers. Saisonstatistik</button>
       <button class="tab" onclick="setPT('rec',this,'${p.id}')">Rekorde &amp; Streaks</button>
     </div>
     <div id="pt-c"></div>`;
@@ -3011,7 +3011,7 @@ function renderPChts(p,entries,col){
   const el=document.getElementById('ch-pr');if(!el)return;
   const rL=['Distanz','Hi-Int.','Sprint','Beschl.','Abbrems.','Pässe','Am Ball'],rK=['distance','hiInt','maxSprint','acc','dec','passes','ballMin'];
   const mxV=rK.map(k=>Math.max(...[...D.sessions,...D.games].map(s=>parseFloat(s[k]||0)),1));
-  CHS['ch-pr']=new Chart(el,{type:'radar',data:{labels:rL,datasets:[{data:rK.map((k,i)=>entries.length?(avg(entries,k)/mxV[i]*100):0),borderColor:col,backgroundColor:col+'18',pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:100,ticks:{display:false,stepSize:25},grid:{color:'rgba(0,0,0,.06)'},pointLabels:{font:{size:9,weight:'600'},color:'#64748b'}}},plugins:{legend:{display:false}}}});
+  CHS['ch-pr']=new Chart(el,{type:'radar',data:{labels:rL,datasets:[{data:rK.map((k,i)=>entries.length?(avg(entries,k)/mxV[i]*100):0),borderColor:col,backgroundColor:col+'18',pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:100,ticks:{display:false,stepSize:25},grid:{color:'rgba(0,0,0,.06)',circular:false},pointLabels:{font:{size:9,weight:'600'},color:'#64748b'}}},plugins:{legend:{display:false}}}});
 }
 
 // ── PLAYER SEASON STATS TAB ───────────────────────────────────────────────────

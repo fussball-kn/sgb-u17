@@ -1392,6 +1392,33 @@ function renderPlTeam(){
       const meTxt=meV.toFixed(m.dec)+(m.unit?' '+m.unit:'');
       const teamTxt=teamV.toFixed(m.dec)+(m.unit?' '+m.unit:'');
       const meColor=meV>=teamV?'#1a6a35':'#1d4ed8';
+      // Difference
+      const _diff=parseFloat((meV-teamV).toFixed(m.dec));
+      const _diffAbs=Math.abs(_diff);
+      let _diffStr,_diffColor;
+      if(_diff===0){_diffStr='\u00b10 \u00b7 entspricht Team-\u00d8';_diffColor='#64748b';}
+      else{
+        const _sign=_diff>0?'+':'\u2212';
+        _diffStr=_sign+_diffAbs.toFixed(m.dec)+(m.unit?' '+m.unit:'')+' zum Team-\u00d8';
+        _diffColor='#64748b';
+      }
+      // Percentile: only if >=4 players have >=3 sessions with this metric
+      const _fullSess=isTr?D.sessions.filter(s=>parseFloat(s[m.key]||0)>0):D.games.filter(g=>parseFloat(g[m.key]||0)>0);
+      const _pids=[...new Set(_fullSess.map(s=>s.playerId))];
+      const _plAvgs=_pids.map(pid=>{
+        const ss=_fullSess.filter(s=>s.playerId===pid&&parseFloat(s[m.key]||0)>0);
+        if(ss.length<3)return null;
+        return ss.reduce((a,s)=>a+parseFloat(s[m.key]||0),0)/ss.length;
+      }).filter(v=>v!==null);
+      let _pctHtml='';
+      if(_plAvgs.length>=4&&meV>0){
+        const _rank=_plAvgs.filter(v=>v<=meV).length;
+        const _pct=Math.round(_rank/_plAvgs.length*100);
+        const _topPct=100-_pct+Math.round(100/_plAvgs.length);
+        _pctHtml='<div style="margin-top:6px;font-size:10px;font-weight:700;color:#64748b;letter-spacing:.04em">TOP '+Math.min(100,_topPct)+'% IM TEAM</div>';
+      } else if(_plAvgs.length>0&&_plAvgs.length<4){
+        _pctHtml='<div style="margin-top:6px;font-size:9px;color:var(--muted)">Noch nicht genug Vergleichsdaten</div>';
+      }
       return '<div style="background:var(--card);border-radius:10px;padding:14px 16px;margin-bottom:10px;border:1px solid var(--brd)">'
         +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--fg2);margin-bottom:10px;letter-spacing:.05em">'+m.lbl+'</div>'
         +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'
@@ -1400,10 +1427,12 @@ function renderPlTeam(){
         +'<div style="width:'+mePct+'%;height:100%;background:#1a6a35;border-radius:4px;transition:width .4s"></div></div>'
         +'<div style="width:70px;text-align:right;font-family:var(--fd);font-size:14px;font-weight:800;color:'+meColor+'">'+meTxt+'</div></div>'
         +'<div style="display:flex;align-items:center;gap:10px">'
-        +'<div style="width:80px;font-size:11px;color:var(--fg2);font-weight:700;flex-shrink:0">TEAM-Ø</div>'
+        +'<div style="width:80px;font-size:11px;color:var(--fg2);font-weight:700;flex-shrink:0">TEAM-\u00d8</div>'
         +'<div style="flex:1;background:var(--brd2);border-radius:4px;height:14px;overflow:hidden">'
         +'<div style="width:'+teamPct+'%;height:100%;background:#1d4ed8;border-radius:4px;opacity:.7;transition:width .4s"></div></div>'
         +'<div style="width:70px;text-align:right;font-family:var(--fd);font-size:14px;font-weight:700;color:#1d4ed8">'+teamTxt+'</div></div>'
+        +'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--brd2);font-size:11px;font-weight:700;color:'+_diffColor+'">'+_diffStr+'</div>'
+        +_pctHtml
         +'</div>';
     }).join('');
 
@@ -3143,23 +3172,49 @@ function renderPChts(p,entries,col){
     const sun=new Date(mon);sun.setDate(mon.getDate()+6);
     return sun.toISOString().slice(0,10);
   }
+  // Position weights (mirror renderScore)
+  const _p4s=D.players.find(x=>x.id===p.id);
+  const _pos=(_p4s?_p4s.pos||'':'').toLowerCase();
+  const _isTW=_pos.includes('torwart')||_pos.includes('keeper');
+  const _isDEF=!_isTW&&(_pos.includes('verteidiger')||_pos.includes('libero')||_pos.includes('abwehr'));
+  const _isATT=!_isTW&&!_isDEF&&(_pos.includes('stuermer')||_pos.includes('sturm')||_pos.includes('aussenst'));
+  const _W=_isTW?[30,20,5,45]:_isDEF?[30,20,10,40]:_isATT?[30,20,40,10]:[30,20,25,25];
+  const _allMR=(D.matchReports||[]).filter(m=>(m.gameType||'official')==='official');
   const _scorePoints=_allWeeks.map(wk=>{
     const cutoff=_weekEndDate(wk);
-    const _ps=_gpsSess.filter(s=>s.date<=cutoff);
-    const _r=_ps.slice(-4);
-    const _av=k=>_ps.length?_ps.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_ps.length:0;
-    const _rv=k=>_r.length?_r.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_r.length:0;
-    const _tds=_tdsAll.filter(td=>td.date<=cutoff).slice(-6);
-    const _att=_tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*25):0;
-    const dS=_av('distance')>0?Math.min(25,Math.round(_rv('distance')/_av('distance')*20)):0;
-    const hS=_av('hiInt')>0?Math.min(25,Math.round(_rv('hiInt')/_av('hiInt')*20)):0;
-    const spS=_av('maxSprint')>0?Math.min(25,Math.round(_rv('maxSprint')/_av('maxSprint')*20)):0;
-    const gpsPts=dS+hS+spS;
-    // Trainingsscore: GPS only, scaled 0-100 (null if no GPS data yet)
-    const trScore=_ps.length>0?Math.min(100,Math.round(gpsPts/75*100)):null;
-    // Gesamtscore: attendance + GPS (exact profile card formula)
-    const gsScore=Math.min(100,_att+gpsPts);
-    return {tr:trScore,gs:gsScore};
+    // --- trScore: exact renderScore formula ---
+    const _rawSess=(D.sessions||[]).filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0&&s.date<=cutoff).sort((a,b)=>a.date.localeCompare(b.date));
+    const _sess=sessExcludeInjured(p.id,_rawSess);
+    const _recent=_sess.slice(-4);
+    if(!_recent.length)return{tr:null,gs:null};
+    const seaAvg=k=>_sess.length?_sess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_sess.length:0;
+    const recAvg=k=>_recent.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_recent.length;
+    const _lastTDs=_tdsAll.filter(td=>td.date<=cutoff).slice(-6);
+    const attScore=_lastTDs.length?Math.round(_lastTDs.filter(td=>(td.present||[]).includes(p.id)).length/_lastTDs.length*25):0;
+    const dScore=seaAvg('distance')>0?Math.min(25,Math.round(recAvg('distance')/seaAvg('distance')*20)):0;
+    const hScore=seaAvg('hiInt')>0?Math.min(25,Math.round(recAvg('hiInt')/seaAvg('hiInt')*20)):0;
+    const sScore=seaAvg('maxSprint')>0?Math.min(25,Math.round(recAvg('maxSprint')/seaAvg('maxSprint')*20)):0;
+    const trScore=Math.min(100,attScore+dScore+hScore+sScore);
+    // --- gesamtScore: match reports up to cutoff ---
+    const plMRs=_allMR.filter(mr=>(mr.date||'')<=cutoff&&computePMS(p.id,mr)!==null).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    let gsScore=trScore;
+    if(plMRs.length>0){
+      const nG=plMRs.length;
+      const rw=plMRs.map((_,i)=>i+1);const rwSum=rw.reduce((a,b)=>a+b,0)||1;
+      const wAvg=arr=>arr.reduce((a,v,i)=>a+(isNaN(v)?0:v)*rw[i],0)/rwSum;
+      const minRates=plMRs.map(mr=>{const pms=computePMS(p.id,mr);const played=pms?parseFloat(pms.minutes)||0:0;return Math.min(1,played/(parseFloat(mr.matchDuration)||80));});
+      const minSc=Math.min(_W[0],Math.round(wAvg(minRates)*_W[0]));
+      const resRates=plMRs.map(mr=>{const us=parseInt(mr.goalsUs||0),th=parseInt(mr.goalsThem||0);return us>th?1:us===th?0.4:0;});
+      const resSc=Math.min(_W[1],Math.round(wAvg(resRates)*_W[1]));
+      const plGoals=plMRs.map(mr=>{const evts=mr.events||[];return evts.filter(e=>e.type==='goal'&&e.playerId===p.id).length+evts.filter(e=>e.type==='goal'&&e.assistId===p.id).length*0.6;});
+      const offRef=_isATT?0.55:_isDEF?0.12:_isTW?0.04:0.30;
+      const offSc=_W[2]>0&&offRef>0?Math.min(_W[2],Math.round(Math.min(wAvg(plGoals)/offRef,1.5)*_W[2])):0;
+      const defRates=plMRs.map(mr=>{const conc=parseInt(mr.goalsThem||0);return conc===0?1:conc===1?0.65:conc===2?0.30:0;});
+      const defSc=Math.min(_W[3],Math.round(wAvg(defRates)*_W[3]));
+      const gameScore=Math.min(100,minSc+resSc+offSc+defSc);
+      gsScore=Math.min(100,Math.round(trScore*0.75+gameScore*0.25));
+    }
+    return{tr:trScore,gs:gsScore};
   });
   const _wkLabels=_allWeeks.map(w=>w.replace('-W','·W'));
     CHS['ch-score-trend']=new Chart(elSc,{type:'line',data:{labels:_wkLabels,datasets:[
@@ -3293,16 +3348,13 @@ function renderPlRec(p){
   METRICS.forEach(m=>{
     const best=rv(m);if(best===null)return;
     const li=lvlOf(m,best);
-    const lvlIdx=Math.min(li.lvl,LCOLS.length-1);
-    const c=LCOLS[lvlIdx];
+    const _remaining=parseFloat((li.to-best).toFixed(m.dec));
     levelHtml+=`<div class="level-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-        <div class="level-lbl">${m.lbl}</div>
-        <div class="level-badge" style="color:${c}">STUFE ${li.lvl}</div>
-      </div>
-      <div class="level-val" style="color:${c}">${parseFloat(best).toFixed(m.dec)}${m.unit?' '+m.unit:''}</div>
-      <div class="level-bar"><div class="level-bar-fill" style="width:${li.pct}%;background:${c}"></div></div>
-      <div class="level-next">Nächste Stufe: ${parseFloat(li.to.toFixed(m.dec))}${m.unit?' '+m.unit:''} · ${li.pct}%</div>
+      <div class="level-lbl">${m.lbl}</div>
+      <div class="level-val" style="color:var(--dk)">${parseFloat(best).toFixed(m.dec)}${m.unit?' '+m.unit:''}</div>
+      <div class="level-bar"><div class="level-bar-fill" style="width:${li.pct}%;background:var(--grn)"></div></div>
+      <div class="level-next" style="font-weight:800;color:var(--txt2)">NÄCHSTE MARKE · ${parseFloat(li.to).toFixed(m.dec)}${m.unit?' '+m.unit:''}</div>
+      <div style="font-size:9px;color:var(--muted);margin-top:1px">noch ${_remaining}${m.unit?' '+m.unit:''}</div>
     </div>`;
   });
   levelHtml+='</div>';
@@ -3358,7 +3410,7 @@ function renderPlRec(p){
     <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--txt3);margin-bottom:10px">PERSÖNLICHE REKORDTAFEL</div>
     <div style="margin-bottom:18px">${recGridHtml}</div>
 
-    <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--txt3);margin-bottom:10px">LEISTUNGSSTUFEN</div>
+    <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--txt3);margin-bottom:10px">NÄCHSTE MARKEN</div>
     <div style="margin-bottom:18px">${levelHtml}</div>
 
     <div style="margin-bottom:14px">

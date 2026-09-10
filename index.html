@@ -543,7 +543,7 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
   <button class="nb" id="nb-eltern" style="display:none" onclick="sp('eltern')">ÜBERSICHT</button>
   <button class="nb" id="nb-liga" style="display:none" onclick="sp('liga')">TABELLE</button>
   <div class="nsp"></div>
-  <button class="mb pl" id="mode-b" onclick="togTr()">👤 Spieler</button>
+  <button class="mb pl" id="mode-b" onclick="togTr()" style="display:none">👤 Spieler</button>
   <div id="tr-ctrl" style="display:flex;gap:2px;align-items:center">
     <button class="bn bn-d" onclick="omod('ap')">+ Spieler</button>
     <button class="bn bn-g" onclick="oTA()">📋 Anwesenheit</button>
@@ -933,7 +933,7 @@ function trainerMode(){
   document.getElementById('nb-deine').style.display='none';
   document.getElementById('nb-plteam').style.display='none';
   document.getElementById('nb-eltern').style.display='none';
-  document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🔐 Trainer';
+  document.getElementById('mode-b').style.display='';document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🔐 Trainer';
   document.getElementById('tr-ctrl').style.display='flex';
   document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='');
   document.getElementById('nb-liga').style.display='';
@@ -955,7 +955,7 @@ function slMode(){
   document.getElementById('nb-deine').style.display='none';
   document.getElementById('nb-plteam').style.display='none';
   document.getElementById('nb-eltern').style.display='none';
-  document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🏅 Sport. Leitung';
+  document.getElementById('mode-b').style.display='';document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🏅 Sport. Leitung';
   document.getElementById('tr-ctrl').style.display='none'; // kein Bearbeiten
   document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='none');
   document.getElementById('nb-liga').style.display='';

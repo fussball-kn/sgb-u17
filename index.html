@@ -2912,20 +2912,20 @@ function renderPlayer(){
   const _avg=k=>_plSess.length?(_plSess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_plSess.length):0;
   const _max=k=>_plSess.length?Math.max(..._plSess.map(s=>parseFloat(s[k]||0))):0;
 
-  // Hero performance bar – 5 fixed KPIs
+  // Hero performance bar – 4 fixed KPIs
   const _avgDist=_plSess.length?_avg('distance'):null;
   const _avgSpeed=_plSess.length?_avg('maxSprint'):null;
+  const _avgPasses=_plSess.length?_avg('passes'):null;
+  const _avgShots=_plSess.length?_avg('shots'):null;
   const _allTDs=(D.trainingDays||[]);
   const _attPct=_allTDs.length?Math.round(_allTDs.filter(td=>(td.present||[]).includes(p.id)).length/_allTDs.length*100):null;
-  const _offMins=(D.matchReports||[]).filter(mr=>(mr.gameType||'official')!=='friendly').reduce((sum,mr)=>{const m=computePMS(p.id,mr);return sum+(m!=null?m:0);},0);
-  const _friMins=(D.matchReports||[]).filter(mr=>mr.gameType==='friendly').reduce((sum,mr)=>{const m=computePMS(p.id,mr);return sum+(m!=null?m:0);},0);
-  const _kpi=(valHtml,lbl)=>`<div class="ph-perf-item"><div class="ph-perf-val">${valHtml}</div><div class="ph-perf-lbl">${lbl}</div></div>`;
+  const _ballC=(_avgPasses!==null||_avgShots!==null)?Math.round((_avgPasses||0)+(_avgShots||0)):null;
+  const _kpi=(valHtml,lbl,sub)=>`<div class="ph-perf-item"><div class="ph-perf-val">${valHtml}</div><div class="ph-perf-lbl">${lbl}</div>${sub?`<div class="ph-perf-sub">${sub}</div>`:''}</div>`;
   const perfBarHtml='<div class="ph-perf-bar" id="ph-perf-bar-'+p.id+'">'
     +_kpi(_avgDist!==null?`<span data-cu="0,${_avgDist.toFixed(1)},1">${_avgDist.toFixed(1)}</span> <span class="ph-perf-unit">KM</span>`:'<span>–</span>','Ø DISTANZ')
     +_kpi(_avgSpeed!==null?`<span data-cu="0,${_avgSpeed.toFixed(1)},1">${_avgSpeed.toFixed(1)}</span> <span class="ph-perf-unit">KM/H</span>`:'<span>–</span>','Ø TOP SPEED')
     +_kpi(_attPct!==null?`<span data-cu="0,${_attPct},0">${_attPct}</span> <span class="ph-perf-unit">%</span>`:'<span>–</span>','ANWESENHEIT')
-    +_kpi(`<span data-cu="0,${_offMins},0">${_offMins}</span> <span class="ph-perf-unit">MIN</span>`,'PFLICHTSPIELE')
-    +_kpi(`<span data-cu="0,${_friMins},0">${_friMins}</span> <span class="ph-perf-unit">MIN</span>`,'TESTSPIELE')
+    +_kpi(_ballC!==null?`<span data-cu="0,${_ballC},0">${_ballC}</span>`:'<span>–</span>','Ø BALLKONTAKTE',_avgPasses!==null||_avgShots!==null?`Pässe ${_avgPasses!==null?_avgPasses.toFixed(0):'–'} · Schüsse ${_avgShots!==null?_avgShots.toFixed(0):'–'}`:'')
     +'</div>';
 
   // Compute trScore & label from renderScore logic (without full HTML)

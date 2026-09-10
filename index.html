@@ -537,6 +537,8 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
   <button class="nb" id="nb-pl" style="display:none" onclick="sp('player')">Spieler</button>
   <button class="nb" id="nb-saison" style="display:none" onclick="sp('player');setTimeout(()=>{const b=document.querySelector('#pl-content .tab.st');if(b)b.click();},80)">SAISON</button>
   <button class="nb" id="nb-rekorde" style="display:none" onclick="sp('player');setTimeout(()=>{const b=document.querySelector('#pl-content .tab:last-child');if(b)b.click();},80)">REKORDE</button>
+  <button class="nb" id="nb-deine" style="display:none" onclick="sp('player')">DEINE WERTE</button>
+  <button class="nb" id="nb-plteam" style="display:none" onclick="sp('pl-team')">TEAM</button>
   <button class="nb" id="nb-eltern" style="display:none" onclick="sp('eltern')">ÜBERSICHT</button>
   <button class="nb" id="nb-liga" style="display:none" onclick="sp('liga')">TABELLE</button>
   <div class="nsp"></div>
@@ -775,6 +777,12 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
 </div>
 
 
+<div id="page-pl-team" class="page">
+  <div class="wrap" id="plt-wrap">
+    <div class="sh"><div class="stt">Team-Vergleich</div></div>
+    <div id="plt-content"></div>
+  </div>
+</div>
 <div class="page" id="page-liga"><div id="liga-wrap" style="padding:4px 0"></div></div>
 <div id="page-eltern" class="page">
   <div class="sh"><div class="stt">📊 Team-Übersicht</div><span class="bdg bdg-g">Eltern-Ansicht</span></div>
@@ -921,6 +929,8 @@ function trainerMode(){
   document.getElementById('nb-pl').style.display='none';
   document.getElementById('nb-saison').style.display='none';
   document.getElementById('nb-rekorde').style.display='none';
+  document.getElementById('nb-deine').style.display='none';
+  document.getElementById('nb-plteam').style.display='none';
   document.getElementById('nb-eltern').style.display='none';
   document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🔐 Trainer';
   document.getElementById('tr-ctrl').style.display='flex';
@@ -941,6 +951,8 @@ function slMode(){
   document.getElementById('nb-pl').style.display='none';
   document.getElementById('nb-saison').style.display='none';
   document.getElementById('nb-rekorde').style.display='none';
+  document.getElementById('nb-deine').style.display='none';
+  document.getElementById('nb-plteam').style.display='none';
   document.getElementById('nb-eltern').style.display='none';
   document.getElementById('mode-b').className='mb tr';document.getElementById('mode-b').textContent='🏅 Sport. Leitung';
   document.getElementById('tr-ctrl').style.display='none'; // kein Bearbeiten
@@ -956,8 +968,12 @@ function viewMode(){
   document.getElementById('nb-pl').style.display='none';
   document.getElementById('nb-saison').style.display='none';
   document.getElementById('nb-rekorde').style.display='none';
+  document.getElementById('nb-deine').style.display='none';
+  document.getElementById('nb-plteam').style.display='none';
   document.getElementById('nb-eltern').style.display='none';
   document.getElementById('nb-liga').style.display='none';
+  document.getElementById('nb-deine').style.display='none';
+  document.getElementById('nb-plteam').style.display='none';
   document.getElementById('mode-b').className='mb pl';document.getElementById('mode-b').textContent='👤 Spieler';
   document.getElementById('tr-ctrl').style.display='none';
   document.querySelectorAll('.trainer-only').forEach(el=>el.style.display='none');
@@ -1253,7 +1269,7 @@ function resetWhatIf(){
 
 function sp(name,pid){
   if(isEltern&&name!=='eltern'){sp('eltern');return;}
-  if(curPlayer&&!['team','player','vergleich'].includes(name)){sp('player',curPlayer.id);return;}
+  if(curPlayer&&!['team','player','pl-team'].includes(name)){sp('player',curPlayer.id);return;}
   if(name==='player'&&!pid&&curPlayer){pid=curPlayer.id;}
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
@@ -1270,6 +1286,13 @@ function sp(name,pid){
   if(name==='eltern'){renderEltern();}
   if(name==='liga'){renderLeague();}
   if(name==='player')renderPlayer();
+  if(name==='pl-team'){renderPlTeam();}
+  // Player-mode active nav highlighting
+  if(curPlayer){
+    document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+    if(name==='player')document.getElementById('nb-deine').classList.add('active');
+    if(name==='pl-team')document.getElementById('nb-plteam').classList.add('active');
+  }
 }
 function svPlayer(){
   const n=document.getElementById('mn').value.trim();if(!n)return;
@@ -1331,6 +1354,83 @@ function renderVergleichPlayer(){
     +'<div class="card"><div class="cv">Team-Ø Anwesenheit</div><div class="cn" style="color:#1a5e8a">'+Math.round(teamAttAvg)+'%</div><div class="cs">Alle Spieler</div></div></div>');
 }
 
+
+function renderPlTeam(){
+  const p=curPlayer;
+  const el=document.getElementById('plt-content');
+  if(!el)return;
+
+  function buildView(mode){
+    const isTr=mode==='training';
+    const mySess=isTr
+      ?D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0)
+      :D.games.filter(g=>g.playerId===p.id&&parseFloat(g.distance||0)>0);
+    const allSess=isTr
+      ?D.sessions.filter(s=>parseFloat(s.distance||0)>0)
+      :D.games.filter(g=>parseFloat(g.distance||0)>0);
+
+    const myAvg=k=>mySess.length?mySess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/mySess.length:null;
+    // Team avg: average of per-player averages (each player contributes equally)
+    const teamPerPlayer=k=>{
+      const pids=[...new Set(allSess.map(s=>s.playerId))];
+      const avgs=pids.map(pid=>{const ss=allSess.filter(s=>s.playerId===pid);return ss.reduce((a,s)=>a+parseFloat(s[k]||0),0)/ss.length;});
+      return avgs.length?avgs.reduce((a,v)=>a+v,0)/avgs.length:null;
+    };
+
+    const metrics=[
+      {key:'distance',  lbl:'Distanz',        unit:'km',  dec:2},
+      {key:'hiInt',     lbl:'Hi-Intensität',   unit:'m',   dec:0},
+      {key:'maxSprint', lbl:'Max. Sprint',     unit:'km/h',dec:1},
+      {key:'acc',       lbl:'Sprints (Acc)',   unit:'',    dec:0},
+      {key:'dec',       lbl:'Abbremsungen',    unit:'',    dec:0},
+      {key:'passes',    lbl:'Pässe',           unit:'',    dec:0},
+      {key:'activeMin', lbl:'Aktiv-Minuten',   unit:'min', dec:0},
+    ];
+
+    const rows=metrics.map(m=>{
+      const me=myAvg(m.key);
+      const team=teamPerPlayer(m.key);
+      if(me===null&&team===null)return '';
+      const meV=me||0, teamV=team||0;
+      const maxV=Math.max(meV,teamV,0.01);
+      const mePct=Math.round(meV/maxV*100);
+      const teamPct=Math.round(teamV/maxV*100);
+      const meTxt=meV.toFixed(m.dec)+(m.unit?' '+m.unit:'');
+      const teamTxt=teamV.toFixed(m.dec)+(m.unit?' '+m.unit:'');
+      const meColor=meV>=teamV?'#1a6a35':'#1d4ed8';
+      return '<div style="background:var(--card);border-radius:10px;padding:14px 16px;margin-bottom:10px;border:1px solid var(--brd)">'
+        +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--fg2);margin-bottom:10px;letter-spacing:.05em">'+m.lbl+'</div>'
+        +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'
+        +'<div style="width:80px;font-size:11px;color:var(--grn);font-weight:700;flex-shrink:0">ICH</div>'
+        +'<div style="flex:1;background:var(--brd2);border-radius:4px;height:14px;overflow:hidden">'
+        +'<div style="width:'+mePct+'%;height:100%;background:#1a6a35;border-radius:4px;transition:width .4s"></div></div>'
+        +'<div style="width:70px;text-align:right;font-family:var(--fd);font-size:14px;font-weight:800;color:'+meColor+'">'+meTxt+'</div></div>'
+        +'<div style="display:flex;align-items:center;gap:10px">'
+        +'<div style="width:80px;font-size:11px;color:var(--fg2);font-weight:700;flex-shrink:0">TEAM-Ø</div>'
+        +'<div style="flex:1;background:var(--brd2);border-radius:4px;height:14px;overflow:hidden">'
+        +'<div style="width:'+teamPct+'%;height:100%;background:#1d4ed8;border-radius:4px;opacity:.7;transition:width .4s"></div></div>'
+        +'<div style="width:70px;text-align:right;font-family:var(--fd);font-size:14px;font-weight:700;color:#1d4ed8">'+teamTxt+'</div></div>'
+        +'</div>';
+    }).join('');
+
+    const noData=mySess.length===0?'<div style="padding:20px;text-align:center;color:var(--fg2)">Noch keine GPS-Daten für '+(isTr?'Training':'Spiele')+' vorhanden.</div>':'';
+
+    const sessionCount=mySess.length;
+    const allCount=[...new Set(allSess.map(s=>s.playerId))].length;
+
+    el.innerHTML='<div style="display:flex;gap:8px;margin-bottom:16px">'
+      +'<button onclick="renderPlTeamMode(\'training\')" id="plt-btn-tr" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;font-weight:700;font-size:13px;background:'+(isTr?'var(--grn)':'var(--card)')+';color:'+(isTr?'#fff':'var(--fg)')+';border:1px solid '+(isTr?'transparent':'var(--brd)')+'">Training</button>'
+      +'<button onclick="renderPlTeamMode(\'spiel\')" id="plt-btn-gm" style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;font-weight:700;font-size:13px;background:'+(!isTr?'var(--grn)':'var(--card)')+';color:'+(!isTr?'#fff':'var(--fg)')+';border:1px solid '+(!isTr?'transparent':'var(--brd)')+'">Spiele</button>'
+      +'</div>'
+      +'<div style="background:var(--sfc);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--fg2)">'
+      +'Deine Durchschnittswerte aus <strong>'+sessionCount+'</strong> '+(isTr?'Training-':'Spiel-')+'Einheiten mit GPS-Daten – verglichen mit dem Teamdurchschnitt ('+allCount+' Spieler).'
+      +'</div>'
+      +(noData||rows);
+  }
+
+  window.renderPlTeamMode=function(mode){buildView(mode);};
+  buildView('training');
+}
 function renderVergleich(){
   if(curPlayer){renderVergleichPlayer();return;}
   // tracker info

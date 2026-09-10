@@ -1995,6 +1995,49 @@ function renderMRSection(){
   Chart.defaults.elements.arc.borderWidth=0;
 })();
 
+
+// ── COUNT-UP ANIMATION ENGINE ────────────────────────────────────
+const _CU_SEEN=new WeakSet();
+const _prefersReduced=(()=>{try{return window.matchMedia('(prefers-reduced-motion:reduce)').matches;}catch(e){return false;}})();
+function _cuEase(t){return 1-Math.pow(1-t,3);}
+function countUp(el,from,to,dec,duration,delay){
+  if(_prefersReduced||from===to){el.textContent=to.toFixed(dec);return;}
+  setTimeout(()=>{
+    const s=performance.now(),range=to-from;
+    (function step(now){
+      const p=Math.min((now-s)/duration,1);
+      el.textContent=(from+range*_cuEase(p)).toFixed(dec);
+      if(p<1)requestAnimationFrame(step);
+      else el.textContent=to.toFixed(dec);
+    })(performance.now());
+  },delay||0);
+}
+function runCountUps(container,immediate){
+  if(!container)return;
+  const els=container.querySelectorAll('[data-cu]');
+  if(!els.length)return;
+  const animate=(el,i)=>{
+    if(_CU_SEEN.has(el))return;
+    _CU_SEEN.add(el);
+    const parts=el.dataset.cu.split(',');
+    const from=parseFloat(parts[0]),to=parseFloat(parts[1]),dec=parseInt(parts[2]||0);
+    const dur=_prefersReduced?0:Math.max(500,Math.min(900,300+Math.abs(to-from)*30));
+    countUp(el,from,to,dec,dur,(immediate?i*70:0));
+    // PB special: subtle green flash after count completes
+    if(el.dataset.cuPb&&!_prefersReduced){
+      setTimeout(()=>{el.style.transition='color .3s';el.style.color='#4ade80';setTimeout(()=>{el.style.color='';},600);},dur+(immediate?i*70:0)+50);
+    }
+  };
+  if(immediate){
+    els.forEach((el,i)=>animate(el,i));
+  } else {
+    const obs=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{if(!e.isIntersecting)return;animate(e.target,0);obs.unobserve(e.target);});
+    },{threshold:0.2});
+    els.forEach(el=>{if(!_CU_SEEN.has(el))obs.observe(el);});
+  }
+}
+
 function renderTeam(){
   // ── Player mode: hide other players, show team averages + own card ─────────
   if(curPlayer){
@@ -2750,14 +2793,15 @@ function renderPlayer(){
   let perfBarHtml='';
   if(_plSess.length){
     const avgD=_avg('distance'),maxSp=_max('maxSprint'),avgHI=_avg('hiInt'),avgAcc=_avg('acc');
+    const _prev2=_plSess.length>1?_plSess[_plSess.length-2]:null;
     const items=[];
-    if(avgD>0)items.push({val:avgD.toFixed(1)+' KM',lbl:'DISTANZ'});
-    if(maxSp>0)items.push({val:maxSp.toFixed(1)+' KM/H',lbl:'MAX SPEED'});
-    if(avgHI>0)items.push({val:Math.round(avgHI)+' M',lbl:'HI-INT'});
-    if(avgAcc>0)items.push({val:Math.round(avgAcc)+'',lbl:'BESCHL.'});
+    if(avgD>0)items.push({num:avgD,from:_prev2?parseFloat(_prev2.distance||0):0,dec:1,unit:'KM',lbl:'DISTANZ'});
+    if(maxSp>0)items.push({num:maxSp,from:_prev2?parseFloat(_prev2.maxSprint||0):0,dec:1,unit:'KM/H',lbl:'MAX SPEED'});
+    if(avgHI>0)items.push({num:Math.round(avgHI),from:_prev2?Math.round(parseFloat(_prev2.hiInt||0)):0,dec:0,unit:'M',lbl:'HI-INT'});
+    if(avgAcc>0)items.push({num:Math.round(avgAcc),from:_prev2?Math.round(parseFloat(_prev2.acc||0)):0,dec:0,unit:'',lbl:'BESCHL.'});
     if(items.length){
-      perfBarHtml='<div class="ph-perf-bar">'+items.map(it=>
-        `<div class="ph-perf-item"><div class="ph-perf-val">${it.val}</div><div class="ph-perf-lbl">${it.lbl}</div></div>`
+      perfBarHtml='<div class="ph-perf-bar" id="ph-perf-bar-'+p.id+'">'+items.map(it=>
+        `<div class="ph-perf-item"><div class="ph-perf-val"><span data-cu="${it.from},${it.num},${it.dec}">${it.num.toFixed(it.dec)}</span>${it.unit?' <span class="ph-perf-unit">'+it.unit+'</span>':''}</div><div class="ph-perf-lbl">${it.lbl}</div></div>`
       ).join('')+'</div>';
     }
   }
@@ -2833,7 +2877,8 @@ function renderPlayer(){
       const v=parseFloat(last[m.k]||0);if(!v)return'';
       const d=delta(m.k,m.dec);
       const dHtml=d?`<div class="ls-md" style="color:${d.col}">${d.str}${m.unit?' '+m.unit:''}</div>`:'<div class="ls-md" style="color:rgba(255,255,255,.3)">–</div>';
-      return`<div class="ls-metric"><div class="ls-mv">${v.toFixed(m.dec)}${m.unit?' '+m.unit:''}</div>${dHtml}<div class="ls-ml">${m.lbl}</div></div>`;
+      const fromV=prev?parseFloat(prev[m.k]||0):0;
+      return`<div class="ls-metric"><div class="ls-mv"><span data-cu="${fromV.toFixed(m.dec)},${v.toFixed(m.dec)},${m.dec}">${v.toFixed(m.dec)}</span>${m.unit?' <span style="font-size:11px;opacity:.7">'+m.unit+'</span>':''}</div>${dHtml}<div class="ls-ml">${m.lbl}</div></div>`;
     }).filter(Boolean).join('');
 
     if(metricsHtml){
@@ -2881,6 +2926,18 @@ function renderPlayer(){
     </div>
     <div id="pt-c"></div>`;
   renderPTab('tr',p,ps,gs,col);
+  // Animate hero + last-sess immediately, rest with IntersectionObserver
+  setTimeout(()=>{
+    const hdr=document.getElementById('pl-content');
+    if(!hdr)return;
+    runCountUps(hdr,true);
+    // Set up IntersectionObserver for below-fold sections
+    setTimeout(()=>{
+      const recSec=document.querySelector('.rec-grid');
+      const seaSec=document.querySelector('.season-block');
+      [recSec,seaSec].forEach(sec=>{if(sec)runCountUps(sec,false);});
+    },200);
+  },80);
 }
 function setPT(type,btn,pid){
   if(type!=='st')plStFilter='all';
@@ -3060,9 +3117,12 @@ function renderPlRec(p){
       const last3=[...new Set(vals)].slice(-3);
       if(last3.length>=2)progHtml=`<div class="rec-prog">${last3.map(v=>parseFloat(v).toFixed(m.dec)).join(' → ')}</div>`;
     }
+    const _sortedVals=[...new Set(vals)].map(Number).sort((a,b)=>a-b);
+    const _prevBest=_sortedVals.length>=2?_sortedVals[_sortedVals.length-2]:0;
+    const _isTruePB=_sortedVals.length>=2&&parseFloat(best)>_prevBest;
     recGridHtml+=`<div class="rec-card">
       <div class="rec-metric">${m.lbl}</div>
-      <div class="rec-val">${parseFloat(best).toFixed(m.dec)}<span class="rec-unit">${m.unit}</span></div>
+      <div class="rec-val"><span data-cu="${_prevBest.toFixed(m.dec)},${parseFloat(best).toFixed(m.dec)},${m.dec}" ${_isTruePB?'data-cu-pb="1"':''}>${parseFloat(best).toFixed(m.dec)}</span><span class="rec-unit">${m.unit}</span></div>
       <div class="rec-pb">PERSONAL BEST</div>
       ${rd?`<div class="rec-date">${fmtD(rd)}</div>`:''}
       ${progHtml}
@@ -3113,22 +3173,22 @@ function renderPlRec(p){
   const bestSprint=totMax('maxSprint');
 
   const seasonItems=[
-    ['Gesamt-Distanz',totDist.toFixed(1)+' km'],
-    ['Hi-Int. gesamt',Math.round(totHI)+' m'],
-    ['Bester Sprint',bestSprint.toFixed(1)+' km/h'],
-    ['Beschleunigungen',Math.round(totAcc)+''],
-    ['Abbremsungen',Math.round(totDec)+''],
-    ['Pässe gesamt',Math.round(totPas)+''],
-    ['Aktivzeit',Math.round(totActMin)+' min'],
-    ['Zeit am Ball',Math.round(totBallMin)+' min'],
-    ['Belastung gesamt',Math.round(totLoad)+''],
-    ['Schüsse',Math.round(totShots)+''],
-    ['Trainingseinheiten',totSess+''],
-    ['Ø Distanz / Einheit',(totSess?totDist/totSess:0).toFixed(1)+' km'],
+    ['DISTANZ',totDist.toFixed(1)+' km',totDist,1],
+    ['HI-INTENSITÄT',Math.round(totHI)+' m',Math.round(totHI),0],
+    ['BEST. SPRINT',bestSprint.toFixed(1)+' km/h',bestSprint,1],
+    ['BESCHLEUNIG.',Math.round(totAcc)+'',Math.round(totAcc),0],
+    ['ABBREMSUNGEN',Math.round(totDec)+'',Math.round(totDec),0],
+    ['PÄSSE',Math.round(totPas)+'',Math.round(totPas),0],
+    ['AKTIVZEIT',Math.round(totActMin)+' min',Math.round(totActMin),0],
+    ['ZEIT AM BALL',Math.round(totBallMin)+' min',Math.round(totBallMin),0],
+    ['BELASTUNG',Math.round(totLoad)+'',Math.round(totLoad),0],
+    ['SCHÜSSE',Math.round(totShots)+'',Math.round(totShots),0],
+    ['EINHEITEN',totSess+'',totSess,0],
+    ['Ø KM / EINHEIT',(totSess?totDist/totSess:0).toFixed(1)+' km',(totSess?totDist/totSess:0),1],
   ];
   const totalsHtml='<div class="season-block"><div class="season-hdr">SAISON-GESAMTWERTE</div>'
     +'<div class="season-grid">'
-    +seasonItems.map(([l,v])=>`<div class="season-item"><div class="season-val">${v}</div><div class="season-lbl">${l}</div></div>`).join('')
+    +seasonItems.map(([l,v,n,d])=>`<div class="season-item"><div class="season-val">${n!==undefined?'<span data-cu="0,'+n+','+d+'" style="display:inline">'+v+'</span>':v}</div><div class="season-lbl">${l}</div></div>`).join('')
     +'</div></div>';
 
   el.innerHTML=attStreakHtml;

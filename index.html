@@ -2115,7 +2115,7 @@ function runCountUps(container,immediate){
     _CU_SEEN.add(el);
     const parts=el.dataset.cu.split(',');
     const from=parseFloat(parts[0]),to=parseFloat(parts[1]),dec=parseInt(parts[2]||0);
-    const dur=_prefersReduced?0:Math.max(500,Math.min(900,300+Math.abs(to-from)*30));
+    const dur=_prefersReduced?0:Math.max(800,Math.min(1400,600+Math.abs(to-from)*30));
     countUp(el,from,to,dec,dur,(immediate?i*70:0));
     // PB special: subtle green flash after count completes
     if(el.dataset.cuPb&&!_prefersReduced){
@@ -3105,7 +3105,7 @@ function renderPChts(p,entries,col){
   const el=document.getElementById('ch-pr');if(!el)return;
   const rL=['Distanz','Hi-Int.','Sprint','Beschl.','Abbrems.','Pässe','Am Ball'],rK=['distance','hiInt','maxSprint','acc','dec','passes','ballMin'];
   const mxV=rK.map(k=>Math.max(...[...D.sessions,...D.games].map(s=>parseFloat(s[k]||0)),1));
-  CHS['ch-pr']=new Chart(el,{type:'radar',data:{labels:rL,datasets:[{data:rK.map((k,i)=>entries.length?(avg(entries,k)/mxV[i]*100):0),borderColor:col,backgroundColor:col+'18',pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:100,ticks:{display:false,stepSize:25},grid:{color:'rgba(0,0,0,.06)',circular:false},pointLabels:{font:{size:9,weight:'600'},color:'#64748b'}}},plugins:{legend:{display:false}}}});
+  CHS['ch-pr']=new Chart(el,{type:'radar',data:{labels:rL,datasets:[{data:rK.map((k,i)=>entries.length?(avg(entries,k)/mxV[i]*100):0),borderColor:col,backgroundColor:col+'18',pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:100,ticks:{display:false,stepSize:25},grid:{color:'rgba(0,0,0,.18)',lineWidth:1.5,circular:false},pointLabels:{font:{size:9,weight:'600'},color:'#64748b'}}},plugins:{legend:{display:false}}}});
 }
 
 // ── PLAYER SEASON STATS TAB ───────────────────────────────────────────────────

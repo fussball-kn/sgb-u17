@@ -1009,20 +1009,14 @@ function chkPlayerPin(){
 
 function playerMode(p){
   curPlayer=p;isTr=false;isSL=false;isEltern=false;aPl=p.id;
-  // Nav: hide Training, Spiele, Statistiken (keep Vergleich for team avg)
-  ['sessions','games-ov','stats-ov'].forEach(id=>{
-    const btn=document.querySelector('.nb[onclick*=\''+id+'\']');
-    if(btn)btn.style.display='none';
-  });
-  const cmpBtn=document.querySelector('.nb[onclick*=\'vergleich\']');
-  if(cmpBtn)cmpBtn.style.display='';
+  // Hide all nav buttons, show only player-mode pair
+  document.querySelectorAll('.nb').forEach(b=>b.style.display='none');
+  document.getElementById('nb-deine').style.display='';
+  document.getElementById('nb-plteam').style.display='';
   document.getElementById('mode-b').className='mb pl';
   document.getElementById('mode-b').textContent='👤 '+p.name;
   document.getElementById('tr-ctrl').style.display='none';
-  document.getElementById('nb-pl').style.display='flex';
-  document.getElementById('nb-saison').style.display='';
-  document.getElementById('nb-rekorde').style.display='';
-  sp('player'); // go straight to their player page
+  sp('player');
 }
 function togTr(){if(isTr||isSL||curPlayer){if(curPlayer){curPlayer=null;viewMode();return;}isTr=false;isSL=false;viewMode();}else{document.getElementById('pin-in').value='';document.getElementById('pin-err').textContent='';showPin();}}
 function doChgPin(){

@@ -2912,20 +2912,20 @@ function renderPlayer(){
   const _avg=k=>_plSess.length?(_plSess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_plSess.length):0;
   const _max=k=>_plSess.length?Math.max(..._plSess.map(s=>parseFloat(s[k]||0))):0;
 
-  // Hero performance bar – 4 fixed KPIs
+  // Hero performance bar – 5 fixed KPIs
   const _avgDist=_plSess.length?_avg('distance'):null;
   const _avgSpeed=_plSess.length?_avg('maxSprint'):null;
-  const _avgPasses=_plSess.length?_avg('passes'):null;
-  const _avgShots=_plSess.length?_avg('shots'):null;
   const _allTDs=(D.trainingDays||[]);
   const _attPct=_allTDs.length?Math.round(_allTDs.filter(td=>(td.present||[]).includes(p.id)).length/_allTDs.length*100):null;
-  const _ballC=(_avgPasses!==null||_avgShots!==null)?Math.round((_avgPasses||0)+(_avgShots||0)):null;
-  const _kpi=(valHtml,lbl,sub)=>`<div class="ph-perf-item"><div class="ph-perf-val">${valHtml}</div><div class="ph-perf-lbl">${lbl}</div>${sub?`<div class="ph-perf-sub">${sub}</div>`:''}</div>`;
+  const _offMins=(D.matchReports||[]).filter(mr=>(mr.gameType||'official')!=='friendly').reduce((sum,mr)=>{const m=computePMS(p.id,mr);return sum+(m!=null?m.minutes||0:0);},0);
+  const _friMins=(D.matchReports||[]).filter(mr=>mr.gameType==='friendly').reduce((sum,mr)=>{const m=computePMS(p.id,mr);return sum+(m!=null?m.minutes||0:0);},0);
+  const _kpi=(valHtml,lbl)=>`<div class="ph-perf-item"><div class="ph-perf-val">${valHtml}</div><div class="ph-perf-lbl">${lbl}</div></div>`;
   const perfBarHtml='<div class="ph-perf-bar" id="ph-perf-bar-'+p.id+'">'
     +_kpi(_avgDist!==null?`<span data-cu="0,${_avgDist.toFixed(1)},1">${_avgDist.toFixed(1)}</span> <span class="ph-perf-unit">KM</span>`:'<span>–</span>','Ø DISTANZ')
     +_kpi(_avgSpeed!==null?`<span data-cu="0,${_avgSpeed.toFixed(1)},1">${_avgSpeed.toFixed(1)}</span> <span class="ph-perf-unit">KM/H</span>`:'<span>–</span>','Ø TOP SPEED')
     +_kpi(_attPct!==null?`<span data-cu="0,${_attPct},0">${_attPct}</span> <span class="ph-perf-unit">%</span>`:'<span>–</span>','ANWESENHEIT')
-    +_kpi(_ballC!==null?`<span data-cu="0,${_ballC},0">${_ballC}</span>`:'<span>–</span>','Ø BALLKONTAKTE',_avgPasses!==null||_avgShots!==null?`Pässe ${_avgPasses!==null?_avgPasses.toFixed(0):'–'} · Schüsse ${_avgShots!==null?_avgShots.toFixed(0):'–'}`:'')
+    +_kpi(`<span data-cu="0,${_offMins},0">${_offMins}</span> <span class="ph-perf-unit">MIN</span>`,'PFLICHTSPIELE')
+    +_kpi(`<span data-cu="0,${_friMins},0">${_friMins}</span> <span class="ph-perf-unit">MIN</span>`,'TESTSPIELE')
     +'</div>';
 
   // Compute trScore & label from renderScore logic (without full HTML)
@@ -2962,51 +2962,83 @@ function renderPlayer(){
   if(_plSess.length){
     const last=_plSess[_plSess.length-1];
     const prev=_plSess.length>1?_plSess[_plSess.length-2]:null;
-    const fv=(k,dec)=>{const v=parseFloat(last[k]||0);return v>0?v.toFixed(dec):null;};
     const delta=(k,dec)=>{if(!prev)return null;const lv=parseFloat(last[k]||0),pv=parseFloat(prev[k]||0);if(!lv||!pv)return null;const d=lv-pv;return{d,str:(d>=0?'+':'')+d.toFixed(dec),col:d>0?'#4ade80':d<0?'#f87171':'rgba(255,255,255,.5)'};};
 
-    // Score trend
-    const prevScore=trScore; // simplified: compare last vs prev session distance as proxy for trend
-    let trendHtml='';
-    if(prev){
-      const lastD=parseFloat(last.distance||0),prevD=parseFloat(prev.distance||0);
-      if(lastD>0&&prevD>0){const diff=lastD-prevD;trendHtml=`<span class="ls-trend" style="color:${diff>=0?'#4ade80':'#f87171'}">${diff>=0?'↑':'↓'} ${Math.abs(diff).toFixed(1)} km vs. letzter Einheit</span>`;}
+    // Team avg for THIS specific training date
+    const _sameDateSess=(D.sessions||[]).filter(s=>s.date===last.date&&parseFloat(s.distance||0)>0);
+    const _teamN=_sameDateSess.length;
+    const _teamAvg=k=>{const vals=_sameDateSess.map(s=>parseFloat(s[k]||0)).filter(v=>v>0);return vals.length>=2?vals.reduce((a,b)=>a+b,0)/vals.length:null;};
+
+    // Candidate metrics with diversity groups
+    const _CANDS=[
+      {k:'maxSprint', dec:1, unit:'KM/H', lbl:'MAX SPEED',    grp:'speed'},
+      {k:'distance',  dec:1, unit:'KM',   lbl:'DISTANZ',      grp:'volume'},
+      {k:'hiInt',     dec:0, unit:'M',    lbl:'HI-INTENSITÄT',grp:'intensity'},
+      {k:'acc',       dec:0, unit:'',     lbl:'BESCHL.',      grp:'athletic'},
+      {k:'dec',       dec:0, unit:'',     lbl:'ABBREMS.',     grp:'athletic'},
+      {k:'passes',    dec:0, unit:'',     lbl:'PÄSSE',        grp:'technical'},
+      {k:'shots',     dec:0, unit:'',     lbl:'SCHÜSSE',      grp:'technical'},
+      {k:'activeMin', dec:0, unit:'MIN',  lbl:'AKTIVZEIT',    grp:'volume'},
+      {k:'load',      dec:0, unit:'',     lbl:'BELASTUNG',    grp:'intensity'},
+    ];
+
+    // Score each by relative deviation from team avg
+    const _scored=_CANDS.map(m=>{
+      const v=parseFloat(last[m.k]||0);if(!v)return null;
+      const ta=_teamAvg(m.k);
+      const relDev=ta!=null?((v-ta)/ta*100):0;
+      return{...m,v,ta,relDev};
+    }).filter(Boolean);
+
+    // Select 4 with group diversity: one best per group first, then fill
+    const _selected=[];const _usedGrps=new Set();
+    const _byGrp={};
+    _scored.forEach(m=>{if(!_byGrp[m.grp]||m.relDev>_byGrp[m.grp].relDev)_byGrp[m.grp]=m;});
+    Object.values(_byGrp).sort((a,b)=>b.relDev-a.relDev).forEach(m=>{if(_selected.length<4&&!_usedGrps.has(m.grp)){_selected.push(m);_usedGrps.add(m.grp);}});
+    _scored.filter(m=>!_selected.includes(m)).sort((a,b)=>b.relDev-a.relDev).forEach(m=>{if(_selected.length<4)_selected.push(m);});
+
+    // Dynamic greeting based on team comparison
+    const fname=p.name.split(' ')[0].toUpperCase();
+    const _aboveCnt=_scored.filter(m=>m.relDev>5).length;
+    const _tot=_scored.length;
+    let _greeting,_subline;
+    if(_teamN>=2){
+      if(_aboveCnt>=Math.ceil(_tot*0.6)){_greeting=`STARKE EINHEIT, ${fname}.`;_subline='Mehrere deiner Werte lagen über dem Teamdurchschnitt.';}
+      else if(_aboveCnt>=Math.ceil(_tot*0.3)){_greeting=`SOLIDE EINHEIT, ${fname}.`;_subline='Das waren heute deine stärksten Bereiche.';}
+      else{_greeting=`DRANBLEIBEN, ${fname}.`;_subline='Nicht jeder Wert lag auf gewohntem Niveau – das waren deine stärksten Bereiche.';}
+    } else {
+      _greeting=trScore>=80?`STARKE EINHEIT, ${fname}.`:trScore>=65?`GUTE EINHEIT, ${fname}.`:`SOLIDE EINHEIT, ${fname}.`;
+      _subline='';
     }
 
-    // Check personal best in last session
-    const MKEYS=[{k:'maxSprint',dec:1},{k:'distance',dec:2},{k:'acc',dec:0},{k:'hiInt',dec:0}];
+    // Personal best check
     let hasPB=false;
-    MKEYS.forEach(m=>{
-      const lv=parseFloat(last[m.k]||0);
-      if(!lv)return;
-      const allVals=_plSess.slice(0,-1).map(s=>parseFloat(s[m.k]||0)).filter(v=>v>0);
-      if(allVals.length>=2&&lv>Math.max(...allVals))hasPB=true;
-    });
+    [{k:'maxSprint'},{k:'distance'},{k:'acc'},{k:'hiInt'}].forEach(({k})=>{const lv=parseFloat(last[k]||0);if(!lv)return;const allVals=_plSess.slice(0,-1).map(s=>parseFloat(s[k]||0)).filter(v=>v>0);if(allVals.length>=2&&lv>Math.max(...allVals))hasPB=true;});
     const pbBadge=hasPB&&_plSess.length>=3?'<div class="ls-pb-badge">🏆 NEUER PERSONAL BEST</div>':'';
 
-    // Personalized greeting
-    const fname=p.name.split(' ')[0].toUpperCase();
-    const greeting=trScore>=80?`STARKE EINHEIT, ${fname}.`:trScore>=65?`GUTE EINHEIT, ${fname}.`:`SOLIDE EINHEIT, ${fname}.`;
+    // Score trend
+    let trendHtml='';
+    if(prev){const lastD=parseFloat(last.distance||0),prevD=parseFloat(prev.distance||0);if(lastD>0&&prevD>0){const diff=lastD-prevD;trendHtml=`<span class="ls-trend" style="color:${diff>=0?'#4ade80':'#f87171'}">${diff>=0?'↑':'↓'} ${Math.abs(diff).toFixed(1)} km vs. letzter Einheit</span>`;}}
 
-    // 4 core metrics with delta
-    const metrics=[
-      {k:'maxSprint',dec:1,unit:'KM/H',lbl:'MAX SPEED'},
-      {k:'distance',dec:1,unit:'KM',lbl:'DISTANZ'},
-      {k:'acc',dec:0,unit:'',lbl:'BESCHL.'},
-      {k:'hiInt',dec:0,unit:'M',lbl:'HI-INT'},
-    ];
-    const metricsHtml=metrics.map(m=>{
-      const v=parseFloat(last[m.k]||0);if(!v)return'';
-      const d=delta(m.k,m.dec);
-      const dHtml=d?`<div class="ls-md" style="color:${d.col}">${d.str}${m.unit?' '+m.unit:''}</div>`:'<div class="ls-md" style="color:rgba(255,255,255,.3)">–</div>';
+    // Build metric cards
+    const metricsHtml=_selected.map(m=>{
       const fromV=prev?parseFloat(prev[m.k]||0):0;
-      return`<div class="ls-metric"><div class="ls-mv"><span data-cu="${fromV.toFixed(m.dec)},${v.toFixed(m.dec)},${m.dec}">${v.toFixed(m.dec)}</span>${m.unit?' <span style="font-size:11px;opacity:.7">'+m.unit+'</span>':''}</div>${dHtml}<div class="ls-ml">${m.lbl}</div></div>`;
-    }).filter(Boolean).join('');
+      const d=delta(m.k,m.dec);
+      const dHtml=d?`<div class="ls-md" style="color:${d.col};font-size:9px;margin-top:2px">${d.str}${m.unit?' '+m.unit:''} <span style="color:rgba(255,255,255,.3)">zur letzten Einheit</span></div>`:'';
+      const teamHtml=(()=>{if(m.ta==null)return _teamN<2?`<div style="font-size:7px;color:rgba(255,255,255,.25);margin-top:2px">Zu wenig Teamdaten</div>`:'';const pct=Math.round(m.relDev);const sign=pct>=0?'+':'';const col=pct>5?'#4ade80':pct>-5?'rgba(255,255,255,.45)':'#f87171';return`<div style="font-size:9px;font-weight:700;color:${col};margin-top:2px">${sign}${pct}% <span style="color:rgba(255,255,255,.3);font-weight:400">vs. Team-Ø</span></div>`;})();
+      return`<div class="ls-metric">
+        <div class="ls-mv"><span data-cu="${fromV.toFixed(m.dec)},${m.v.toFixed(m.dec)},${m.dec}">${m.v.toFixed(m.dec)}</span>${m.unit?' <span style="font-size:11px;opacity:.7">'+m.unit+'</span>':''}</div>
+        <div class="ls-ml">${m.lbl}</div>
+        ${teamHtml}
+        ${dHtml}
+      </div>`;
+    }).join('');
 
     if(metricsHtml){
       lastSessHtml=`<div class="last-sess">
         <div class="ls-label">LETZTE EINHEIT · ${fmtD(last.date)}</div>
-        <div class="ls-title">${greeting}</div>
+        <div class="ls-title">${_greeting}</div>
+        ${_subline?`<div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:3px">${_subline}</div>`:''}
         ${pbBadge}
         ${trendHtml?`<div style="margin-top:4px">${trendHtml}</div>`:''}
         <div class="ls-metrics">${metricsHtml}</div>
@@ -3098,7 +3130,7 @@ function renderPTab(type,p,ps,gs,col){
       <div class="card"><div class="cv">Ø Hi-Intensität</div><div class="cn">${avgHI} <small style="font-size:10px">m</small></div></div>
       <div class="card"><div class="cv">Ø Beschleunigungen</div><div class="cn">${avgAcc}</div></div>
       <div class="card"><div class="cv">Ø Abbremsungen</div><div class="cn">${avgDec}</div></div>
-      <div class="card"><div class="cv">Ø Pässe</div><div class="cn">${entries.length?avg(entries,'passes').toFixed(0):'–'}</div></div>
+      <div class="card"><div class="cv">Ø Ballkontakte</div><div class="cn">${entries.length?Math.round(avg(entries,'passes')+(avg(entries,'shots')||0)):'–'}</div><div class="cs" style="font-size:9px">Pässe ${entries.length?avg(entries,'passes').toFixed(0):'–'} · Schüsse ${entries.length?avg(entries,'shots').toFixed(0):'–'}</div></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
       <div class="card" style="grid-column:1/-1"><div class="cv" style="margin-bottom:6px">Score-Verlauf (wöchentlich)</div><div style="display:flex;gap:14px;margin-bottom:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em"><span style="color:#1a6a35">&#9644; Trainingsscore</span><span style="color:#1d4ed8">&#9644; Gesamtscore</span></div><div class="chrt" style="height:180px"><canvas id="ch-score-trend"></canvas></div></div>

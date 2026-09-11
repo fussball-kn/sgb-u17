@@ -360,6 +360,43 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
 .level-bar { height:4px; background:var(--brd2); border-radius:2px; overflow:hidden; margin-bottom:2px; }
 .level-bar-fill { height:100%; border-radius:2px; }
 .level-next { font-size:9px; color:var(--muted); }
+
+/* ── TRAINER COCKPIT ─────────────────────────────── */
+.trainer-cockpit-hero {
+  background: var(--dk);
+  border-radius: var(--rad-lg);
+  padding: 20px 24px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255,255,255,.06);
+  box-shadow: var(--shd-lg);
+}
+.tc-hero-inner { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px; }
+.tc-hero-title {}
+.tc-hero-club { font-family:var(--fd);font-size:22px;font-weight:800;color:#fff;letter-spacing:.08em;text-transform:uppercase; }
+.tc-hero-season { font-size:10px;color:#5a6a7a;letter-spacing:.12em;text-transform:uppercase;margin-top:2px; }
+.tc-kpi-bar { display:flex;align-items:center;gap:0;flex-wrap:wrap; }
+.tc-kpi { text-align:center;padding:0 20px; }
+.tc-kpi-val { font-family:var(--fd);font-size:28px;font-weight:800;color:#fff;line-height:1; }
+.tc-kpi-lbl { font-size:9px;color:#6a7a8a;text-transform:uppercase;letter-spacing:.08em;margin-top:3px; }
+.tc-kpi-sep { width:1px;height:36px;background:rgba(255,255,255,.1); }
+.tc-section-hdr { font-family:var(--fd);font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--txt);margin-bottom:8px;margin-top:4px; }
+.tc-grid-2col { display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px; }
+@media(max-width:800px){.tc-grid-2col{grid-template-columns:1fr;}.tc-kpi-bar{gap:4px;}.tc-kpi{padding:0 10px;}}
+.tc-insight { display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--brd2);font-size:12px; }
+.tc-insight:last-child { border-bottom:none; }
+.tc-insight-icon { font-size:14px;flex-shrink:0; }
+.tc-le-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:10px; }
+@media(max-width:600px){.tc-le-grid{grid-template-columns:repeat(2,1fr);}}
+.tc-le-item { text-align:center; }
+.tc-le-val { font-family:var(--fd);font-size:22px;font-weight:800;color:var(--txt);line-height:1; }
+.tc-le-lbl { font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px; }
+.tc-fokus-card:hover { border-color:var(--grn);box-shadow:0 2px 8px rgba(26,106,53,.1); }
+.tc-fokus-num { font-family:var(--fd);font-size:28px;font-weight:800;color:var(--grn);line-height:1;min-width:36px;text-align:center; }
+.tc-charts-row { display:grid;grid-template-columns:repeat(3,1fr);gap:12px; }
+@media(max-width:900px){.tc-charts-row{grid-template-columns:1fr;}}
+.tc-chart-card { padding:12px 14px; }
+.tc-chart-title { font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px; }
+.tc-matrix th,.tc-matrix td { font-size:12px; }
 </style>
 
 <!-- PIN SCREEN -->
@@ -556,6 +593,7 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
 
 <!-- TEAM PAGE -->
 <div id="page-team" class="page active">
+  <div id="trainer-cockpit" class="trainer-only" style="display:none"></div>
   <div class="sh"><div class="stt">Team-Übersicht</div><div style="display:flex;gap:4px"><span class="bdg bdg-g" id="t-sc">0 Trainings</span><span class="bdg bdg-o" id="t-gc">0 Spiele</span></div></div>
   <div class="tabs">
     <button class="tab active" onclick="setTT('tr',this)">Training</button>
@@ -2163,7 +2201,310 @@ function runCountUps(container,immediate){
   }
 }
 
+
+// ── TRAINER COCKPIT ──────────────────────────────────
+
+function _tcAvg(arr){return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0;}
+
+function renderTrainerCockpit(){
+  const el=document.getElementById('trainer-cockpit');
+  if(!el)return;
+  el.style.display='';
+
+  // ── A: Compute KPIs ──
+  const totDays=D.trainingDays.length;
+  let teamAtt=0;
+  if(totDays>0&&D.players.length>0){
+    const presences=D.players.map(p=>D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length);
+    teamAtt=Math.round(_tcAvg(presences)/totDays*100);
+  }
+  const allDist=D.sessions.filter(s=>parseFloat(s.distance||0)>0).map(s=>parseFloat(s.distance));
+  const avgDist=_tcAvg(allDist);
+  const allSpd=D.sessions.filter(s=>parseFloat(s.maxSprint||0)>0).map(s=>parseFloat(s.maxSprint));
+  const avgSpd=_tcAvg(allSpd);
+  const gameCount=D.matchReports?D.matchReports.length:0;
+  const playerScores=D.players.map(p=>{
+    const sess=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0).slice(-5);
+    if(!sess.length)return null;
+    const sc=Math.min(100,Math.round(
+      _tcAvg(sess.map(s=>parseFloat(s.distance||0)))/10*0.4+
+      _tcAvg(sess.map(s=>parseFloat(s.maxSprint||0)))/3*0.3+
+      _tcAvg(sess.map(s=>parseFloat(s.hiInt||0)))*2*0.3
+    ));
+    return sc;
+  }).filter(x=>x!==null);
+  const teamScore=Math.round(_tcAvg(playerScores));
+
+  // ── B: Fokus insights ──
+  const insights=[];
+  if(totDays>0){
+    const lowAtt=D.players.filter(p=>{
+      const att=D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length/totDays*100;
+      return att<75&&att>0;
+    });
+    if(lowAtt.length)insights.push({icon:'📋',text:lowAtt.map(p=>p.name.split(' ')[0]).join(', ')+' unter 75% Anwesenheit'});
+  }
+  const dateMap={};
+  D.sessions.filter(s=>parseFloat(s.distance||0)>0).forEach(s=>{
+    if(!dateMap[s.date])dateMap[s.date]=[];
+    dateMap[s.date].push(parseFloat(s.distance));
+  });
+  const dates=Object.keys(dateMap).sort();
+  if(dates.length>=6){
+    const last3=_tcAvg(dates.slice(-3).map(d=>_tcAvg(dateMap[d])));
+    const prev3=_tcAvg(dates.slice(-6,-3).map(d=>_tcAvg(dateMap[d])));
+    const diff=Math.round((last3-prev3)/prev3*100);
+    insights.push({icon:'📈',text:'Teamdistanz letzte 3 Einheiten: '+(diff>0?'+':'')+diff+'% vs. vorherige 3'});
+  }
+  const belowAvg=D.players.filter(p=>{
+    const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
+    if(all.length<4)return false;
+    const seasonAvg=_tcAvg(all.map(s=>parseFloat(s.distance)));
+    const recentAvg=_tcAvg(all.slice(-3).map(s=>parseFloat(s.distance)));
+    return recentAvg<seasonAvg*0.85;
+  });
+  if(belowAvg.length)insights.push({icon:'⚡',text:belowAvg.map(p=>p.name.split(' ')[0]).join(', ')+': Distanz deutlich unter Saison-Ø'});
+  const pbs=D.players.filter(p=>{
+    const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.maxSprint||0)>0);
+    if(all.length<2)return false;
+    const maxAll=Math.max(...all.slice(0,-1).map(s=>parseFloat(s.maxSprint)));
+    const last=parseFloat(all[all.length-1].maxSprint||0);
+    return last>maxAll;
+  });
+  if(pbs.length)insights.push({icon:'🏅',text:'Neue Sprintbestleistung: '+pbs.map(p=>p.name.split(' ')[0]).join(', ')});
+  if(D.matchReports&&D.matchReports.length>0){
+    const totalMr=D.matchReports.filter(mr=>mr.matchDuration>0);
+    if(totalMr.length>0){
+      const lowMin=D.players.filter(p=>{
+        const mins=totalMr.reduce((sum,mr)=>{
+          const ev=mr.events||[];
+          let m=0;
+          if((mr.starters||[]).includes(p.id)){
+            const subOut=ev.find(e=>e.type==='sub'&&e.off===p.id);
+            m=subOut?parseInt(subOut.min||mr.matchDuration):mr.matchDuration;
+          } else {
+            const subIn=ev.find(e=>e.type==='sub'&&e.on===p.id);
+            if(subIn){const subOut2=ev.find(e=>e.type==='sub'&&e.off===p.id&&parseInt(e.min)>parseInt(subIn.min));m=subOut2?parseInt(subOut2.min)-parseInt(subIn.min):mr.matchDuration-parseInt(subIn.min||0);}
+          }
+          return sum+m;
+        },0);
+        return mins<totalMr.length*20;
+      });
+      if(lowMin.length)insights.push({icon:'⏱',text:'Geringe Spielminuten: '+lowMin.slice(0,3).map(p=>p.name.split(' ')[0]).join(', ')});
+    }
+  }
+
+  // ── C: Letzte Einheit ──
+  function chg(cur,prev){if(!prev)return '';const d=Math.round((cur-prev)/Math.max(prev,0.001)*100);return '<span style="color:'+(Math.abs(d)<5?'var(--txt3)':'var(--txt2)')+'"> ('+(d>0?'+':'')+d+'%)</span>';}
+  const lastTD=D.trainingDays.length?[...D.trainingDays].sort((a,b)=>a.date.localeCompare(b.date)).pop():null;
+  const teilnehmer=lastTD?(lastTD.present||[]).length:0;
+  function sessAvg(sessArr,key){return _tcAvg(sessArr.filter(s=>parseFloat(s[key]||0)>0).map(s=>parseFloat(s[key])));}
+  const lastSessAll=D.sessions.filter(s=>s.date===dates[dates.length-1]);
+  const prevSessAll=D.sessions.filter(s=>s.date===dates[dates.length-2]);
+  const lDist=sessAvg(lastSessAll,'distance'),pDist=sessAvg(prevSessAll,'distance');
+  const lSpd=sessAvg(lastSessAll,'maxSprint'),pSpd=sessAvg(prevSessAll,'maxSprint');
+  const lHi=sessAvg(lastSessAll,'hiInt'),pHi=sessAvg(prevSessAll,'hiInt');
+  const lAcc=sessAvg(lastSessAll,'acc'),pAcc=sessAvg(prevSessAll,'acc');
+  const lLoad=sessAvg(lastSessAll,'load'),pLoad=sessAvg(prevSessAll,'load');
+
+  // ── F: Team-Trends chart data ──
+  const trendDates=dates.slice(-10);
+  const trendDist=trendDates.map(d=>Math.round(_tcAvg(dateMap[d])*10)/10);
+  const spdMap={};D.sessions.filter(s=>parseFloat(s.maxSprint||0)>0).forEach(s=>{if(!spdMap[s.date])spdMap[s.date]=[];spdMap[s.date].push(parseFloat(s.maxSprint));});
+  const trendSpd=trendDates.map(d=>spdMap[d]?Math.round(_tcAvg(spdMap[d])*10)/10:null);
+  const attMap={};D.trainingDays.forEach(td=>{attMap[td.date]=Math.round((td.present||[]).length/Math.max(D.players.length,1)*100);});
+  const trendAtt=trendDates.map(d=>attMap[d]||null);
+
+  el.innerHTML=
+  '<div class="trainer-cockpit-hero">'
+  +'<div class="tc-hero-inner">'
+  +'<div class="tc-hero-title">'
+  +'<div class="tc-hero-club">SG BORNIM U17</div>'
+  +'<div class="tc-hero-season">SAISON '+(new Date().getFullYear()-1)+'/'+new Date().getFullYear().toString().slice(-2)+'</div>'
+  +'</div>'
+  +'<div class="tc-kpi-bar">'
+  +'<div class="tc-kpi"><div class="tc-kpi-val">'+teamAtt+'%</div><div class="tc-kpi-lbl">Anwesenheit</div></div>'
+  +'<div class="tc-kpi-sep"></div>'
+  +'<div class="tc-kpi"><div class="tc-kpi-val">'+(avgDist?avgDist.toFixed(1):'–')+'</div><div class="tc-kpi-lbl">Ø Distanz km</div></div>'
+  +'<div class="tc-kpi-sep"></div>'
+  +'<div class="tc-kpi"><div class="tc-kpi-val">'+(avgSpd?avgSpd.toFixed(1):'–')+'</div><div class="tc-kpi-lbl">Ø Top Speed</div></div>'
+  +'<div class="tc-kpi-sep"></div>'
+  +'<div class="tc-kpi"><div class="tc-kpi-val">'+(teamScore||'–')+'</div><div class="tc-kpi-lbl">Mannschaftsscore</div></div>'
+  +'<div class="tc-kpi-sep"></div>'
+  +'<div class="tc-kpi"><div class="tc-kpi-val">'+gameCount+'</div><div class="tc-kpi-lbl">Spiele</div></div>'
+  +'</div>'
+  +'</div>'
+  +'</div>'
+
+  +'<div class="tc-grid-2col">'
+  +'<div>'
+  +'<div class="tc-section-hdr">TRAINER-FOKUS</div>'
+  +'<div class="card" style="margin-bottom:12px">'
+  +(insights.length?insights.map(i=>'<div class="tc-insight"><span class="tc-insight-icon">'+i.icon+'</span><span>'+i.text+'</span></div>').join(''):'<div style="color:var(--txt3);font-size:12px;padding:4px 0">Keine Auffälligkeiten – alle Kennwerte im Normalbereich.</div>')
+  +'</div>'
+
+  +'<div class="tc-section-hdr">LETZTE EINHEIT'+(dates.length?' – '+dates[dates.length-1]:'')+'</div>'
+  +'<div class="card" style="margin-bottom:12px">'
+  +'<div class="tc-le-grid">'
+  +'<div class="tc-le-item"><div class="tc-le-val">'+teilnehmer+'</div><div class="tc-le-lbl">Teilnehmer</div></div>'
+  +'<div class="tc-le-item"><div class="tc-le-val">'+(lDist?lDist.toFixed(1):'–')+chg(lDist,pDist)+'</div><div class="tc-le-lbl">Ø Distanz km</div></div>'
+  +'<div class="tc-le-item"><div class="tc-le-val">'+(lSpd?lSpd.toFixed(1):'–')+chg(lSpd,pSpd)+'</div><div class="tc-le-lbl">Ø Top Speed</div></div>'
+  +'<div class="tc-le-item"><div class="tc-le-val">'+(lHi?Math.round(lHi):'–')+chg(lHi,pHi)+'</div><div class="tc-le-lbl">Ø Hi-Int</div></div>'
+  +'<div class="tc-le-item"><div class="tc-le-val">'+(lAcc?Math.round(lAcc):'–')+chg(lAcc,pAcc)+'</div><div class="tc-le-lbl">Ø Beschl.</div></div>'
+  +'<div class="tc-le-item"><div class="tc-le-val">'+(lLoad?Math.round(lLoad):'–')+chg(lLoad,pLoad)+'</div><div class="tc-le-lbl">Ø Belastung</div></div>'
+  +'</div>'
+  +(!dates.length?'<div style="color:var(--txt3);font-size:12px">Noch keine GPS-Daten vorhanden.</div>':'')
+  +'</div>'
+  +'</div>'
+
+  +'<div>'
+  +'<div class="tc-section-hdr">SPIELER IM FOKUS</div>'
+  +'<div id="tc-fokus-cards" style="margin-bottom:12px">'+renderFokusCards()+'</div>'
+  +'</div>'
+  +'</div>'
+
+  +'<div class="tc-section-hdr" style="display:flex;align-items:center;justify-content:space-between">'
+  +'<span>SPIELER-MATRIX</span>'
+  +'<div style="display:flex;gap:6px;align-items:center">'
+  +'<select id="tc-pos-filter" onchange="renderSpielerMatrix()" style="padding:3px 6px;border-radius:4px;border:1px solid var(--brd);background:var(--sfc);font-size:11px;font-weight:600">'
+  +'<option value="all">Alle</option><option value="TW">TW</option><option value="DEF">DEF</option><option value="MF">MF</option><option value="ST">ST</option>'
+  +'</select>'
+  +'<select id="tc-range-filter" onchange="renderSpielerMatrix()" style="padding:3px 6px;border-radius:4px;border:1px solid var(--brd);background:var(--sfc);font-size:11px;font-weight:600">'
+  +'<option value="1">Letzte 1 Einheit</option><option value="3">Letzte 3 Einheiten</option><option value="5" selected>Letzte 5 Einheiten</option><option value="10">Letzte 10 Einheiten</option><option value="all">Saison</option>'
+  +'</select>'
+  +'</div>'
+  +'</div>'
+  +'<div id="tc-matrix-wrap" style="margin-bottom:14px"></div>'
+
+  +'<div class="tc-section-hdr">TEAM-TRENDS</div>'
+  +'<div class="tc-charts-row" style="margin-bottom:20px">'
+  +'<div class="card tc-chart-card"><div class="tc-chart-title">Ø Distanz (km)</div><canvas id="tc-chart-dist" height="120"></canvas></div>'
+  +'<div class="card tc-chart-card"><div class="tc-chart-title">Ø Top Speed (km/h)</div><canvas id="tc-chart-spd" height="120"></canvas></div>'
+  +'<div class="card tc-chart-card"><div class="tc-chart-title">Anwesenheit (%)</div><canvas id="tc-chart-att" height="120"></canvas></div>'
+  +'</div>';
+
+  renderSpielerMatrix();
+  setTimeout(function(){renderTeamTrends(trendDates,trendDist,trendSpd,trendAtt);},50);
+}
+
+function renderFokusCards(){
+  if(!D.players.length)return '<div style="color:var(--txt3);font-size:12px">Keine Spieler.</div>';
+  const cards=[];
+  D.players.forEach(function(p){
+    const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
+    if(all.length<4)return;
+    const recent=_tcAvg(all.slice(-3).map(s=>parseFloat(s.distance)));
+    const prev=_tcAvg(all.slice(-6,-3).map(s=>parseFloat(s.distance)));
+    if(prev>0){const pct=Math.round((recent-prev)/prev*100);if(pct>=10)cards.push({p:p,type:'improve',text:'+'+pct+'% Distanz (letzte 3 Einh.)',pct:pct});}
+  });
+  const totDays=D.trainingDays.length;
+  if(totDays>0){
+    D.players.forEach(function(p){
+      const att=Math.round(D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length/totDays*100);
+      if(att>=95)cards.push({p:p,type:'att',text:att+'% Anwesenheit – Saison'});
+    });
+  }
+  D.players.forEach(function(p){
+    const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.maxSprint||0)>0);
+    if(all.length<2)return;
+    const maxAll=Math.max.apply(null,all.slice(0,-1).map(s=>parseFloat(s.maxSprint)));
+    const last=parseFloat(all[all.length-1].maxSprint||0);
+    if(last>maxAll)cards.push({p:p,type:'pb',text:'Neuer Sprint-PB: '+last.toFixed(1)+' km/h'});
+  });
+  const shown=cards.slice(0,4);
+  if(!shown.length)return '<div class="card" style="color:var(--txt3);font-size:12px;padding:12px">Noch nicht genug Daten für Spotlight-Karten.</div>';
+  return shown.map(function(c){return(
+    '<div class="card tc-fokus-card" onclick="opPl(\''+c.p.id+'\')" style="cursor:pointer;margin-bottom:8px">'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<div class="tc-fokus-num">'+c.p.number+'</div>'
+    +'<div>'
+    +'<div style="font-weight:700;font-size:13px">'+c.p.name+'</div>'
+    +'<div style="font-size:11px;color:var(--txt3)">'+c.p.pos+' · '+c.text+'</div>'
+    +'</div>'
+    +'<div style="margin-left:auto;color:var(--txt3);font-size:16px">›</div>'
+    +'</div>'
+    +'</div>');
+  }).join('');
+}
+
+let tcMatrixSort={col:'att',dir:-1};
+function renderSpielerMatrix(){
+  const wrap=document.getElementById('tc-matrix-wrap');
+  if(!wrap)return;
+  const posF=(document.getElementById('tc-pos-filter')||{}).value||'all';
+  const rangeV=(document.getElementById('tc-range-filter')||{}).value||'5';
+  const totDays=D.trainingDays.length;
+  let players=D.players.filter(p=>posF==='all'||p.pos===posF);
+  const rows=players.map(function(p){
+    const allSess=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
+    const sess=rangeV==='all'?allSess:allSess.slice(-parseInt(rangeV));
+    const att=totDays>0?Math.round(D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length/totDays*100):0;
+    const dist=sess.length?_tcAvg(sess.map(s=>parseFloat(s.distance))):0;
+    const spd=sess.length?_tcAvg(sess.filter(s=>parseFloat(s.maxSprint||0)>0).map(s=>parseFloat(s.maxSprint))):0;
+    const hi=sess.length?_tcAvg(sess.filter(s=>parseFloat(s.hiInt||0)>0).map(s=>parseFloat(s.hiInt))):0;
+    const ac=sess.length?_tcAvg(sess.filter(s=>parseFloat(s.acc||0)>0).map(s=>parseFloat(s.acc))):0;
+    const score=sess.length?Math.min(100,Math.round(dist/10*0.4+spd/3*0.3+hi*2*0.3)):0;
+    let pmins=0;
+    if(D.matchReports){D.matchReports.forEach(function(mr){pmins+=computePMS(p.id,mr)||0;});}
+    let trend='–';
+    if(allSess.length>=3){
+      const r=parseFloat(allSess[allSess.length-1].distance||0);
+      const pr=_tcAvg(allSess.slice(-3,-1).map(s=>parseFloat(s.distance||0)));
+      const dd=Math.round((r-pr)/Math.max(pr,0.001)*100);
+      trend=dd>5?'↑':dd<-5?'↓':'→';
+    }
+    return {p:p,att:att,dist:dist,spd:spd,hi:hi,ac:ac,score:score,pmins:pmins,trend:trend};
+  });
+  const col=tcMatrixSort.col,dir=tcMatrixSort.dir;
+  const colMap={att:'att',dist:'dist',spd:'spd',hi:'hi',ac:'ac',score:'score',pmins:'pmins'};
+  if(colMap[col]){rows.sort(function(a,b){return (b[colMap[col]]-a[colMap[col]])*dir;});}
+  function th(label,key){const active=tcMatrixSort.col===key;return '<th onclick="tcSort(\''+key+'\')" style="cursor:pointer;white-space:nowrap;'+(active?'color:var(--grn)':'')+'">'+label+(active?(tcMatrixSort.dir===-1?' ↓':' ↑'):'')+'</th>';}
+  wrap.innerHTML='<div style="overflow-x:auto"><table class="tbl tc-matrix">'
+    +'<thead><tr>'
+    +'<th>Spieler</th><th>Pos</th>'
+    +th('Anwesenheit','att')+th('Ø Distanz','dist')+th('Ø Top Speed','spd')+th('Ø Hi-Int','hi')+th('Ø Beschl.','ac')+th('Score','score')+th('Pflichtmin.','pmins')
+    +'<th>Trend</th>'
+    +'</tr></thead>'
+    +'<tbody>'
+    +rows.map(function(r){return(
+      '<tr onclick="opPl(\''+r.p.id+'\')" style="cursor:pointer">'
+      +'<td><strong>#'+r.p.number+' '+r.p.name+'</strong></td>'
+      +'<td><span class="bdg" style="background:var(--dk2);color:var(--txt2);padding:2px 5px;border-radius:3px;font-size:9px">'+(r.p.pos||'–')+'</span></td>'
+      +'<td><span style="color:'+(r.att>=80?'var(--grn)':r.att>=60?'#ca8a04':'var(--red)')+'">'+r.att+'%</span></td>'
+      +'<td>'+(r.dist?r.dist.toFixed(1):'–')+'</td>'
+      +'<td>'+(r.spd?r.spd.toFixed(1):'–')+'</td>'
+      +'<td>'+(r.hi?Math.round(r.hi):'–')+'</td>'
+      +'<td>'+(r.ac?Math.round(r.ac):'–')+'</td>'
+      +'<td><strong>'+(r.score||'–')+'</strong></td>'
+      +'<td>'+(r.pmins||0)+'</td>'
+      +'<td style="font-size:16px;color:'+(r.trend==='↑'?'var(--grn)':r.trend==='↓'?'var(--red)':'var(--txt3)')+'">'+r.trend+'</td>'
+      +'</tr>');
+    }).join('')
+    +(!rows.length?'<tr><td colspan="10" style="text-align:center;color:var(--txt3);padding:20px">Keine Spieler vorhanden.</td></tr>':'')
+    +'</tbody></table></div>';
+}
+
+function tcSort(col){
+  if(tcMatrixSort.col===col){tcMatrixSort.dir*=-1;}else{tcMatrixSort={col:col,dir:-1};}
+  renderSpielerMatrix();
+}
+
+const tcCharts={};
+function renderTeamTrends(dates,dist,spd,att){
+  function mkChart(id,label,data,color){
+    const ctx=document.getElementById(id);if(!ctx)return;
+    if(tcCharts[id]){tcCharts[id].destroy();}
+    tcCharts[id]=new Chart(ctx,{type:'line',data:{labels:dates.map(function(d){return d.slice(5);}),datasets:[{label:label,data:data,borderColor:color,backgroundColor:color+'22',tension:.35,pointRadius:3,fill:true}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9},maxRotation:0},grid:{display:false}},y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.05)'},beginAtZero:false}}}});
+  }
+  mkChart('tc-chart-dist','Distanz',dist,'#1a6a35');
+  mkChart('tc-chart-spd','Top Speed',spd,'#1d4ed8');
+  mkChart('tc-chart-att','Anwesenheit',att,'#c94f18');
+}
+
+// ── END TRAINER COCKPIT ──────────────────────────────
+
 function renderTeam(){
+  if(isTr||isSL) renderTrainerCockpit();
   // ── Player mode: hide other players, show team averages + own card ─────────
   if(curPlayer){
     const p=curPlayer;

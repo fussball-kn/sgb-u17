@@ -2359,10 +2359,6 @@ function renderTrainerCockpit(){
   +(!dates.length?'<div style="color:var(--txt3);font-size:12px">Noch keine GPS-Daten vorhanden.</div>':'')
   +'</div>'
 
-  +'<div>'
-  +'<div class="tc-section-hdr">SPIELER IM FOKUS</div>'
-  +'<div id="tc-fokus-cards" style="margin-bottom:12px">'+renderFokusCards()+'</div>'
-  +'</div>'
   +'</div>'
 
   +'<div class="tc-section-hdr" style="display:flex;align-items:center;justify-content:space-between">'
@@ -2490,9 +2486,13 @@ function renderSpielerMatrix(){
     const spd=sess.length?_tcAvg(sess.filter(s=>parseFloat(s.maxSprint||0)>0).map(s=>parseFloat(s.maxSprint))):0;
     const hi=sess.length?_tcAvg(sess.filter(s=>parseFloat(s.hiInt||0)>0).map(s=>parseFloat(s.hiInt))):0;
     const ac=sess.length?_tcAvg(sess.filter(s=>parseFloat(s.acc||0)>0).map(s=>parseFloat(s.acc))):0;
+    const dc=sess.length?_tcAvg(sess.filter(s=>parseFloat(s.dec||0)>0).map(s=>parseFloat(s.dec))):0;
+    const ball=sess.length?_tcAvg(sess.map(s=>(parseFloat(s.passes||0)+parseFloat(s.shots||0)))):0;
+    const load=sess.length?_tcAvg(sess.filter(s=>parseFloat(s.load||0)>0).map(s=>parseFloat(s.load))):0;
+    const mshot=sess.length?_tcAvg(sess.filter(s=>parseFloat(s.maxShot||0)>0).map(s=>parseFloat(s.maxShot))):0;
     const score=sess.length?Math.min(100,Math.round(dist/10*0.4+spd/3*0.3+hi*2*0.3)):0;
-    let pmins=0;
-    if(D.matchReports){D.matchReports.forEach(function(mr){pmins+=computePMS(p.id,mr)||0;});}
+    let pmins=0,tmins=0;
+    if(D.matchReports){D.matchReports.forEach(function(mr){const m=computePMS(p.id,mr);if(!m)return;if((mr.gameType||'official')!=='friendly')pmins+=m.minutes||0;else tmins+=m.minutes||0;});}
     let trend='–';
     if(allSess.length>=3){
       const r=parseFloat(allSess[allSess.length-1].distance||0);
@@ -2500,34 +2500,39 @@ function renderSpielerMatrix(){
       const dd=Math.round((r-pr)/Math.max(pr,0.001)*100);
       trend=dd>5?'↑':dd<-5?'↓':'→';
     }
-    return {p:p,att:att,dist:dist,spd:spd,hi:hi,ac:ac,score:score,pmins:pmins,trend:trend};
+    return {p:p,att:att,dist:dist,spd:spd,hi:hi,ac:ac,dc:dc,ball:ball,load:load,mshot:mshot,score:score,pmins:pmins,tmins:tmins,trend:trend};
   });
   const col=tcMatrixSort.col,dir=tcMatrixSort.dir;
-  const colMap={att:'att',dist:'dist',spd:'spd',hi:'hi',ac:'ac',score:'score',pmins:'pmins'};
-  if(colMap[col]){rows.sort(function(a,b){return (b[colMap[col]]-a[colMap[col]])*dir;});}
+  const colMap={att:'att',dist:'dist',spd:'spd',hi:'hi',ac:'ac',dec:'dc',ball:'ball',load:'load',mshot:'mshot',score:'score',pmins:'pmins',tmins:'tmins'};
+  const sortKey=colMap[col];if(sortKey){rows.sort(function(a,b){return (b[sortKey]-a[sortKey])*dir;});}
   function th(label,key){const active=tcMatrixSort.col===key;return '<th onclick="tcSort(\''+key+'\')" style="cursor:pointer;white-space:nowrap;'+(active?'color:var(--grn)':'')+'">'+label+(active?(tcMatrixSort.dir===-1?' ↓':' ↑'):'')+'</th>';}
   wrap.innerHTML='<div style="overflow-x:auto"><table class="tbl tc-matrix">'
     +'<thead><tr>'
     +'<th>Spieler</th><th>Pos</th>'
-    +th('Anwesenheit','att')+th('Ø Distanz','dist')+th('Ø Top Speed','spd')+th('Ø Hi-Int','hi')+th('Ø Beschl.','ac')+th('Score','score')+th('Pflichtmin.','pmins')
+    +th('Anwesen.','att')+th('Ø Distanz','dist')+th('Ø Top Spd','spd')+th('Ø Hi-Int','hi')+th('Ø Beschl.','ac')+th('Ø Abbrems.','dec')+th('Ø Ballkt.','ball')+th('Ø Belastg.','load')+th('Ø Schussst.','mshot')+th('Score','score')+'<th>Pflicht<br>Min</th><th>Test<br>Min</th>'
     +'<th>Trend</th>'
     +'</tr></thead>'
     +'<tbody>'
     +rows.map(function(r){return(
       '<tr onclick="opPl(\''+r.p.id+'\')" style="cursor:pointer">'
       +'<td><strong>#'+r.p.number+' '+r.p.name+'</strong></td>'
-      +'<td><span class="bdg" style="background:var(--dk2);color:var(--txt2);padding:2px 5px;border-radius:3px;font-size:9px">'+(r.p.pos||'–')+'</span></td>'
+      +'<td><span style="background:var(--grn);color:#fff;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700">'+(r.p.pos||'–')+'</span></td>'
       +'<td><span style="color:'+(r.att>=80?'var(--grn)':r.att>=60?'#ca8a04':'var(--red)')+'">'+r.att+'%</span></td>'
-      +'<td>'+(r.dist?r.dist.toFixed(1):'–')+'</td>'
-      +'<td>'+(r.spd?r.spd.toFixed(1):'–')+'</td>'
-      +'<td>'+(r.hi?Math.round(r.hi):'–')+'</td>'
+      +'<td>'+(r.dist?r.dist.toFixed(1)+' km':'–')+'</td>'
+      +'<td>'+(r.spd?r.spd.toFixed(1)+' km/h':'–')+'</td>'
+      +'<td>'+(r.hi?Math.round(r.hi)+' m':'–')+'</td>'
       +'<td>'+(r.ac?Math.round(r.ac):'–')+'</td>'
+      +'<td>'+(r.dc?Math.round(r.dc):'–')+'</td>'
+      +'<td>'+(r.ball?Math.round(r.ball):'–')+'</td>'
+      +'<td>'+(r.load?Math.round(r.load):'–')+'</td>'
+      +'<td>'+(r.mshot?r.mshot.toFixed(1)+' km/h':'–')+'</td>'
       +'<td><strong>'+(r.score||'–')+'</strong></td>'
       +'<td>'+(r.pmins||0)+'</td>'
+      +'<td>'+(r.tmins||0)+'</td>'
       +'<td style="font-size:16px;color:'+(r.trend==='↑'?'var(--grn)':r.trend==='↓'?'var(--red)':'var(--txt3)')+'">'+r.trend+'</td>'
       +'</tr>');
     }).join('')
-    +(!rows.length?'<tr><td colspan="10" style="text-align:center;color:var(--txt3);padding:20px">Keine Spieler vorhanden.</td></tr>':'')
+    +(!rows.length?'<tr><td colspan="15" style="text-align:center;color:var(--txt3);padding:20px">Keine Spieler vorhanden.</td></tr>':'')
     +'</tbody></table></div>';
 }
 

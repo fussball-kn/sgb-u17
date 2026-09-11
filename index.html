@@ -373,11 +373,11 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
 .tc-hero-inner { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px; }
 .tc-hero-title {}
 .tc-hero-club { font-family:var(--fd);font-size:22px;font-weight:800;color:#fff;letter-spacing:.08em;text-transform:uppercase; }
-.tc-hero-season { font-size:10px;color:#5a6a7a;letter-spacing:.12em;text-transform:uppercase;margin-top:2px; }
+.tc-hero-season { font-size:10px;color:#AEB8C8;letter-spacing:.12em;text-transform:uppercase;margin-top:2px; }
 .tc-kpi-bar { display:flex;align-items:center;gap:0;flex-wrap:wrap; }
 .tc-kpi { text-align:center;padding:0 20px; }
 .tc-kpi-val { font-family:var(--fd);font-size:28px;font-weight:800;color:#fff;line-height:1; }
-.tc-kpi-lbl { font-size:9px;color:#6a7a8a;text-transform:uppercase;letter-spacing:.08em;margin-top:3px; }
+.tc-kpi-lbl { font-size:9px;color:#AEB8C8;text-transform:uppercase;letter-spacing:.08em;margin-top:3px; }
 .tc-kpi-sep { width:1px;height:36px;background:rgba(255,255,255,.1); }
 .tc-section-hdr { font-family:var(--fd);font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--txt);margin-bottom:8px;margin-top:4px; }
 .tc-grid-2col { display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px; }
@@ -2235,78 +2235,100 @@ function renderTrainerCockpit(){
   }).filter(x=>x!==null);
   const teamScore=Math.round(_tcAvg(playerScores));
 
-  // ── B: Fokus insights ──
-  const insights=[];
-  if(totDays>0){
-    const lowAtt=D.players.filter(p=>{
-      const att=D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length/totDays*100;
-      return att<75&&att>0;
-    });
-    if(lowAtt.length)insights.push({icon:'📋',text:lowAtt.map(p=>p.name.split(' ')[0]).join(', ')+' unter 75% Anwesenheit'});
-  }
+  // ── B: Fokus insights (richer engine) ──
   const dateMap={};
   D.sessions.filter(s=>parseFloat(s.distance||0)>0).forEach(s=>{
     if(!dateMap[s.date])dateMap[s.date]=[];
     dateMap[s.date].push(parseFloat(s.distance));
   });
   const dates=Object.keys(dateMap).sort();
-  if(dates.length>=6){
-    const last3=_tcAvg(dates.slice(-3).map(d=>_tcAvg(dateMap[d])));
-    const prev3=_tcAvg(dates.slice(-6,-3).map(d=>_tcAvg(dateMap[d])));
-    const diff=Math.round((last3-prev3)/prev3*100);
-    insights.push({icon:'📈',text:'Teamdistanz letzte 3 Einheiten: '+(diff>0?'+':'')+diff+'% vs. vorherige 3'});
-  }
-  const belowAvg=D.players.filter(p=>{
-    const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
-    if(all.length<4)return false;
-    const seasonAvg=_tcAvg(all.map(s=>parseFloat(s.distance)));
-    const recentAvg=_tcAvg(all.slice(-3).map(s=>parseFloat(s.distance)));
-    return recentAvg<seasonAvg*0.85;
-  });
-  if(belowAvg.length)insights.push({icon:'⚡',text:belowAvg.map(p=>p.name.split(' ')[0]).join(', ')+': Distanz deutlich unter Saison-Ø'});
-  const pbs=D.players.filter(p=>{
+  const hasEnoughSessions=dates.length>=3;
+  const insights=[];
+  const insightPlayers=new Set();
+  // 1. Personal best (speed)
+  D.players.forEach(p=>{
+    if(insightPlayers.has(p.id)||insights.length>=5)return;
     const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.maxSprint||0)>0);
-    if(all.length<2)return false;
-    const maxAll=Math.max(...all.slice(0,-1).map(s=>parseFloat(s.maxSprint)));
+    if(all.length<2)return;
+    const maxPrev=Math.max(...all.slice(0,-1).map(s=>parseFloat(s.maxSprint)));
     const last=parseFloat(all[all.length-1].maxSprint||0);
-    return last>maxAll;
+    if(last>maxPrev){insights.push({icon:'⚡',text:p.name.split(' ')[0]+' · Neue Bestleistung '+last.toFixed(1)+' km/h Top Speed'});insightPlayers.add(p.id);}
   });
-  if(pbs.length)insights.push({icon:'🏅',text:'Neue Sprintbestleistung: '+pbs.map(p=>p.name.split(' ')[0]).join(', ')});
-  if(D.matchReports&&D.matchReports.length>0){
-    const totalMr=D.matchReports.filter(mr=>mr.matchDuration>0);
-    if(totalMr.length>0){
-      const lowMin=D.players.filter(p=>{
-        const mins=totalMr.reduce((sum,mr)=>{
-          const ev=mr.events||[];
-          let m=0;
-          if((mr.starters||[]).includes(p.id)){
-            const subOut=ev.find(e=>e.type==='sub'&&e.off===p.id);
-            m=subOut?parseInt(subOut.min||mr.matchDuration):mr.matchDuration;
-          } else {
-            const subIn=ev.find(e=>e.type==='sub'&&e.on===p.id);
-            if(subIn){const subOut2=ev.find(e=>e.type==='sub'&&e.off===p.id&&parseInt(e.min)>parseInt(subIn.min));m=subOut2?parseInt(subOut2.min)-parseInt(subIn.min):mr.matchDuration-parseInt(subIn.min||0);}
-          }
-          return sum+m;
-        },0);
-        return mins<totalMr.length*20;
-      });
-      if(lowMin.length)insights.push({icon:'⏱',text:'Geringe Spielminuten: '+lowMin.slice(0,3).map(p=>p.name.split(' ')[0]).join(', ')});
-    }
+  // 2. Personal best (distance, min 3 sessions)
+  D.players.forEach(p=>{
+    if(insightPlayers.has(p.id)||insights.length>=5)return;
+    const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
+    if(all.length<3)return;
+    const maxPrev=Math.max(...all.slice(0,-1).map(s=>parseFloat(s.distance)));
+    const last=parseFloat(all[all.length-1].distance||0);
+    if(last>maxPrev){insights.push({icon:'🏆',text:p.name.split(' ')[0]+' · Neue Bestleistung '+last.toFixed(2)+' km Distanz'});insightPlayers.add(p.id);}
+  });
+  // 3. Group PBs: 3+ players with new personal bests
+  {const pbCnt=D.players.filter(p=>{const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.maxSprint||0)>0);if(all.length<2)return false;return parseFloat(all[all.length-1].maxSprint||0)>Math.max(...all.slice(0,-1).map(s=>parseFloat(s.maxSprint)));}).length;
+  if(pbCnt>=3&&insights.length<5&&!insights.some(i=>i.text.includes('Mehrere neue Bestleistungen'))){insights.unshift({icon:'🏆',text:'Mehrere neue Bestleistungen in der letzten Einheit'});}}
+  // 4. Low attendance warnings
+  if(totDays>0){D.players.forEach(p=>{
+    if(insightPlayers.has(p.id)||insights.length>=5)return;
+    const pAtt=Math.round(D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length/totDays*100);
+    if(pAtt<75&&pAtt>0){insights.push({icon:'🔴',text:p.name.split(' ')[0]+' nur '+pAtt+'% Trainingsanwesenheit'});insightPlayers.add(p.id);}
+  });}
+  // 5. High attendance streak (100% + >=5 days)
+  if(totDays>=5){D.players.forEach(p=>{
+    if(insightPlayers.has(p.id)||insights.length>=5)return;
+    const pDays=D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length;
+    if(pDays===totDays){insights.push({icon:'✅',text:p.name.split(' ')[0]+' · 100% Anwesenheit'});insightPlayers.add(p.id);}
+  });}
+  // 6. Rising form (last 3 > season avg by >10%)
+  if(hasEnoughSessions){D.players.forEach(p=>{
+    if(insightPlayers.has(p.id)||insights.length>=5)return;
+    const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
+    if(all.length<4)return;
+    const seasonAvg=_tcAvg(all.map(s=>parseFloat(s.distance)));
+    const last3Avg=_tcAvg(all.slice(-3).map(s=>parseFloat(s.distance)));
+    if(last3Avg>seasonAvg*1.10){insights.push({icon:'🔥',text:p.name.split(' ')[0]+' · Letzte 3 Einheiten über Teamschnitt'});insightPlayers.add(p.id);}
+  });}
+  // 7. Falling load (last session load < 70% of season avg)
+  if(hasEnoughSessions){D.players.forEach(p=>{
+    if(insightPlayers.has(p.id)||insights.length>=5)return;
+    const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.load||0)>0);
+    if(all.length<3)return;
+    const seasonAvg=_tcAvg(all.map(s=>parseFloat(s.load)));
+    const lastLoad=parseFloat(all[all.length-1].load||0);
+    if(lastLoad<seasonAvg*0.70){insights.push({icon:'📉',text:p.name.split(' ')[0]+' · Belastung zuletzt deutlich gesunken'});insightPlayers.add(p.id);}
+  });}
+  // 8. Team load alert
+  if(hasEnoughSessions&&insights.length<5){
+    const allLoadSess=D.sessions.filter(s=>parseFloat(s.load||0)>0);
+    if(allLoadSess.length>=3){const loadDM={};allLoadSess.forEach(s=>{if(!loadDM[s.date])loadDM[s.date]=[];loadDM[s.date].push(parseFloat(s.load));});const loadDts=Object.keys(loadDM).sort();const lastDtLoad=_tcAvg(loadDM[loadDts[loadDts.length-1]]||[]);const sLoadAvg=_tcAvg(allLoadSess.map(s=>parseFloat(s.load)));if(lastDtLoad<sLoadAvg*0.70)insights.push({icon:'📉',text:'Team-Belastung unter Saisondurchschnitt'});}
   }
-
+  // 9. Low match time (only if >=3 official games)
+  if(D.matchReports&&D.matchReports.length>=3){
+    const totalMr=D.matchReports.filter(mr=>mr.matchDuration>0);
+    if(totalMr.length>=3){const defDur=(totalMr[0]?totalMr[0].matchDuration||90:90);const possMins=totalMr.length*defDur;
+    D.players.forEach(p=>{
+      if(insightPlayers.has(p.id)||insights.length>=5)return;
+      const mins=totalMr.reduce((sum,mr)=>{const ev=mr.events||[];let m=0;if((mr.starters||[]).includes(p.id)){const sO=ev.find(e=>e.type==='sub'&&e.off===p.id);m=sO?parseInt(sO.min||mr.matchDuration):mr.matchDuration;}else{const sI=ev.find(e=>e.type==='sub'&&e.on===p.id);if(sI){const sO2=ev.find(e=>e.type==='sub'&&e.off===p.id&&parseInt(e.min)>parseInt(sI.min));m=sO2?parseInt(sO2.min)-parseInt(sI.min):mr.matchDuration-parseInt(sI.min||0);}}return sum+m;},0);
+      if(possMins>0&&mins/possMins<0.30){insights.push({icon:'⏱',text:p.name.split(' ')[0]+' · Bisher nur '+mins+' von '+possMins+' Pflichtspielminuten'});insightPlayers.add(p.id);}
+    });}
+  }
   // ── C: Letzte Einheit ──
-  function chg(cur,prev){if(!prev)return '';const d=Math.round((cur-prev)/Math.max(prev,0.001)*100);return '<span style="color:'+(Math.abs(d)<5?'var(--txt3)':'var(--txt2)')+'"> ('+(d>0?'+':'')+d+'%)</span>';}
+  function chg(cur,sAvg){if(!sAvg||!cur)return '';const d=Math.round((cur-sAvg)/Math.max(sAvg,0.001)*100);const col=d>5?'var(--grn)':d<-5?'var(--red)':'var(--txt3)';return '<span style="color:'+col+';font-size:11px"> ('+(d>0?'+':'')+d+'%)</span>';}
   const lastTD=D.trainingDays.length?[...D.trainingDays].sort((a,b)=>a.date.localeCompare(b.date)).pop():null;
   const teilnehmer=lastTD?(lastTD.present||[]).length:0;
   function sessAvg(sessArr,key){return _tcAvg(sessArr.filter(s=>parseFloat(s[key]||0)>0).map(s=>parseFloat(s[key])));}
   const lastSessAll=D.sessions.filter(s=>s.date===dates[dates.length-1]);
-  const prevSessAll=D.sessions.filter(s=>s.date===dates[dates.length-2]);
-  const lDist=sessAvg(lastSessAll,'distance'),pDist=sessAvg(prevSessAll,'distance');
-  const lSpd=sessAvg(lastSessAll,'maxSprint'),pSpd=sessAvg(prevSessAll,'maxSprint');
-  const lHi=sessAvg(lastSessAll,'hiInt'),pHi=sessAvg(prevSessAll,'hiInt');
-  const lAcc=sessAvg(lastSessAll,'acc'),pAcc=sessAvg(prevSessAll,'acc');
-  const lLoad=sessAvg(lastSessAll,'load'),pLoad=sessAvg(prevSessAll,'load');
-
+  const lDist=sessAvg(lastSessAll,'distance');
+  const lSpd=sessAvg(lastSessAll,'maxSprint');
+  const lHi=sessAvg(lastSessAll,'hiInt');
+  const lAcc=sessAvg(lastSessAll,'acc');
+  const lLoad=sessAvg(lastSessAll,'load');
+  const sAvgHi=_tcAvg(D.sessions.filter(s=>parseFloat(s.hiInt||0)>0).map(s=>parseFloat(s.hiInt)));
+  const sAvgAcc=_tcAvg(D.sessions.filter(s=>parseFloat(s.acc||0)>0).map(s=>parseFloat(s.acc)));
+  const sAvgLoad=_tcAvg(D.sessions.filter(s=>parseFloat(s.load||0)>0).map(s=>parseFloat(s.load)));
+  const leMetrics=[{v:lDist,avg:avgDist},{v:lSpd,avg:avgSpd},{v:lHi,avg:sAvgHi},{v:lAcc,avg:sAvgAcc},{v:lLoad,avg:sAvgLoad}];
+  const leBelowCnt=leMetrics.filter(m=>m.avg>0&&m.v>0&&m.v<m.avg).length;
+  const leAboveCnt=leMetrics.filter(m=>m.avg>0&&m.v>0&&m.v>m.avg).length;
+  const leSummary=leBelowCnt>=4?'Niedrige Einheit · '+leBelowCnt+' von 5 Werten lagen unter dem bisherigen Saisondurchschnitt.':leAboveCnt>=4?'Intensive Einheit · Mehrere Werte lagen deutlich über dem Saisondurchschnitt.':'Ausgewogene Einheit · Die Werte lagen weitgehend auf Saisonniveau.';
   // ── F: Team-Trends chart data ──
   const trendDates=dates.slice(-10);
   const trendDist=trendDates.map(d=>Math.round(_tcAvg(dateMap[d])*10)/10);
@@ -2325,9 +2347,9 @@ function renderTrainerCockpit(){
   +'<div class="tc-kpi-bar">'
   +'<div class="tc-kpi"><div class="tc-kpi-val">'+teamAtt+'%</div><div class="tc-kpi-lbl">Anwesenheit</div></div>'
   +'<div class="tc-kpi-sep"></div>'
-  +'<div class="tc-kpi"><div class="tc-kpi-val">'+(avgDist?avgDist.toFixed(1):'–')+'</div><div class="tc-kpi-lbl">Ø Distanz km</div></div>'
+  +'<div class="tc-kpi"><div class="tc-kpi-val">'+(avgDist?avgDist.toFixed(1)+' km':'–')+'</div><div class="tc-kpi-lbl">Ø Distanz</div></div>'
   +'<div class="tc-kpi-sep"></div>'
-  +'<div class="tc-kpi"><div class="tc-kpi-val">'+(avgSpd?avgSpd.toFixed(1):'–')+'</div><div class="tc-kpi-lbl">Ø Top Speed</div></div>'
+  +'<div class="tc-kpi"><div class="tc-kpi-val">'+(avgSpd?avgSpd.toFixed(1)+' km/h':'–')+'</div><div class="tc-kpi-lbl">Ø Top Speed</div></div>'
   +'<div class="tc-kpi-sep"></div>'
   +'<div class="tc-kpi"><div class="tc-kpi-val">'+(teamScore||'–')+'</div><div class="tc-kpi-lbl">Mannschaftsscore</div></div>'
   +'<div class="tc-kpi-sep"></div>'
@@ -2345,16 +2367,17 @@ function renderTrainerCockpit(){
 
   +'<div class="tc-section-hdr">LETZTE EINHEIT'+(dates.length?' – '+dates[dates.length-1]:'')+'</div>'
   +'<div class="card" style="margin-bottom:12px">'
+  +(dates.length?'<div style="color:var(--txt3);font-size:10px;margin-bottom:10px">Vergleich zum bisherigen Saisondurchschnitt</div>':'')
   +'<div class="tc-le-grid">'
   +'<div class="tc-le-item"><div class="tc-le-val">'+teilnehmer+'</div><div class="tc-le-lbl">Teilnehmer</div></div>'
-  +'<div class="tc-le-item"><div class="tc-le-val">'+(lDist?lDist.toFixed(1):'–')+chg(lDist,pDist)+'</div><div class="tc-le-lbl">Ø Distanz km</div></div>'
-  +'<div class="tc-le-item"><div class="tc-le-val">'+(lSpd?lSpd.toFixed(1):'–')+chg(lSpd,pSpd)+'</div><div class="tc-le-lbl">Ø Top Speed</div></div>'
-  +'<div class="tc-le-item"><div class="tc-le-val">'+(lHi?Math.round(lHi):'–')+chg(lHi,pHi)+'</div><div class="tc-le-lbl">Ø Hi-Int</div></div>'
-  +'<div class="tc-le-item"><div class="tc-le-val">'+(lAcc?Math.round(lAcc):'–')+chg(lAcc,pAcc)+'</div><div class="tc-le-lbl">Ø Beschl.</div></div>'
-  +'<div class="tc-le-item"><div class="tc-le-val">'+(lLoad?Math.round(lLoad):'–')+chg(lLoad,pLoad)+'</div><div class="tc-le-lbl">Ø Belastung</div></div>'
+  +'<div class="tc-le-item"><div class="tc-le-val">'+(lDist?lDist.toFixed(1)+' km':'–')+chg(lDist,avgDist)+'</div><div class="tc-le-lbl">Ø Distanz</div></div>'
+  +'<div class="tc-le-item"><div class="tc-le-val">'+(lSpd?lSpd.toFixed(1)+' km/h':'–')+chg(lSpd,avgSpd)+'</div><div class="tc-le-lbl">Ø Top Speed</div></div>'
+  +'<div class="tc-le-item"><div class="tc-le-val">'+(lHi?Math.round(lHi):'–')+chg(lHi,sAvgHi)+'</div><div class="tc-le-lbl">Ø Hi-Int</div></div>'
+  +'<div class="tc-le-item"><div class="tc-le-val">'+(lAcc?Math.round(lAcc):'–')+chg(lAcc,sAvgAcc)+'</div><div class="tc-le-lbl">Ø Beschl.</div></div>'
+  +'<div class="tc-le-item"><div class="tc-le-val">'+(lLoad?Math.round(lLoad):'–')+chg(lLoad,sAvgLoad)+'</div><div class="tc-le-lbl">Ø Belastung</div></div>'
   +'</div>'
+  +(dates.length?'<div style="font-style:italic;color:var(--txt3);font-size:11px;margin-top:10px;padding-top:8px;border-top:1px solid var(--brd2)">'+leSummary+'</div>':'')
   +(!dates.length?'<div style="color:var(--txt3);font-size:12px">Noch keine GPS-Daten vorhanden.</div>':'')
-  +'</div>'
   +'</div>'
 
   +'<div>'
@@ -2390,40 +2413,91 @@ function renderTrainerCockpit(){
 function renderFokusCards(){
   if(!D.players.length)return '<div style="color:var(--txt3);font-size:12px">Keine Spieler.</div>';
   const cards=[];
+  const cardPlayers=new Set();
+  const fcTotDays=D.trainingDays.length;
+  // PB_SPEED
   D.players.forEach(function(p){
-    const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
-    if(all.length<4)return;
-    const recent=_tcAvg(all.slice(-3).map(s=>parseFloat(s.distance)));
-    const prev=_tcAvg(all.slice(-6,-3).map(s=>parseFloat(s.distance)));
-    if(prev>0){const pct=Math.round((recent-prev)/prev*100);if(pct>=10)cards.push({p:p,type:'improve',text:'+'+pct+'% Distanz (letzte 3 Einh.)',pct:pct});}
-  });
-  const totDays=D.trainingDays.length;
-  if(totDays>0){
-    D.players.forEach(function(p){
-      const att=Math.round(D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length/totDays*100);
-      if(att>=95)cards.push({p:p,type:'att',text:att+'% Anwesenheit – Saison'});
-    });
-  }
-  D.players.forEach(function(p){
+    if(cardPlayers.has(p.id)||cards.length>=6)return;
     const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.maxSprint||0)>0);
     if(all.length<2)return;
-    const maxAll=Math.max.apply(null,all.slice(0,-1).map(s=>parseFloat(s.maxSprint)));
+    const maxPrev=Math.max.apply(null,all.slice(0,-1).map(s=>parseFloat(s.maxSprint)));
     const last=parseFloat(all[all.length-1].maxSprint||0);
-    if(last>maxAll)cards.push({p:p,type:'pb',text:'Neuer Sprint-PB: '+last.toFixed(1)+' km/h'});
+    if(last>maxPrev){cards.push({p:p,cat:'PB_SPEED',emoji:'⚡',text:'Sprint-PB '+last.toFixed(1)+' km/h'});cardPlayers.add(p.id);}
   });
-  const shown=cards.slice(0,4);
+  // PB_DIST
+  D.players.forEach(function(p){
+    if(cardPlayers.has(p.id)||cards.length>=6)return;
+    const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
+    if(all.length<3)return;
+    const maxPrev=Math.max.apply(null,all.slice(0,-1).map(s=>parseFloat(s.distance)));
+    const last=parseFloat(all[all.length-1].distance||0);
+    if(last>maxPrev){cards.push({p:p,cat:'PB_DIST',emoji:'🏆',text:'Distanz-PB '+last.toFixed(2)+' km'});cardPlayers.add(p.id);}
+  });
+  // TOP_FORM
+  var scored=D.players.filter(function(p){return !cardPlayers.has(p.id);}).map(function(p){
+    const sess=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
+    if(sess.length<2)return null;
+    const l3=sess.slice(-3);const p3=sess.slice(-6,-3);
+    const sc=Math.min(100,Math.round(_tcAvg(l3.map(s=>parseFloat(s.distance)))/10*0.4+_tcAvg(l3.filter(s=>parseFloat(s.maxSprint||0)>0).map(s=>parseFloat(s.maxSprint)))/3*0.3+_tcAvg(l3.filter(s=>parseFloat(s.hiInt||0)>0).map(s=>parseFloat(s.hiInt)))*2*0.3));
+    var prevSc=0;if(p3.length){prevSc=Math.min(100,Math.round(_tcAvg(p3.map(s=>parseFloat(s.distance)))/10*0.4+_tcAvg(p3.filter(s=>parseFloat(s.maxSprint||0)>0).map(s=>parseFloat(s.maxSprint)))/3*0.3+_tcAvg(p3.filter(s=>parseFloat(s.hiInt||0)>0).map(s=>parseFloat(s.hiInt)))*2*0.3));}
+    return {p:p,sc:sc,delta:sc-prevSc};
+  }).filter(function(x){return x&&x.sc>0;});
+  scored.sort(function(a,b){return b.sc-a.sc;});
+  if(scored.length>0&&cards.length<6){var top=scored[0];cards.push({p:top.p,cat:'TOP_FORM',emoji:'🔥',text:'Score '+top.sc+(top.delta?(' ('+(top.delta>0?'+':'')+top.delta+')'):'')});cardPlayers.add(top.p.id);}
+  // STREAK
+  D.players.filter(function(p){return !cardPlayers.has(p.id);}).forEach(function(p){
+    if(cards.length>=6)return;
+    const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
+    if(all.length<4)return;
+    const avg=_tcAvg(all.map(s=>parseFloat(s.distance)));
+    var streak=0;for(var i=all.length-1;i>=0;i--){if(parseFloat(all[i].distance)>avg)streak++;else break;}
+    if(streak>=3){cards.push({p:p,cat:'STREAK',emoji:'📈',text:streak+' Einh. über eigenem Schnitt'});cardPlayers.add(p.id);}
+  });
+  // RISING
+  var rising=D.players.filter(function(p){return !cardPlayers.has(p.id);}).map(function(p){
+    const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
+    if(all.length<6)return null;
+    const l3=_tcAvg(all.slice(-3).map(s=>parseFloat(s.distance)));
+    const p3v=_tcAvg(all.slice(-6,-3).map(s=>parseFloat(s.distance)));
+    if(!p3v)return null;
+    return {p:p,pct:Math.round((l3-p3v)/p3v*100)};
+  }).filter(function(x){return x&&x.pct>=10;});
+  rising.sort(function(a,b){return b.pct-a.pct;});
+  if(rising.length>0&&cards.length<6){cards.push({p:rising[0].p,cat:'RISING',emoji:'📈',text:'+'+rising[0].pct+'% Distanz (letzte 3 Einh.)'});cardPlayers.add(rising[0].p.id);}
+  // LOW_ATT
+  if(fcTotDays>0){
+    var lowAttPl=D.players.filter(function(p){return !cardPlayers.has(p.id);}).map(function(p){
+      const att=Math.round(D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length/fcTotDays*100);
+      return {p:p,att:att};
+    }).filter(function(x){return x.att<70&&x.att>0;});
+    lowAttPl.sort(function(a,b){return a.att-b.att;});
+    if(lowAttPl.length>0&&cards.length<6){cards.push({p:lowAttPl[0].p,cat:'LOW_ATT',emoji:'📋',text:lowAttPl[0].att+'% Anwesenheit'});cardPlayers.add(lowAttPl[0].p.id);}
+  }
+  // HIGH_MIN
+  if(D.matchReports&&D.matchReports.length>0){
+    var mr2=D.matchReports.filter(function(m){return m.matchDuration>0;});
+    if(mr2.length>0){
+      var minData=D.players.filter(function(p){return !cardPlayers.has(p.id);}).map(function(p){
+        var mins=mr2.reduce(function(sum,m){var ev=m.events||[];var mn=0;if((m.starters||[]).includes(p.id)){var sO=ev.find(function(e){return e.type==='sub'&&e.off===p.id;});mn=sO?parseInt(sO.min||m.matchDuration):m.matchDuration;}else{var sI=ev.find(function(e){return e.type==='sub'&&e.on===p.id;});if(sI){var sO2=ev.find(function(e){return e.type==='sub'&&e.off===p.id&&parseInt(e.min)>parseInt(sI.min);});mn=sO2?parseInt(sO2.min)-parseInt(sI.min):m.matchDuration-parseInt(sI.min||0);}}return sum+mn;},0);
+        return {p:p,mins:mins};
+      });
+      minData.sort(function(a,b){return b.mins-a.mins;});
+      if(minData.length>0&&cards.length<6){cards.push({p:minData[0].p,cat:'HIGH_MIN',emoji:'⏱',text:minData[0].mins+' Pflichtspielminuten'});cardPlayers.add(minData[0].p.id);}
+    }
+  }
+  var shown=cards.slice(0,6);
   if(!shown.length)return '<div class="card" style="color:var(--txt3);font-size:12px;padding:12px">Noch nicht genug Daten für Spotlight-Karten.</div>';
-  return shown.map(function(c){return(
-    '<div class="card tc-fokus-card" onclick="opPl(\''+c.p.id+'\')" style="cursor:pointer;margin-bottom:8px">'
+  return shown.map(function(c){
+    return '<div class="card tc-fokus-card" onclick="opPl(\''+c.p.id+'\')" style="cursor:pointer;margin-bottom:8px">'
     +'<div style="display:flex;align-items:center;gap:10px">'
     +'<div class="tc-fokus-num">'+c.p.number+'</div>'
     +'<div>'
     +'<div style="font-weight:700;font-size:13px">'+c.p.name+'</div>'
-    +'<div style="font-size:11px;color:var(--txt3)">'+c.p.pos+' · '+c.text+'</div>'
+    +'<div style="font-size:11px;color:var(--txt3)">'+c.emoji+' · '+c.text+'</div>'
     +'</div>'
     +'<div style="margin-left:auto;color:var(--txt3);font-size:16px">›</div>'
     +'</div>'
-    +'</div>');
+    +'</div>';
   }).join('');
 }
 

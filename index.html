@@ -394,6 +394,8 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
 .tc-fokus-num { font-family:var(--fd);font-size:28px;font-weight:800;color:var(--grn);line-height:1;min-width:36px;text-align:center; }
 .tc-charts-row { display:grid;grid-template-columns:repeat(3,1fr);gap:12px; }
 @media(max-width:900px){.tc-charts-row{grid-template-columns:1fr;}}
+.tc-charts-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:16px; }
+@media(max-width:700px){.tc-charts-grid{grid-template-columns:1fr;}}
 .tc-chart-card { padding:12px 14px; }
 .tc-chart-title { font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px; }
 .tc-matrix th,.tc-matrix td { font-size:12px; }
@@ -2652,7 +2654,7 @@ function renderTeamTrends(){
   Object.keys(tcCharts).forEach(function(k){try{tcCharts[k].destroy();}catch(e){}delete tcCharts[k];});
   if(!vis.length){grid.innerHTML='<div style="color:var(--txt3);font-size:12px;padding:12px">Keine GPS-Trainingsdaten vorhanden.</div>';return;}
   grid.innerHTML='<div class="tc-charts-grid">'+vis.map(function(m){
-    return '<div class="card tc-chart-card"><div class="tc-chart-title">'+m.label+(m.unit?' ('+m.unit+')':'')+'</div><canvas id="tc-ch-'+m.id+'" height="130"></canvas></div>';
+    return '<div class="card tc-chart-card"><div class="tc-chart-title">'+m.label+(m.unit?' ('+m.unit+')':'')+'</div><canvas id="tc-ch-'+m.id+'" height="220"></canvas></div>';
   }).join('')+'</div>';
   var labels=allDates.map(fmtLabel);
   var compArr=Array.from(tcCompPlayers);
@@ -2669,7 +2671,7 @@ function renderTeamTrends(){
       if(!pl)return;
       datasets.push({label:pl.name.split(' ')[0],data:allDates.map(function(d){return playerVal(pid,d,m);}),borderColor:compColors[idx],backgroundColor:'transparent',tension:.35,pointRadius:3,fill:false,borderWidth:2,borderDash:[4,2]});
     });
-    tcCharts['tc-ch-'+m.id]=new Chart(ctx,{type:'line',data:{labels:labels,datasets:datasets},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:datasets.length>1,position:'top',labels:{font:{size:9},boxWidth:10,padding:5}},tooltip:{callbacks:{title:function(it){return fmtFull(allDates[it[0].dataIndex]);},afterBody:function(it){var d=allDates[it[0].dataIndex];var cnt;if(m.special==='att'){var td=D.trainingDays.find(function(t){return t.date===d;});cnt=td?(td.present||[]).length:0;return['Anwesend: '+cnt+' / '+D.players.length];}else{var key=m.special==='ball'?'passes':m.id;cnt=(dateMap[d]||[]).filter(function(s){return parseFloat(s[key]||0)>0;}).length;return['GPS-Daten: '+cnt+' Spieler'];}}}}},scales:{x:{ticks:{font:{size:9},maxRotation:30,maxTicksLimit:10},grid:{display:false}},y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.05)'},beginAtZero:false}}}});
+    tcCharts['tc-ch-'+m.id]=new Chart(ctx,{type:'line',data:{labels:labels,datasets:datasets},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:datasets.length>1,position:'top',labels:{font:{size:9},boxWidth:10,padding:5}},tooltip:{callbacks:{title:function(it){return fmtFull(allDates[it[0].dataIndex]);},afterBody:function(it){var d=allDates[it[0].dataIndex];var cnt;if(m.special==='att'){var td=D.trainingDays.find(function(t){return t.date===d;});cnt=td?(td.present||[]).length:0;var pct=D.players.length>0?Math.round(cnt/D.players.length*100):0;var saTotal=D.trainingDays.reduce(function(sum,t){return sum+(t.present||[]).length;},0);var saAvgPct=D.trainingDays.length>0?Math.round(saTotal/D.trainingDays.length/D.players.length*100):0;return[cnt+' / '+D.players.length+' Spieler',pct+' % Anwesenheit','Saison-Ø: '+saAvgPct+' %'];}else{var key=m.special==='ball'?'passes':m.id;cnt=(dateMap[d]||[]).filter(function(s){return parseFloat(s[key]||0)>0;}).length;return['GPS-Daten: '+cnt+' Spieler'];}}}}},scales:{x:{ticks:{font:{size:9},maxRotation:30,maxTicksLimit:10},grid:{display:false}},y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.05)'},beginAtZero:false}}}});
   });
 }
 

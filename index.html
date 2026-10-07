@@ -576,7 +576,7 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
   <button class="nb" onclick="sp('sessions')">TRAINING</button>
   <button class="nb gm" onclick="sp('games-ov')">SPIELE</button>
   <button class="nb st" onclick="sp('stats-ov')">STATS</button>
-  <button class="nb" id="nb-cmp" onclick="sp('vergleich')">VERGLEICH</button>
+  <button class="nb" id="nb-analyse" onclick="sp('analyse')">ANALYSE</button>
   <button class="nb" id="nb-pl" style="display:none" onclick="sp('player')">Spieler</button>
   <button class="nb" id="nb-saison" style="display:none" onclick="sp('player');setTimeout(()=>{const b=document.querySelector('#pl-content .tab.st');if(b)b.click();},80)">SAISON</button>
   <button class="nb" id="nb-rekorde" style="display:none" onclick="sp('player');setTimeout(()=>{const b=document.querySelector('#pl-content .tab:last-child');if(b)b.click();},80)">REKORDE</button>
@@ -607,56 +607,6 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
   <div id="tt-tr">
     <!-- 6 KPI Cards -->
     <div id="t-sc-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px"></div>
-    <!-- SPIELERANALYSE -->
-    <div class="card" style="margin-bottom:14px;padding:12px 14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em">SPIELERANALYSE</div>
-        <div style="display:flex;gap:6px">
-          <button onclick="tuOpenPlayerPicker()" class="tc-trend-btn" style="font-size:11px">+ Spieler auswählen</button>
-          <button onclick="tuResetPlayers()" class="tc-trend-btn" style="font-size:11px">Auswahl zurücksetzen</button>
-        </div>
-      </div>
-      <div id="tu-player-chips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:22px"></div>
-      <div id="tu-player-picker" style="display:none">
-        <div id="tu-player-picker-list" style="display:flex;flex-wrap:wrap;gap:6px;padding-top:10px;border-top:1px solid var(--brd)"></div>
-      </div>
-    </div>
-    <!-- TEAM – LETZTE 5 EINHEITEN -->
-    <div id="tu-last5" style="margin-bottom:14px"></div>
-    <!-- Charts row -->
-    <div class="g2" style="margin-bottom:14px">
-      <div class="card">
-        <div class="cv" style="margin-bottom:7px">Distanz pro Einheit (km)</div>
-        <div class="chrt"><canvas id="ch-td"></canvas></div>
-      </div>
-      <div class="card" id="tu-comp-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:7px">
-          <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em">SPIELERVERGLEICH – Ø TRAININGSWERTE</div>
-          <select id="tu-comp-metric" onchange="tuSetCompMetric(this.value)" style="font-size:11px;padding:3px 7px;border-radius:5px;border:1px solid var(--brd);background:var(--sfc);color:var(--txt);cursor:pointer;font-weight:600">
-            <option value="distance">Distanz (km)</option>
-            <option value="maxSprint">Top Speed (km/h)</option>
-            <option value="hiInt">HI-Intensität (m)</option>
-            <option value="acc">Beschleunigungen</option>
-            <option value="dec">Abbremsungen</option>
-            <option value="ball">Ballkontakte</option>
-            <option value="load">Belastung</option>
-            <option value="maxShot">Schussstärke (km/h)</option>
-          </select>
-        </div>
-        <div class="chrt"><canvas id="ch-ts"></canvas></div>
-      </div>
-    </div>
-    <!-- Radar -->
-    <div class="card" style="margin-bottom:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:9px">
-        <div class="cv" style="margin:0">Spieler-Radar – Training</div>
-        <div style="display:flex;gap:4px">
-          <button id="tu-radar-norm" class="tc-trend-btn active" onclick="tuSetRadarMode('norm')">TEAM-Ø = 100</button>
-          <button id="tu-radar-abs" class="tc-trend-btn" onclick="tuSetRadarMode('abs')">Absolute Werte</button>
-        </div>
-      </div>
-      <div class="chrt-t"><canvas id="ch-tr"></canvas></div>
-    </div>
   </div>
   <div id="tt-gm" style="display:none">
     <div class="g4" id="t-gc-cards"></div>
@@ -671,6 +621,9 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
 </div>
 
 <!-- TRAINING LIST -->
+<div id="page-analyse" class="page">
+  <div id="analyse-content" class="trainer-only" style="display:none"></div>
+</div>
 <div id="page-sessions" class="page">
   <div class="sh"><div class="stt">Trainingseinheiten</div><div style="display:flex;gap:6px"><button class="btn btn-g trainer-only" onclick="oTA()">📋 Anwesenheit</button><button class="btn" style="background:#1a5e8a;color:#fff" onclick="startAdd('training')">📡 GPS Daten</button></div></div>
   <div id="td-section" style="margin-bottom:14px"></div>
@@ -1364,7 +1317,7 @@ function sp(name,pid){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  const map={team:0,sessions:1,'games-ov':2,'stats-ov':3,player:4,vergleich:5,eltern:6};
+  const map={team:0,sessions:1,'games-ov':2,'stats-ov':3,player:4,analyse:5,eltern:6};
   const btns=document.querySelectorAll('.nb');
   if(map[name]!==undefined&&btns[map[name]])btns[map[name]].classList.add('active');
   if(name==='team'){renderTeam();setTimeout(()=>renderTCharts(curTT),60);}
@@ -1373,6 +1326,7 @@ function sp(name,pid){
   if(name==='stats-ov'){renderStatsOv();setTimeout(renderStatsCharts,60);}
   if(name==='settings'){setTimeout(renderPinMgmt,50);}
   if(name==='vergleich'){renderVergleich();}
+  if(name==='analyse'){renderAnalyse();}
   if(name==='eltern'){renderEltern();}
   if(name==='liga'){renderLeague();}
   if(name==='player')renderPlayer();
@@ -2445,22 +2399,377 @@ function renderTrainerCockpit(){
   +'</div>'
   +'<div id="tc-matrix-wrap" style="margin-bottom:20px"></div>'
 
-  +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">'
-  +'<div class="tc-section-hdr" style="margin:0">TEAM-TRENDS</div>'
-  +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+  renderSpielerMatrix();
+}
+
+
+// ── ANALYSE ────────────────────────────────────────────────────────────────
+let anMode='team';
+let anRange=0;
+let anSelPlayers=new Set();
+window._anRankKey='maxSprint';
+window._anRankN=5;
+
+function anGetSessions(){
+  const _fp=D.sessions.filter(s=>!isTW(s.playerId));
+  if(anRange===0)return _fp;
+  const dates=[...new Set(_fp.map(s=>s.date))].sort();
+  const last=dates.slice(-anRange);
+  return _fp.filter(s=>last.includes(s.date));
+}
+
+function anSetMode(m){
+  anMode=m;
+  ['team','spieler','positionen'].forEach(k=>{
+    const b=document.getElementById('an-mode-'+k);
+    if(b)b.classList.toggle('active',k===m);
+  });
+  anRenderZustand();anRenderPlSel();anRenderCompare();anRenderRadar();anRenderEntwicklung();anRenderPosCompare();
+}
+
+function anSetRange(n){
+  anRange=n;
+  [3,5,10,0].forEach(v=>{
+    const id='an-t'+(v===0?'all':v);
+    const b=document.getElementById(id);
+    if(b)b.classList.toggle('active',v===n);
+  });
+  anRenderZustand();anRenderEntwicklung();anRenderRankings();
+  setTimeout(renderTeamTrends,50);
+}
+
+function anTogglePlayer(pid){
+  if(anSelPlayers.has(pid)){anSelPlayers.delete(pid);}
+  else{if(anSelPlayers.size>=6){alert('Maximal 6 Spieler.');return;}anSelPlayers.add(pid);}
+  anRenderPlSel();anRenderCompare();anRenderRadar();anRenderEntwicklung();
+}
+
+function anClearPlayers(){anSelPlayers.clear();anRenderPlSel();anRenderCompare();anRenderRadar();anRenderEntwicklung();}
+
+function anGoPlayer(pid){
+  anMode='spieler';anSelPlayers.clear();anSelPlayers.add(pid);sp('analyse');
+}
+
+let anRadarMode='norm';
+function anSetRadarMode(m){
+  anRadarMode=m;
+  ['norm','abs'].forEach(k=>{const b=document.getElementById('an-radar-'+k);if(b)b.classList.toggle('active',k===m);});
+  anRenderRadar();
+}
+
+function renderAnalyse(){
+  const el=document.getElementById('analyse-content');
+  if(!el)return;
+  el.style.display='';
+  const _fp=D.sessions.filter(s=>!isTW(s.playerId));
+  const _dv=_fp.filter(s=>parseFloat(s.distance||0)>0).map(s=>parseFloat(s.distance));
+  const _sv=_fp.filter(s=>parseFloat(s.maxSprint||0)>0).map(s=>parseFloat(s.maxSprint));
+  const _ad=_dv.length?(_dv.reduce((a,b)=>a+b,0)/_dv.length).toFixed(1):'–';
+  const _as=_sv.length?(_sv.reduce((a,b)=>a+b,0)/_sv.length).toFixed(1):'–';
+  el.innerHTML=
+  '<div class="trainer-cockpit-hero" style="margin-bottom:12px">'
+  +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
+  +'<div><div style="font-size:15px;font-weight:800;letter-spacing:.06em">SG BORNIM U17</div>'
+  +'<div style="font-size:10px;color:rgba(255,255,255,.55);letter-spacing:.08em;margin-top:2px">ANALYSE-COCKPIT</div></div>'
+  +'<div style="display:flex;gap:14px;flex-wrap:wrap">'
+  +'<div style="text-align:center"><div style="font-size:20px;font-weight:800">'+D.sessions.length+'</div><div style="font-size:9px;color:rgba(255,255,255,.55);text-transform:uppercase">Einheiten</div></div>'
+  +'<div style="text-align:center"><div style="font-size:20px;font-weight:800">'+_ad+'</div><div style="font-size:9px;color:rgba(255,255,255,.55);text-transform:uppercase">Ø Distanz km</div></div>'
+  +'<div style="text-align:center"><div style="font-size:20px;font-weight:800">'+_as+'</div><div style="font-size:9px;color:rgba(255,255,255,.55);text-transform:uppercase">Ø Top-Speed</div></div>'
+  +'<div style="text-align:center"><div style="font-size:20px;font-weight:800">'+D.games.length+'</div><div style="font-size:9px;color:rgba(255,255,255,.55);text-transform:uppercase">Spiele</div></div>'
+  +'</div></div></div>'
+  +'<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px">'
   +'<div style="display:flex;gap:3px">'
+  +'<button id="an-mode-team" class="tc-trend-btn'+(anMode==="team"?" active":"")+'" onclick="anSetMode(\'team\')">TEAM</button>'
+  +'<button id="an-mode-spieler" class="tc-trend-btn'+(anMode==="spieler"?" active":"")+'" onclick="anSetMode(\'spieler\')">SPIELER</button>'
+  +'<button id="an-mode-positionen" class="tc-trend-btn'+(anMode==="positionen"?" active":"")+'" onclick="anSetMode(\'positionen\')">POSITIONEN</button>'
+  +'</div>'
+  +'<div style="display:flex;gap:3px;margin-left:auto">'
+  +'<button id="an-t3" class="tc-trend-btn'+(anRange===3?" active":"")+'" onclick="anSetRange(3)">Letzte 3</button>'
+  +'<button id="an-t5" class="tc-trend-btn'+(anRange===5?" active":"")+'" onclick="anSetRange(5)">Letzte 5</button>'
+  +'<button id="an-t10" class="tc-trend-btn'+(anRange===10?" active":"")+'" onclick="anSetRange(10)">Letzte 10</button>'
+  +'<button id="an-tall" class="tc-trend-btn'+(anRange===0?" active":"")+'" onclick="anSetRange(0)">Saison</button>'
+  +'</div></div>'
+  +'<div class="tc-section-hdr" style="margin-bottom:8px">ANALYSE-INSIGHTS</div>'
+  +'<div id="an-insights" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>'
+  +'<div id="an-zustand" style="margin-bottom:14px"></div>'
+  +'<div id="an-pl-sel" style="margin-bottom:14px"></div>'
+  +'<div id="an-compare" style="margin-bottom:14px"></div>'
+  +'<div id="an-radar-wrap" style="margin-bottom:14px"></div>'
+  +'<div id="an-entwicklung" style="margin-bottom:14px"></div>'
+  +'<div class="tc-section-hdr" style="margin-bottom:8px">VERLAUFSANALYSE</div>'
+  +'<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:10px">'
   +'<button id="ttf-5" class="tc-trend-btn" onclick="tcSetTrendFilter(5)">Letzte 5</button>'
   +'<button id="ttf-10" class="tc-trend-btn" onclick="tcSetTrendFilter(10)">Letzte 10</button>'
   +'<button id="ttf-all" class="tc-trend-btn active" onclick="tcSetTrendFilter(0)">Saison</button>'
+  +'<label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;margin-left:8px"><input type="checkbox" id="tc-show-avg" checked onchange="tcToggleSeasonAvg()"> Saison-Ø</label>'
   +'</div>'
-  +'<label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="tc-show-avg" checked onchange="tcToggleSeasonAvg()"> Saison-Ø</label>'
-  +'</div>'
-  +'</div>'
-  +'<div id="tc-trends-grid" style="margin-bottom:24px"></div>';
-
-  renderSpielerMatrix();
-  setTimeout(renderTeamTrends, 50);
+  +'<div id="tc-trends-grid" style="margin-bottom:24px"></div>'
+  +'<div id="an-rankings" style="margin-bottom:14px"></div>'
+  +'<div id="an-pos-compare" style="margin-bottom:14px"></div>'
+  +'<div id="an-records" style="margin-bottom:14px"></div>';
+  const ins=document.getElementById('an-insights');
+  if(ins)ins.innerHTML=renderFokusCards();
+  anRenderZustand();anRenderPlSel();anRenderCompare();anRenderRadar();anRenderEntwicklung();
+  anRenderRankings();anRenderPosCompare();anRenderRecords();
+  setTimeout(renderTeamTrends,60);
 }
+
+function anRenderZustand(){
+  const el=document.getElementById('an-zustand');if(!el)return;
+  const sess=anGetSessions();
+  const allSess=D.sessions.filter(s=>!isTW(s.playerId));
+  const avg=(ss,k)=>{const v=ss.filter(s=>parseFloat(s[k]||0)>0).map(s=>parseFloat(s[k]));return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;};
+  const ballAvg=ss=>{const v=ss.filter(s=>parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0).map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;};
+  const METS=[
+    {key:'distance',label:'Ø DISTANZ',fmt:v=>v.toFixed(1)+' km'},
+    {key:'maxSprint',label:'Ø TOP-SPEED',fmt:v=>v.toFixed(1)+' km/h'},
+    {key:'hiInt',label:'Ø HI-INT.',fmt:v=>Math.round(v)+' m'},
+    {key:'acc',label:'Ø BESCHL.',fmt:v=>Math.round(v)+''},
+    {key:'dec',label:'Ø ABBREMS.',fmt:v=>Math.round(v)+''},
+    {key:'ball',label:'Ø BALLKT.',fmt:v=>Math.round(v)+'',special:'ball'},
+    {key:'load',label:'Ø BELASTG.',fmt:v=>Math.round(v)+''},
+    {key:'maxShot',label:'Ø SCHUSSST.',fmt:v=>v.toFixed(1)+' km/h'},
+    {key:'activeMin',label:'Ø AKTIV-MIN',fmt:v=>Math.round(v)+' min'},
+  ];
+  const lbl=anRange>0?('LETZTE '+anRange+' EINHEITEN'):'SAISON';
+  const cards=METS.map(m=>{
+    const pv=m.special==='ball'?ballAvg(sess):avg(sess,m.key);
+    const sa=m.special==='ball'?ballAvg(allSess):avg(allSess,m.key);
+    if(pv===null)return '';
+    const devPct=sa&&sa>0?Math.round((pv-sa)/sa*100):null;
+    const dc=devPct===null?'var(--txt3)':devPct>5?'#1a6a35':devPct<-5?'#c0392b':'var(--txt3)';
+    const devStr=devPct!==null?('<div style="font-size:9px;color:'+dc+';font-weight:700;margin-top:2px">'+(devPct>=0?'+':'')+devPct+' % vs. Saison-Ø</div>'):'';
+    return '<div class="card" style="text-align:center;padding:10px 8px"><div style="font-size:9px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">'+m.label+'</div>'
+      +'<div style="font-family:var(--fd);font-size:18px;font-weight:800;line-height:1">'+m.fmt(pv)+'</div>'+devStr+'</div>';
+  }).filter(Boolean);
+  el.innerHTML='<div class="tc-section-hdr" style="margin-bottom:8px">TEAM-ZUSTAND – '+lbl+'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px">'+cards.join('')+'</div>';
+}
+
+function anRenderPlSel(){
+  const el=document.getElementById('an-pl-sel');if(!el)return;
+  if(anMode!=='spieler'){el.innerHTML='';return;}
+  const chips=D.players.map(p=>{
+    const sel=anSelPlayers.has(p.id);
+    return '<label style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:14px;cursor:pointer;font-size:12px;border:1px solid var(--brd);background:'+(sel?'var(--grn)':'var(--sfc)')+';color:'+(sel?'#fff':'var(--fg)')+'">'
+      +'<input type="checkbox" style="display:none" '+(sel?'checked':'')+' onchange="anTogglePlayer(\''+p.id+'\')">'
+      +'#'+p.number+' '+p.name+'</label>';
+  }).join('');
+  el.innerHTML='<div class="tc-section-hdr" style="margin-bottom:8px">SPIELERAUSWAHL <span style="font-size:10px;font-weight:500;color:var(--txt3)">(max. 6)</span></div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'+chips+'</div>'
+    +'<button class="tc-trend-btn" onclick="anClearPlayers()">Alle abwählen</button>';
+}
+
+function anRenderCompare(){
+  const el=document.getElementById('an-compare');if(!el)return;
+  if(anMode!=='spieler'||!anSelPlayers.size){el.innerHTML='';return;}
+  const pls=D.players.filter(p=>anSelPlayers.has(p.id));
+  const sess=anGetSessions();
+  const allSess=D.sessions.filter(s=>!isTW(s.playerId));
+  const avgK=(ss,k)=>{const v=ss.filter(s=>parseFloat(s[k]||0)>0).map(s=>parseFloat(s[k]));return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;};
+  const plSess=p=>sess.filter(s=>s.playerId===p.id);
+  const METS=[
+    {k:'distance',l:'Distanz',fmt:v=>v.toFixed(2)+' km'},
+    {k:'maxSprint',l:'Top-Speed',fmt:v=>v.toFixed(1)+' km/h'},
+    {k:'hiInt',l:'HI-Intensität',fmt:v=>Math.round(v)+' m'},
+    {k:'acc',l:'Beschleunigungen',fmt:v=>Math.round(v)+''},
+    {k:'dec',l:'Abbremsungen',fmt:v=>Math.round(v)+''},
+    {k:'passes',l:'Pässe',fmt:v=>Math.round(v)+''},
+    {k:'shots',l:'Schüsse',fmt:v=>Math.round(v)+''},
+    {k:'load',l:'Belastung',fmt:v=>Math.round(v)+''},
+    {k:'maxShot',l:'Schussstärke',fmt:v=>v.toFixed(1)+' km/h'},
+  ];
+  let tbl='<div style="overflow-x:auto"><table class="tbl tc-matrix" style="min-width:500px"><thead><tr><th>Kennzahl</th>'
+    +pls.map(p=>'<th>'+p.name.split(' ')[0]+'</th>').join('')+'<th style="color:var(--txt2)">Team-Ø</th></tr></thead><tbody>';
+  METS.forEach(m=>{
+    const vals=pls.map(p=>avgK(plSess(p),m.k));
+    const ta=avgK(allSess,m.k);
+    const maxV=Math.max(...vals.filter(v=>v!==null),0);
+    tbl+='<tr><td style="font-weight:700">'+m.l+'</td>'
+      +vals.map(v=>{const isMax=v!==null&&v===maxV&&vals.filter(x=>x!==null).length>1;return '<td style="'+(isMax?'color:var(--grn);font-weight:800':'')+'">'+(v!==null?m.fmt(v):'–')+'</td>';}).join('')
+      +'<td style="color:var(--txt2)">'+(ta!==null?m.fmt(ta):'–')+'</td></tr>';
+  });
+  tbl+='</tbody></table></div>';
+  el.innerHTML='<div class="tc-section-hdr" style="margin-bottom:8px">SPIELER-SCHNELLVERGLEICH</div>'+tbl;
+}
+
+function anRenderRadar(){
+  const el=document.getElementById('an-radar-wrap');if(!el)return;
+  const id='ch-an-radar';
+  if(CHS[id]){CHS[id].destroy();delete CHS[id];}
+  const pls=anSelPlayers.size>0&&anMode==='spieler'?D.players.filter(p=>anSelPlayers.has(p.id))
+    :D.players.filter(p=>!isTW(p.id)).slice(0,6);
+  if(!pls.length){el.innerHTML='';return;}
+  const fpSess=D.sessions.filter(s=>!isTW(s.playerId));
+  const rL=['Distanz','HI-Int.','Top Speed','Beschl.','Abbrems.','Ballkt.','Belastg.'];
+  const rK=['distance','hiInt','maxSprint','acc','dec','ball','load'];
+  const plAvgK=(p,k)=>{
+    const ps=D.sessions.filter(s=>s.playerId===p.id);
+    if(k==='ball'){const vs=ps.filter(s=>parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0).map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:0;}
+    const vs=ps.filter(s=>parseFloat(s[k]||0)>0).map(s=>parseFloat(s[k]));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:0;
+  };
+  const teamAvgV=rK.map(k=>{
+    if(k==='ball'){const vs=fpSess.filter(s=>parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0).map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:1;}
+    const vs=fpSess.filter(s=>parseFloat(s[k]||0)>0).map(s=>parseFloat(s[k]));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:1;
+  });
+  el.innerHTML='<div class="card" style="margin-bottom:14px"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:9px">'
+    +'<div class="cv" style="margin:0">SPIELER-RADAR</div>'
+    +'<div style="display:flex;gap:4px">'
+    +'<button id="an-radar-norm" class="tc-trend-btn'+(anRadarMode==='norm'?' active':'')+'" onclick="anSetRadarMode(\'norm\')">TEAM-Ø = 100</button>'
+    +'<button id="an-radar-abs" class="tc-trend-btn'+(anRadarMode==='abs'?' active':'')+'" onclick="anSetRadarMode(\'abs\')">Abs. Werte</button>'
+    +'</div></div>'
+    +'<div class="chrt-t"><canvas id="'+id+'"></canvas></div></div>';
+  const ctx=document.getElementById(id);if(!ctx)return;
+  const norm=anRadarMode==='norm';
+  const datasets=norm
+    ?[{label:'Team-Ø (100)',data:rK.map(()=>100),borderColor:'#94a3b8',borderDash:[5,4],backgroundColor:'rgba(148,163,184,.08)',pointRadius:0,borderWidth:1.5,fill:true},
+      ...pls.map((p,i)=>({label:p.name.split(' ')[0],data:rK.map((k,ki)=>teamAvgV[ki]>0?Math.round(plAvgK(p,k)/teamAvgV[ki]*100):0),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'15',pointRadius:3,fill:true}))]
+    :pls.map((p,i)=>({label:p.name.split(' ')[0],data:rK.map(k=>plAvgK(p,k)),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'15',pointRadius:3,fill:true}));
+  CHS[id]=new Chart(ctx,{type:'radar',data:{labels:rL,datasets},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,ticks:{display:false},grid:{color:'rgba(0,0,0,.06)'},pointLabels:{font:{size:9,weight:'600'},color:'#64748b'}}},plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:9}}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw}}}}});
+}
+
+function anRenderEntwicklung(){
+  const el=document.getElementById('an-entwicklung');if(!el)return;
+  const fpSess=D.sessions.filter(s=>!isTW(s.playerId));
+  const pls=anSelPlayers.size>0&&anMode==='spieler'?D.players.filter(p=>anSelPlayers.has(p.id)):D.players.filter(p=>!isTW(p.id));
+  const METS=[{k:'distance',l:'Distanz'},{k:'maxSprint',l:'Top-Speed'},{k:'hiInt',l:'HI-Int.'},{k:'acc',l:'Beschl.'},{k:'dec',l:'Abbrems.'},{k:'load',l:'Belastung'}];
+  const cards=[];
+  pls.slice(0,12).forEach(p=>{
+    const ps=fpSess.filter(s=>s.playerId===p.id).sort((a,b)=>a.date.localeCompare(b.date));
+    if(ps.length<3)return;
+    METS.forEach(m=>{
+      const vs=ps.filter(s=>parseFloat(s[m.k]||0)>0).map(s=>parseFloat(s[m.k]));
+      if(vs.length<3)return;
+      const sa=vs.reduce((a,b)=>a+b,0)/vs.length;
+      const n=Math.min(anRange||5,vs.length);
+      const last=vs.slice(-n);
+      const lAvg=last.reduce((a,b)=>a+b,0)/last.length;
+      const dev=Math.round((lAvg-sa)/sa*100);
+      if(Math.abs(dev)<8)return;
+      const color=dev>0?'#1a6a35':'#c0392b';
+      const arrow=dev>0?'↑':'↓';
+      cards.push('<div class="card" style="padding:10px 12px">'
+        +'<div style="font-size:11px;font-weight:700;margin-bottom:2px">'+p.name.split(' ')[0]+'</div>'
+        +'<div style="font-size:10px;color:var(--txt2);margin-bottom:6px">'+m.l+'</div>'
+        +'<div style="font-size:20px;font-weight:800;color:'+color+'">'+arrow+' '+(dev>0?'+':'')+dev+' %</div>'
+        +'<div style="font-size:9px;color:var(--txt3);margin-top:2px">Letzte '+(anRange||5)+' vs. Saison-Ø</div>'
+        +'</div>');
+    });
+  });
+  if(!cards.length){el.innerHTML='<div class="tc-section-hdr" style="margin-bottom:8px">ENTWICKLUNG</div><div style="color:var(--txt3);font-size:12px;padding:8px 0">Noch nicht genug Daten.</div>';return;}
+  el.innerHTML='<div class="tc-section-hdr" style="margin-bottom:8px">ENTWICKLUNG</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">'+cards.join('')+'</div>';
+}
+
+function anRenderRankings(){
+  const el=document.getElementById('an-rankings');if(!el)return;
+  const sess=anGetSessions();
+  const allKeys=[
+    {k:'distance',l:'Distanz',fmt:v=>v.toFixed(2)+' km'},
+    {k:'maxSprint',l:'Top-Speed',fmt:v=>v.toFixed(1)+' km/h'},
+    {k:'hiInt',l:'HI-Intensität',fmt:v=>Math.round(v)+' m'},
+    {k:'acc',l:'Beschleunigungen',fmt:v=>Math.round(v)+''},
+    {k:'dec',l:'Abbremsungen',fmt:v=>Math.round(v)+''},
+    {k:'passes',l:'Pässe',fmt:v=>Math.round(v)+''},
+    {k:'shots',l:'Schüsse',fmt:v=>Math.round(v)+''},
+    {k:'load',l:'Belastung',fmt:v=>Math.round(v)+''},
+    {k:'maxShot',l:'Schussstärke',fmt:v=>v.toFixed(1)+' km/h'},
+  ];
+  const selKey=window._anRankKey||'maxSprint';
+  const selN=window._anRankN||5;
+  const m=allKeys.find(x=>x.k===selKey)||allKeys[1];
+  const plVals=D.players.filter(p=>!isTW(p.id)).map(p=>{
+    const ps=sess.filter(s=>s.playerId===p.id&&parseFloat(s[m.k]||0)>0);
+    if(!ps.length)return null;
+    const v=ps.reduce((a,s)=>a+parseFloat(s[m.k]),0)/ps.length;
+    return{p,v};
+  }).filter(Boolean).sort((a,b)=>b.v-a.v);
+  const show=selN===0?plVals:plVals.slice(0,selN);
+  const opts=allKeys.map(x=>'<option value="'+x.k+'"'+(x.k===selKey?' selected':'')+'>'+x.l+'</option>').join('');
+  let html='<div class="tc-section-hdr" style="margin-bottom:8px">RANKINGS</div>'
+    +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">'
+    +'<select onchange="window._anRankKey=this.value;anRenderRankings()" style="padding:4px 8px;border-radius:5px;border:1px solid var(--brd);background:var(--sfc);font-size:12px">'+opts+'</select>'
+    +'<div style="display:flex;gap:3px">'
+    +'<button class="tc-trend-btn'+(selN===5?' active':'')+'" onclick="window._anRankN=5;anRenderRankings()">Top 5</button>'
+    +'<button class="tc-trend-btn'+(selN===10?' active':'')+'" onclick="window._anRankN=10;anRenderRankings()">Top 10</button>'
+    +'<button class="tc-trend-btn'+(selN===0?' active':'')+'" onclick="window._anRankN=0;anRenderRankings()">Alle</button>'
+    +'</div></div>'
+    +'<div class="card" style="padding:12px">';
+  if(!show.length){html+='<div style="color:var(--txt3);font-size:12px">Keine Daten.</div>';}
+  else{show.forEach((entry,i)=>{
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--brd2)">'
+      +'<div style="width:22px;font-weight:800;font-size:12px;color:'+(i===0?'var(--grn)':i===1?'#94a3b8':i===2?'#b45309':'var(--txt2)')+'">'+(i+1)+'.</div>'
+      +'<div style="flex:1;font-size:12px;font-weight:600">'+entry.p.name+'</div>'
+      +'<div style="font-family:var(--fd);font-size:14px;font-weight:800;color:'+(i===0?'var(--grn)':'var(--fg)')+'">'+m.fmt(entry.v)+'</div>'
+      +'</div>';
+  });}
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+function anRenderPosCompare(){
+  const el=document.getElementById('an-pos-compare');if(!el)return;
+  if(anMode!=='positionen'){el.innerHTML='';return;}
+  const POS_MAP=p=>{
+    const pos=(p.pos||'').toLowerCase();
+    if(pos.includes('torwart')||pos==='tw'||pos==='gk'||pos.includes('keeper'))return 'Torwart';
+    if(pos.includes('innenvert')||pos==='iv')return 'Innenverteidiger';
+    if(pos.includes('außenvert')||pos==='av')return 'Außenverteidiger';
+    if(pos.includes('zm')||pos==='6'||pos==='8'||pos.includes('zentrales'))return 'Zentrales MF';
+    if(pos.includes('om')||pos==='10'||pos.includes('offensives'))return 'Offensives MF';
+    if(pos.includes('außenstür'))return 'Außenstürmer';
+    if(pos.includes('stürm')||pos.includes('sturm')||pos==='9')return 'Stürmer';
+    return 'Mittelfeld';
+  };
+  const sess=D.sessions.filter(s=>!isTW(s.playerId));
+  const avgK=(ss,k)=>{const v=ss.filter(s=>parseFloat(s[k]||0)>0).map(s=>parseFloat(s[k]));return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;};
+  const METS=[{k:'distance',l:'Distanz',fmt:v=>v.toFixed(2)},{k:'maxSprint',l:'Top-Speed',fmt:v=>v.toFixed(1)},{k:'hiInt',l:'HI-Int.',fmt:v=>Math.round(v)+''},{k:'acc',l:'Beschl.',fmt:v=>Math.round(v)+''},{k:'dec',l:'Abbrems.',fmt:v=>Math.round(v)+''}];
+  const groups={};
+  D.players.forEach(p=>{const g=POS_MAP(p);groups[g]=groups[g]||[];groups[g].push(p);});
+  const activeGroups=Object.keys(groups).filter(g=>groups[g].length>0);
+  let html='<div class="tc-section-hdr" style="margin-bottom:8px">POSITIONSVERGLEICH</div>';
+  if(!activeGroups.length){el.innerHTML=html+'<div style="color:var(--txt3);font-size:12px">Keine Spieler mit Positionsdaten.</div>';return;}
+  html+='<div style="overflow-x:auto"><table class="tbl tc-matrix" style="min-width:550px"><thead><tr><th>Position</th>'+METS.map(m=>'<th>'+m.l+'</th>').join('')+'<th>Spieler</th></tr></thead><tbody>';
+  activeGroups.forEach(g=>{
+    const ps=groups[g];
+    const allGs=ps.flatMap(p=>sess.filter(s=>s.playerId===p.id));
+    html+='<tr><td style="font-weight:700">'+g+'</td>'
+      +METS.map(m=>{const v=avgK(allGs,m.k);return '<td>'+(v!==null?m.fmt(v):'–')+'</td>';}).join('')
+      +'<td style="font-size:10px;color:var(--txt2)">'+ps.map(p=>p.name.split(' ')[0]).join(', ')+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
+
+function anRenderRecords(){
+  const el=document.getElementById('an-records');if(!el)return;
+  const METS=[
+    {k:'distance',l:'DISTANZ',fmt:v=>v.toFixed(2)+' km'},
+    {k:'maxSprint',l:'TOP SPEED',fmt:v=>v.toFixed(1)+' km/h'},
+    {k:'hiInt',l:'HI-INTENSITÄT',fmt:v=>Math.round(v)+' m'},
+    {k:'acc',l:'BESCHLEUNIGUNGEN',fmt:v=>Math.round(v)+''},
+    {k:'dec',l:'ABBREMSUNGEN',fmt:v=>Math.round(v)+''},
+    {k:'passes',l:'PÄSSE',fmt:v=>Math.round(v)+''},
+    {k:'shots',l:'SCHÜSSE',fmt:v=>Math.round(v)+''},
+    {k:'load',l:'BELASTUNG',fmt:v=>Math.round(v)+''},
+    {k:'maxShot',l:'SCHUSSSTÄRKE',fmt:v=>v.toFixed(1)+' km/h'},
+    {k:'activeMin',l:'AKTIV-ZEIT',fmt:v=>Math.round(v)+' min'},
+  ];
+  const cards=METS.map(m=>{
+    const best=D.sessions.filter(s=>parseFloat(s[m.k]||0)>0).reduce((mx,s)=>{const v=parseFloat(s[m.k]);return v>(mx?parseFloat(mx[m.k]):0)?s:mx;},null);
+    if(!best)return '';
+    const p=D.players.find(p=>p.id===best.playerId);
+    return '<div class="card" style="padding:10px 12px">'
+      +'<div style="font-size:9px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">'+m.l+'</div>'
+      +'<div style="font-family:var(--fd);font-size:20px;font-weight:800;color:var(--grn)">'+m.fmt(parseFloat(best[m.k]))+'</div>'
+      +'<div style="font-size:11px;font-weight:600;margin-top:4px">'+(p?p.name:'?')+'</div>'
+      +'<div style="font-size:10px;color:var(--txt3)">'+(typeof fmtD==='function'?fmtD(best.date):best.date)+'</div>'
+      +'</div>';
+  }).filter(Boolean);
+  el.innerHTML='<div class="tc-section-hdr" style="margin-bottom:8px">REKORDE & BESTWERTE</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">'+cards.join('')+'</div>';
+}
+
 
 function renderFokusCards(){
   if(!D.players.length)return '<div style="color:var(--txt3);font-size:12px">Keine Spieler.</div>';

@@ -813,10 +813,13 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
             <div class="fg-g"><label>Zuschauer</label><input type="number" id="f-zu" min="0" placeholder="0" style="margin-top:3px"></div>
           </div>
         </div>
+        <div style="grid-column:1/-1"><div class="fg">
         <div class="fsec">Ausdauer & Bewegung</div>
         <div class="fg-g"><label>Distanz (km)</label><input type="number" id="f-di" step="0.01" style="margin-top:3px"></div>
         <div class="fg-g"><label>Hohe Intensität (m)</label><input type="number" id="f-hi" step="1" style="margin-top:3px"></div>
-        <div id="fp-fields">
+        </div></div>
+        <div id="fp-fields" style="grid-column:1/-1">
+        <div class="fg">
         <div class="fg-g"><label>Aktivitätszeit (min)</label><input type="number" id="f-am" step="1" style="margin-top:3px"></div>
         <div class="fg-g"><label>Aktivitätszeit (sek)</label><input type="number" id="f-as" step="1" min="0" max="59" style="margin-top:3px"></div>
         <div class="fsec">Schnelligkeit</div>
@@ -830,6 +833,7 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
         <div class="fg-g"><label>Pässe</label><input type="number" id="f-pa" step="1" style="margin-top:3px"></div>
         <div class="fg-g"><label>Zeit am Ball (min)</label><input type="number" id="f-bm" step="1" style="margin-top:3px"></div>
         <div class="fg-g"><label>Zeit am Ball (sek)</label><input type="number" id="f-bs" step="1" min="0" max="59" style="margin-top:3px"></div>
+        </div>
         </div><!-- /fp-fields -->
         <div id="gk-fields" style="display:none;grid-column:1/-1">
         <div class="fg">
@@ -4289,11 +4293,11 @@ function delPl(pid){if(!confirm('Spieler und alle Daten löschen?'))return;D.pla
 
 // ── ADD ENTRY ──────────────────────────────────────────────────────────────────
 let editSessId=null;
-function isTW(pid){return (D.players.find(p=>p.id===pid)||{}).pos==='TW';}
+function isTW(pid){const pos=((D.players.find(p=>p.id===pid)||{}).pos||'').toLowerCase().trim();return pos==='tw'||pos.includes('torwart')||pos.includes('keeper')||pos==='gk';}
 function onFormPlayerChange(){
   const pid=document.getElementById('f-pl').value;
   const gk=pid&&isTW(pid);
-  document.getElementById('fp-fields').style.display=gk?'none':'';
+  document.getElementById('fp-fields').style.display=gk?'none':'block';
   document.getElementById('gk-fields').style.display=gk?'':'none';
   const title2=document.getElementById('f-sec-speed');
   if(gk){

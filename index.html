@@ -799,7 +799,7 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
       <input type="hidden" id="f-type">
       <div class="fg">
         <div class="fsec">Allgemein</div>
-        <div class="fg-g"><label>Spieler</label><select id="f-pl" required style="margin-top:3px"><option value="">– wählen –</option></select></div>
+        <div class="fg-g"><label>Spieler</label><select id="f-pl" required style="margin-top:3px" onchange="onFormPlayerChange()"><option value="">– wählen –</option></select></div>
         <div class="fg-g"><label>Datum</label><input type="date" id="f-dt" required style="margin-top:3px"></div>
         <div class="fg-g full"><label id="f-ll">Bezeichnung</label><input type="text" id="f-lb" style="margin-top:3px"></div>
         <div id="gof" style="display:none;grid-column:1/-1">
@@ -816,6 +816,7 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
         <div class="fsec">Ausdauer & Bewegung</div>
         <div class="fg-g"><label>Distanz (km)</label><input type="number" id="f-di" step="0.01" style="margin-top:3px"></div>
         <div class="fg-g"><label>Hohe Intensität (m)</label><input type="number" id="f-hi" step="1" style="margin-top:3px"></div>
+        <div id="fp-fields">
         <div class="fg-g"><label>Aktivitätszeit (min)</label><input type="number" id="f-am" step="1" style="margin-top:3px"></div>
         <div class="fg-g"><label>Aktivitätszeit (sek)</label><input type="number" id="f-as" step="1" min="0" max="59" style="margin-top:3px"></div>
         <div class="fsec">Schnelligkeit</div>
@@ -829,6 +830,15 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
         <div class="fg-g"><label>Pässe</label><input type="number" id="f-pa" step="1" style="margin-top:3px"></div>
         <div class="fg-g"><label>Zeit am Ball (min)</label><input type="number" id="f-bm" step="1" style="margin-top:3px"></div>
         <div class="fg-g"><label>Zeit am Ball (sek)</label><input type="number" id="f-bs" step="1" min="0" max="59" style="margin-top:3px"></div>
+        </div><!-- /fp-fields -->
+        <div id="gk-fields" style="display:none;grid-column:1/-1">
+        <div class="fg">
+        <div class="fsec" style="color:#1a5e8a">🥅 Torwart-Tracking</div>
+        <div class="fg-g"><label>Sprints (Anzahl)</label><input type="number" id="f-tw-sp" step="1" min="0" style="margin-top:3px"></div>
+        <div class="fg-g"><label>Ø Sprint-Geschw. (km/h)</label><input type="number" id="f-tw-as" step="0.1" min="0" style="margin-top:3px"></div>
+        <div class="fg-g"><label>Max. Sprint (km/h)</label><input type="number" id="f-gk-ms" step="0.1" style="margin-top:3px"></div>
+        </div>
+        </div><!-- /gk-fields -->
       </div>
       <div class="fa"><button type="submit" class="btn btn-g" id="f-sub">Speichern</button><button type="button" class="btn btn-gr" onclick="sp('team')">Abbrechen</button></div>
     </form>
@@ -1402,12 +1412,23 @@ function setCmpMode(m){
 function renderVergleichPlayer(){
   const p=curPlayer;
   const myTrSess=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0);
-  const teamTrSess=D.sessions.filter(s=>parseFloat(s.distance||0)>0);
+  const _myIsTW=isTW(p.id);
+  // For team avg, always exclude TW players
+  const teamTrSess=D.sessions.filter(s=>!isTW(s.playerId)&&parseFloat(s.distance||0)>0);
   const teamAvg=k=>teamTrSess.length?teamTrSess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/teamTrSess.length:0;
   const myAvg=k=>myTrSess.length?myTrSess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/myTrSess.length:0;
-  const labels=['Distanz (km)','Hi-Int (/100m)','Max. Sprint','Pässe (/10)','Aktiv-Min'];
-  const meVals=[myAvg('distance'),myAvg('hiInt')/100,myAvg('maxSprint'),myAvg('passes')/10,myAvg('activeMin')];
-  const teamVals=[teamAvg('distance'),teamAvg('hiInt')/100,teamAvg('maxSprint'),teamAvg('passes')/10,teamAvg('activeMin')];
+  let labels,meVals,teamVals;
+  if(_myIsTW){
+    labels=['Distanz (km)','Hi-Int (m)','Sprints','Ø Sprint (km/h)','Max. Sprint'];
+    const twTeamSess=D.sessions.filter(s=>isTW(s.playerId)&&parseFloat(s.distance||0)>0);
+    const twTeamAvg=k=>twTeamSess.length?twTeamSess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/twTeamSess.length:0;
+    meVals=[myAvg('distance'),myAvg('hiInt')/100,myAvg('twSprints'),myAvg('twAvgSprint'),myAvg('maxSprint')];
+    teamVals=[twTeamAvg('distance'),twTeamAvg('hiInt')/100,twTeamAvg('twSprints'),twTeamAvg('twAvgSprint'),twTeamAvg('maxSprint')];
+  } else {
+    labels=['Distanz (km)','Hi-Int (/100m)','Max. Sprint','Pässe (/10)','Aktiv-Min'];
+    meVals=[myAvg('distance'),myAvg('hiInt')/100,myAvg('maxSprint'),myAvg('passes')/10,myAvg('activeMin')];
+    teamVals=[teamAvg('distance'),teamAvg('hiInt')/100,teamAvg('maxSprint'),teamAvg('passes')/10,teamAvg('activeMin')];
+  }
   const myAtt=D.trainingDays.length?D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length/D.trainingDays.length*100:0;
   const allAtts=D.players.map(pl=>D.trainingDays.length?D.trainingDays.filter(td=>(td.present||[]).includes(pl.id)).length/D.trainingDays.length*100:0);
   const teamAttAvg=allAtts.length?allAtts.reduce((a,v)=>a+v,0)/allAtts.length:0;
@@ -1441,8 +1462,10 @@ function renderPlTeam(){
     const mySess=isTr
       ?D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0)
       :D.games.filter(g=>g.playerId===p.id&&parseFloat(g.distance||0)>0);
+    // For team avg comparison, TW players compare vs other TW; field players exclude TW
+    const _pIsTW=isTW(p.id);
     const allSess=isTr
-      ?D.sessions.filter(s=>parseFloat(s.distance||0)>0)
+      ?D.sessions.filter(s=>(_pIsTW?isTW(s.playerId):!isTW(s.playerId))&&parseFloat(s.distance||0)>0)
       :D.games.filter(g=>parseFloat(g.distance||0)>0);
 
     const myAvg=k=>mySess.length?mySess.reduce((a,s)=>a+parseFloat(s[k]||0),0)/mySess.length:null;
@@ -1453,7 +1476,14 @@ function renderPlTeam(){
       return avgs.length?avgs.reduce((a,v)=>a+v,0)/avgs.length:null;
     };
 
-    const metrics=[
+    const _plIsTW=isTW(p.id);
+    const metrics=_plIsTW?[
+      {key:'distance',    lbl:'Distanz',            unit:'km',   dec:2},
+      {key:'hiInt',       lbl:'Hi-Intensität',       unit:'m',    dec:0},
+      {key:'twSprints',   lbl:'Sprints (Anzahl)',    unit:'',     dec:0},
+      {key:'twAvgSprint', lbl:'Ø Sprint-Geschw.',   unit:'km/h', dec:1},
+      {key:'maxSprint',   lbl:'Max. Sprint',         unit:'km/h', dec:1},
+    ]:[
       {key:'distance',  lbl:'Distanz',        unit:'km',  dec:2},
       {key:'hiInt',     lbl:'Hi-Intensität',   unit:'m',   dec:0},
       {key:'maxSprint', lbl:'Max. Sprint',     unit:'km/h',dec:1},
@@ -2260,9 +2290,10 @@ function renderTrainerCockpit(){
     const presences=D.players.map(p=>D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length);
     teamAtt=Math.round(_tcAvg(presences)/totDays*100);
   }
-  const allDist=D.sessions.filter(s=>parseFloat(s.distance||0)>0).map(s=>parseFloat(s.distance));
+  const _ntwSess=D.sessions.filter(s=>!isTW(s.playerId));
+  const allDist=_ntwSess.filter(s=>parseFloat(s.distance||0)>0).map(s=>parseFloat(s.distance));
   const avgDist=_tcAvg(allDist);
-  const allSpd=D.sessions.filter(s=>parseFloat(s.maxSprint||0)>0).map(s=>parseFloat(s.maxSprint));
+  const allSpd=_ntwSess.filter(s=>parseFloat(s.maxSprint||0)>0).map(s=>parseFloat(s.maxSprint));
   const avgSpd=_tcAvg(allSpd);
   const gameCount=D.matchReports?D.matchReports.length:0;
   const playerScores=D.players.map(p=>{
@@ -2279,15 +2310,15 @@ function renderTrainerCockpit(){
 
   // ── B: Fokus insights (richer engine) ──
   const dateMap={};
-  D.sessions.filter(s=>parseFloat(s.distance||0)>0).forEach(s=>{
+  _ntwSess.filter(s=>parseFloat(s.distance||0)>0).forEach(s=>{
     if(!dateMap[s.date])dateMap[s.date]=[];
     dateMap[s.date].push(parseFloat(s.distance));
   });
   const dates=Object.keys(dateMap).sort();
   const insights=[];
   // Helpers
-  const _tcSeaAvg=(key)=>{const v=D.sessions.filter(s=>parseFloat(s[key]||0)>0).map(s=>parseFloat(s[key]));return v.length?v.reduce((a,b)=>a+b,0)/v.length:0;};
-  const _tcLastDateAvg=(key)=>{if(!dates.length)return 0;const ls=D.sessions.filter(s=>s.date===dates[dates.length-1]&&parseFloat(s[key]||0)>0);return ls.length?ls.reduce((a,b)=>a+parseFloat(b[key]),0)/ls.length:0;};
+  const _tcSeaAvg=(key)=>{const v=_ntwSess.filter(s=>parseFloat(s[key]||0)>0).map(s=>parseFloat(s[key]));return v.length?v.reduce((a,b)=>a+b,0)/v.length:0;};
+  const _tcLastDateAvg=(key)=>{if(!dates.length)return 0;const ls=_ntwSess.filter(s=>s.date===dates[dates.length-1]&&parseFloat(s[key]||0)>0);return ls.length?ls.reduce((a,b)=>a+parseFloat(b[key]),0)/ls.length:0;};
   // Grouped speed PBs
   const _speedPBpl=D.players.filter(p=>{const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.maxSprint||0)>0).sort((a,b)=>a.date.localeCompare(b.date));if(all.length<2)return false;const mx=Math.max(...all.slice(0,-1).map(s=>parseFloat(s.maxSprint)));return parseFloat(all[all.length-1].maxSprint||0)>mx;});
   if(_speedPBpl.length>=2){insights.push({text:'🏆 '+_speedPBpl.length+' neue Top-Speed-Bestleistungen · '+_speedPBpl.map(p=>{const all=D.sessions.filter(s=>s.playerId===p.id&&parseFloat(s.maxSprint||0)>0).sort((a,b)=>a.date.localeCompare(b.date));return p.name.split(' ')[0]+' '+parseFloat(all[all.length-1].maxSprint||0).toFixed(1);}).join(' · ')+' km/h'});}
@@ -2350,7 +2381,7 @@ function renderTrainerCockpit(){
   // ── F: Team-Trends chart data ──
   const trendDates=dates.slice(-10);
   const trendDist=trendDates.map(d=>Math.round(_tcAvg(dateMap[d])*10)/10);
-  const spdMap={};D.sessions.filter(s=>parseFloat(s.maxSprint||0)>0).forEach(s=>{if(!spdMap[s.date])spdMap[s.date]=[];spdMap[s.date].push(parseFloat(s.maxSprint));});
+  const spdMap={};_ntwSess.filter(s=>parseFloat(s.maxSprint||0)>0).forEach(s=>{if(!spdMap[s.date])spdMap[s.date]=[];spdMap[s.date].push(parseFloat(s.maxSprint));});
   const trendSpd=trendDates.map(d=>spdMap[d]?Math.round(_tcAvg(spdMap[d])*10)/10:null);
   const attMap={};D.trainingDays.forEach(td=>{attMap[td.date]=Math.round((td.present||[]).length/Math.max(D.players.length,1)*100);});
   const trendAtt=trendDates.map(d=>attMap[d]||null);
@@ -2769,13 +2800,14 @@ function renderTuLast5(){
     {key:'load',label:'Ø BELASTG.',unit:'',fmt:v=>Math.round(v)+''},
     {key:'maxShot',label:'Ø SCHUSSST.',unit:'km/h',fmt:v=>v.toFixed(1)+' km/h'},
   ];
+  const _fpSess=D.sessions.filter(s=>!isTW(s.playerId));
   const dateAvg=(date,m)=>{
     if(m.special==='ball'){
-      const ss=D.sessions.filter(s=>s.date===date&&(parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0));
+      const ss=_fpSess.filter(s=>s.date===date&&(parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0));
       const vs=ss.map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));
       return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;
     }
-    const ss=D.sessions.filter(s=>s.date===date&&parseFloat(s[m.key]||0)>0);
+    const ss=_fpSess.filter(s=>s.date===date&&parseFloat(s[m.key]||0)>0);
     const vs=ss.map(s=>parseFloat(s[m.key]));
     return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;
   };
@@ -2810,11 +2842,12 @@ function renderTeam(){
     document.getElementById('t-sc').textContent=D.sessions.length+' Trainings';
     const aA=(arr,k)=>{const v=arr.map(s=>parseFloat(s[k]||0)).filter(v=>v>0);return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'–';};
     const mA=(arr,k)=>{const v=arr.map(s=>parseFloat(s[k]||0)).filter(v=>v>0);return v.length?Math.max(...v).toFixed(1):'–';};
+    const _fpS=D.sessions.filter(s=>!isTW(s.playerId));
     document.getElementById('t-sc-cards').innerHTML=`
       <div class="card"><div class="cv">Trainings (Team)</div><div class="cn">${D.sessions.length}</div></div>
-      <div class="card"><div class="cv">Ø Distanz (Team)</div><div class="cn">${aA(D.sessions,'distance')} <small>km</small></div></div>
-      <div class="card"><div class="cv">Ø Max. Sprint (Team)</div><div class="cn">${aA(D.sessions,'maxSprint')} <small>km/h</small></div></div>
-      <div class="card"><div class="cv">Ø Hi-Int (Team)</div><div class="cn">${aA(D.sessions,'hiInt')} <small>m</small></div></div>`;
+      <div class="card"><div class="cv">Ø Distanz (Team)</div><div class="cn">${aA(_fpS,'distance')} <small>km</small></div></div>
+      <div class="card"><div class="cv">Ø Max. Sprint (Team)</div><div class="cn">${aA(_fpS,'maxSprint')} <small>km/h</small></div></div>
+      <div class="card"><div class="cv">Ø Hi-Int (Team)</div><div class="cn">${aA(_fpS,'hiInt')} <small>m</small></div></div>`;
     const fmGames=filtGames(D.games,gmFilter),w=fmGames.filter(g=>res(g)==='win').length,d=fmGames.filter(g=>res(g)==='draw').length,l=fmGames.filter(g=>res(g)==='loss').length;
     document.getElementById('t-gc-cards').innerHTML=`
       <div class="card"><div class="cv">Spiele</div><div class="cn">${fmGames.length}</div><div class="cs">${D.games.filter(g=>(g.gameType||'official')==='official').length} Pflicht · ${D.games.filter(g=>g.gameType==='friendly').length} Test</div></div>
@@ -2852,9 +2885,10 @@ function renderTeam(){
   // ── 6 KPIs ──
   const _trainingCount=D.trainingDays.length;
   const _avgAttPct=D.trainingDays.length>0&&D.players.length>0?Math.round(D.trainingDays.reduce((sum,td)=>sum+(td.present||[]).length,0)/D.trainingDays.length/D.players.length*100):0;
-  const _distSess=D.sessions.filter(s=>parseFloat(s.distance||0)>0);
+  const _nonTWSess=D.sessions.filter(s=>!isTW(s.playerId));
+  const _distSess=_nonTWSess.filter(s=>parseFloat(s.distance||0)>0);
   const _avgDistV=_distSess.length?_distSess.reduce((sum,s)=>sum+parseFloat(s.distance),0)/_distSess.length:null;
-  const _spdSess=D.sessions.filter(s=>parseFloat(s.maxSprint||0)>0);
+  const _spdSess=_nonTWSess.filter(s=>parseFloat(s.maxSprint||0)>0);
   const _avgSpdV=_spdSess.length?_spdSess.reduce((sum,s)=>sum+parseFloat(s.maxSprint),0)/_spdSess.length:null;
   const _topSpdE=_spdSess.reduce((mx,s)=>parseFloat(s.maxSprint)>parseFloat(mx?.maxSprint||0)?s:mx,null);
   const _topSpdPl=_topSpdE?D.players.find(p=>p.id===_topSpdE.playerId):null;
@@ -3006,14 +3040,15 @@ function renderTCharts(t){
       if(chartPl.length>0){
         tdDS=chartPl.map((p,i)=>({label:p.name.split(' ')[0],data:dates.map(d=>{const s=D.sessions.find(s=>s.playerId===p.id&&s.date===d);return s&&parseFloat(s.distance||0)>0?parseFloat(s.distance):null;}),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'18',tension:.35,spanGaps:true,pointRadius:3}));
       }else{
-        tdDS=[{label:'Team-Ø',data:dates.map(d=>{const ss=D.sessions.filter(s=>s.date===d&&parseFloat(s.distance||0)>0);return ss.length?ss.reduce((a,s)=>a+parseFloat(s.distance),0)/ss.length:null;}),borderColor:'#1a6a35',backgroundColor:'#1a6a3528',tension:.35,spanGaps:true,pointRadius:3}];
+        const _fpSess2=D.sessions.filter(s=>!isTW(s.playerId));
+        tdDS=[{label:'Team-Ø (Feldspieler)',data:dates.map(d=>{const ss=_fpSess2.filter(s=>s.date===d&&parseFloat(s.distance||0)>0);return ss.length?ss.reduce((a,s)=>a+parseFloat(s.distance),0)/ss.length:null;}),borderColor:'#1a6a35',backgroundColor:'#1a6a3528',tension:.35,spanGaps:true,pointRadius:3}];
       }
       CHS['ch-td']=new Chart(tdEl,{type:'line',data:{labels:dates.map(fmtD),datasets:tdDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9},color:'#64748b'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});
     }
     // ── Flexible comparison chart ──
     const tsEl=document.getElementById('ch-ts');
     if(tsEl){
-      const compPl=chartPl.length>0?chartPl:D.players;
+      const compPl=chartPl.length>0?chartPl:D.players.filter(p=>!isTW(p.id));
       const MC={distance:{label:'Distanz',unit:'km',key:'distance',fmt:v=>v.toFixed(1)},maxSprint:{label:'Top Speed',unit:'km/h',key:'maxSprint',fmt:v=>v.toFixed(1)},hiInt:{label:'HI-Intensität',unit:'m',key:'hiInt',fmt:v=>Math.round(v)+''},acc:{label:'Beschleunigungen',unit:'',key:'acc',fmt:v=>Math.round(v)+''},dec:{label:'Abbremsungen',unit:'',key:'dec',fmt:v=>Math.round(v)+''},ball:{label:'Ballkontakte',unit:'',key:'ball',fmt:v=>Math.round(v)+'',special:'ball'},load:{label:'Belastung',unit:'',key:'load',fmt:v=>Math.round(v)+''},maxShot:{label:'Schussstärke',unit:'km/h',key:'maxShot',fmt:v=>v.toFixed(1)}};
       const mc=MC[tuCompMetric]||MC.distance;
       const plVal=p=>{const ps=pSess(p.id);if(!ps.length)return null;if(mc.special==='ball'){const vs=ps.filter(s=>parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0).map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}const vs=ps.filter(s=>parseFloat(s[mc.key]||0)>0).map(s=>parseFloat(s[mc.key]));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;};
@@ -3028,10 +3063,12 @@ function renderTCharts(t){
       const rK=['distance','hiInt','maxSprint','acc','dec','ball'];
       const plAvg=(p,k)=>{const ps=pSess(p.id);if(k==='ball'){const vs=ps.filter(s=>parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0).map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:0;}const vs=ps.filter(s=>parseFloat(s[k]||0)>0).map(s=>parseFloat(s[k]));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:0;};
       if(tuRadarMode==='norm'){
-        const teamAvgV=rK.map(k=>{if(k==='ball'){const vs=D.sessions.filter(s=>parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0).map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:1;}const vs=D.sessions.filter(s=>parseFloat(s[k]||0)>0).map(s=>parseFloat(s[k]));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:1;});
+        const _fpSess3=D.sessions.filter(s=>!isTW(s.playerId));
+        const teamAvgV=rK.map(k=>{if(k==='ball'){const vs=_fpSess3.filter(s=>parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0).map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:1;}const vs=_fpSess3.filter(s=>parseFloat(s[k]||0)>0).map(s=>parseFloat(s[k]));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:1;});
         CHS['ch-tr']=new Chart(crEl,{type:'radar',data:{labels:rL,datasets:[{label:'Team-Ø (100)',data:rK.map(()=>100),borderColor:'#94a3b8',borderDash:[5,4],backgroundColor:'rgba(148,163,184,.08)',pointRadius:0,borderWidth:1.5,fill:true},...radarPl.map((p,i)=>({label:p.name.split(' ')[0],data:rK.map((k,ki)=>teamAvgV[ki]>0?Math.round(plAvg(p,k)/teamAvgV[ki]*100):0),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'15',pointRadius:3,fill:true}))]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:false,min:0,suggestedMax:150,ticks:{display:false,stepSize:25},grid:{color:'rgba(0,0,0,.06)'},pointLabels:{font:{size:9,weight:'600'},color:'#64748b'},angleLines:{color:'rgba(0,0,0,.06)'}}},plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:9}}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.raw}}}}});
       }else{
-        const mxV=rK.map(k=>{if(k==='ball'){const vs=D.sessions.filter(s=>parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0).map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));return vs.length?Math.max(...vs,1):1;}return Math.max(...D.sessions.map(s=>parseFloat(s[k]||0)),1);});
+        const _fpSess4=D.sessions.filter(s=>!isTW(s.playerId));
+        const mxV=rK.map(k=>{if(k==='ball'){const vs=_fpSess4.filter(s=>parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0).map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));return vs.length?Math.max(...vs,1):1;}return Math.max(..._fpSess4.map(s=>parseFloat(s[k]||0)),1);});
         CHS['ch-tr']=new Chart(crEl,{type:'radar',data:{labels:rL,datasets:radarPl.map((p,i)=>({label:p.name.split(' ')[0],data:rK.map((k,ki)=>mxV[ki]>0?plAvg(p,k)/mxV[ki]*100:0),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'15',pointRadius:2,fill:true}))},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:100,ticks:{display:false,stepSize:25},grid:{color:'rgba(0,0,0,.06)'},pointLabels:{font:{size:9,weight:'600'},color:'#64748b'},angleLines:{color:'rgba(0,0,0,.06)'}}},plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}}}});
       }
     }
@@ -4252,6 +4289,19 @@ function delPl(pid){if(!confirm('Spieler und alle Daten löschen?'))return;D.pla
 
 // ── ADD ENTRY ──────────────────────────────────────────────────────────────────
 let editSessId=null;
+function isTW(pid){return (D.players.find(p=>p.id===pid)||{}).pos==='TW';}
+function onFormPlayerChange(){
+  const pid=document.getElementById('f-pl').value;
+  const gk=pid&&isTW(pid);
+  document.getElementById('fp-fields').style.display=gk?'none':'';
+  document.getElementById('gk-fields').style.display=gk?'':'none';
+  const title2=document.getElementById('f-sec-speed');
+  if(gk){
+    document.getElementById('add-title').dataset.gk='1';
+  } else {
+    delete document.getElementById('add-title').dataset.gk;
+  }
+}
 function startAdd(type){
   editSessId=null;
   const isGm=type==='game';
@@ -4263,6 +4313,7 @@ function startAdd(type){
   const sel=document.getElementById('f-pl');
   sel.innerHTML='<option value="">– Spieler wählen –</option>'+D.players.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
   if(aPl)sel.value=aPl;
+  onFormPlayerChange();
   document.getElementById('f-dt').value=new Date().toISOString().slice(0,10);
   sp('add-entry');
 }
@@ -4282,13 +4333,16 @@ function editSess(id){
   sv2('f-ac')(s.acc);sv2('f-dc')(s.dec);sv2('f-ld')(s.load);
   sv2('f-sh')(s.shots);sv2('f-msh')(s.maxShot);sv2('f-pa')(s.passes);
   sv2('f-bm')(s.ballMin);sv2('f-bs')(s.ballSec);
+  sv2('f-tw-sp')(s.twSprints);sv2('f-tw-as')(s.twAvgSprint);sv2('f-gk-ms')(s.maxSprint);
+  onFormPlayerChange();
   sp('add-entry');
 }
 function svEntry(e){
   e.preventDefault();const g=id=>document.getElementById(id).value;
   if(!g('f-pl')){alert('Spieler wählen.');return;}
   const type=g('f-type');
-  const entry={id:editSessId||Date.now().toString(),playerId:g('f-pl'),date:g('f-dt'),label:g('f-lb'),distance:g('f-di'),hiInt:g('f-hi'),activeMin:g('f-am'),activeSec:g('f-as'),maxSprint:g('f-ms'),acc:g('f-ac'),dec:g('f-dc'),load:g('f-ld'),shots:g('f-sh'),maxShot:g('f-msh'),passes:g('f-pa'),ballMin:g('f-bm'),ballSec:g('f-bs')};
+  const _isTWEntry=isTW(g('f-pl'));
+  const entry={id:editSessId||Date.now().toString(),playerId:g('f-pl'),date:g('f-dt'),label:g('f-lb'),distance:g('f-di'),hiInt:g('f-hi'),activeMin:g('f-am'),activeSec:g('f-as'),maxSprint:_isTWEntry?g('f-gk-ms'):g('f-ms'),acc:g('f-ac'),dec:g('f-dc'),load:g('f-ld'),shots:g('f-sh'),maxShot:g('f-msh'),passes:g('f-pa'),ballMin:g('f-bm'),ballSec:g('f-bs'),twSprints:_isTWEntry?g('f-tw-sp'):'',twAvgSprint:_isTWEntry?g('f-tw-as'):''};
   if(type==='game'){entry.opponent=g('f-op');entry.home=g('f-hm');entry.goalsUs=g('f-gu');entry.goalsThem=g('f-gt');entry.zuschauer=g('f-zu');entry.gameType=g('f-gtype')||'official';D.games.push(entry);}
   else if(editSessId){const idx=D.sessions.findIndex(s=>s.id===editSessId);if(idx>=0)D.sessions[idx]=entry;editSessId=null;}
   else D.sessions.push(entry);

@@ -396,6 +396,9 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
 @media(max-width:900px){.tc-charts-row{grid-template-columns:1fr;}}
 .tc-charts-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:16px; }
 @media(max-width:700px){.tc-charts-grid{grid-template-columns:1fr;}}
+@media(max-width:600px){#t-sc-cards{grid-template-columns:repeat(2,1fr)!important;}}
+@media(max-width:400px){#t-sc-cards{grid-template-columns:1fr!important;}}
+@media(max-width:600px){#tu-last5 .tu-l5-grid{grid-template-columns:repeat(2,1fr)!important;}}
 .tc-chart-card { padding:12px 14px; }
 .tc-chart-title { font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px; }
 .tc-matrix th,.tc-matrix td { font-size:12px; }
@@ -601,27 +604,59 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
     <button class="tab active" onclick="setTT('tr',this)">Training</button>
     <button class="tab gm" onclick="setTT('gm',this)">Spiele</button>
   </div>
-  <!-- Spieler-Filter -->
-  <div style="margin-bottom:12px">
-    <div onclick="tcFOpen=!tcFOpen;renderTCFilter()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--card);border:1px solid var(--brd);border-radius:8px;user-select:none">
-      <span style="font-size:12px;font-weight:700">🎯 Spieler für Charts auswählen</span>
-      <span id="tc-filter-badge" style="font-size:11px;color:var(--muted)"></span>
-    </div>
-    <div id="tc-filter-panel" style="display:none;padding:10px 12px;background:var(--card);border:1px solid var(--brd);border-top:none;border-radius:0 0 8px 8px">
-      <div style="display:flex;gap:6px;margin-bottom:8px">
-        <button onclick="tcSelAll()" style="font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid var(--grn);background:#e8f5e9;color:var(--grn);cursor:pointer;font-weight:700">✓ Alle</button>
-        <button onclick="tcSelNone()" style="font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid var(--brd);background:#f5f5f5;color:var(--muted);cursor:pointer">✕ Keine</button>
-      </div>
-      <div id="tc-filter-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
-    </div>
-  </div>
   <div id="tt-tr">
-    <div class="g4" id="t-sc-cards"></div>
-    <div class="g2">
-      <div class="card"><div class="cv" style="margin-bottom:7px">Distanz pro Einheit (km)</div><div class="chrt"><canvas id="ch-td"></canvas></div></div>
-      <div class="card"><div class="cv" style="margin-bottom:7px">Max. Sprint (km/h)</div><div class="chrt"><canvas id="ch-ts"></canvas></div></div>
+    <!-- 6 KPI Cards -->
+    <div id="t-sc-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px"></div>
+    <!-- SPIELERANALYSE -->
+    <div class="card" style="margin-bottom:14px;padding:12px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em">SPIELERANALYSE</div>
+        <div style="display:flex;gap:6px">
+          <button onclick="tuOpenPlayerPicker()" class="tc-trend-btn" style="font-size:11px">+ Spieler auswählen</button>
+          <button onclick="tuResetPlayers()" class="tc-trend-btn" style="font-size:11px">Auswahl zurücksetzen</button>
+        </div>
+      </div>
+      <div id="tu-player-chips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:22px"></div>
+      <div id="tu-player-picker" style="display:none">
+        <div id="tu-player-picker-list" style="display:flex;flex-wrap:wrap;gap:6px;padding-top:10px;border-top:1px solid var(--brd)"></div>
+      </div>
     </div>
-    <div class="card" style="margin-bottom:14px"><div class="cv" style="margin-bottom:9px">Spieler-Radar – Training</div><div class="chrt-t"><canvas id="ch-tr"></canvas></div></div>
+    <!-- TEAM – LETZTE 5 EINHEITEN -->
+    <div id="tu-last5" style="margin-bottom:14px"></div>
+    <!-- Charts row -->
+    <div class="g2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="cv" style="margin-bottom:7px">Distanz pro Einheit (km)</div>
+        <div class="chrt"><canvas id="ch-td"></canvas></div>
+      </div>
+      <div class="card" id="tu-comp-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:7px">
+          <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em">SPIELERVERGLEICH – Ø TRAININGSWERTE</div>
+          <select id="tu-comp-metric" onchange="tuSetCompMetric(this.value)" style="font-size:11px;padding:3px 7px;border-radius:5px;border:1px solid var(--brd);background:var(--sfc);color:var(--txt);cursor:pointer;font-weight:600">
+            <option value="distance">Distanz (km)</option>
+            <option value="maxSprint">Top Speed (km/h)</option>
+            <option value="hiInt">HI-Intensität (m)</option>
+            <option value="acc">Beschleunigungen</option>
+            <option value="dec">Abbremsungen</option>
+            <option value="ball">Ballkontakte</option>
+            <option value="load">Belastung</option>
+            <option value="maxShot">Schussstärke (km/h)</option>
+          </select>
+        </div>
+        <div class="chrt"><canvas id="ch-ts"></canvas></div>
+      </div>
+    </div>
+    <!-- Radar -->
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:9px">
+        <div class="cv" style="margin:0">Spieler-Radar – Training</div>
+        <div style="display:flex;gap:4px">
+          <button id="tu-radar-norm" class="tc-trend-btn active" onclick="tuSetRadarMode('norm')">TEAM-Ø = 100</button>
+          <button id="tu-radar-abs" class="tc-trend-btn" onclick="tuSetRadarMode('abs')">Absolute Werte</button>
+        </div>
+      </div>
+      <div class="chrt-t"><canvas id="ch-tr"></canvas></div>
+    </div>
   </div>
   <div id="tt-gm" style="display:none">
     <div class="g4" id="t-gc-cards"></div>
@@ -904,8 +939,13 @@ function sv(){if(_fbdb){_fbdb.collection('sgb').doc('u17data').set(JSON.parse(JS
 
 const COLS=['#1a6a35','#c94f18','#6d28d9','#1d4ed8','#ca8a04','#c0392b','#0891b2','#7c3aed'];
 let aPl=null,CHS={},curTT='tr',gmFilter='all',plGmFilter='all',stFilter='all',plStFilter='all';
-let tcFilter=new Set(); // selected player IDs for team charts (empty=all)
+let tcFilter=new Set(); // kept for backwards compat but no longer used in tt-tr
 let tcFOpen=false;
+// Team-Übersicht state
+let tuSelPlayers=new Set(); // selected player IDs for Team-Übersicht (empty=all)
+let tuPickerOpen=false;
+let tuCompMetric='distance'; // comparison chart metric
+let tuRadarMode='norm'; // 'norm'=Team-Ø=100, 'abs'=max-normalized
 function renderTCFilter(){
   const panel=document.getElementById('tc-filter-panel');
   const list=document.getElementById('tc-filter-list');
@@ -2677,6 +2717,89 @@ function renderTeamTrends(){
 
 // ── END TRAINER COCKPIT ──────────────────────────────
 
+// ── TEAM-ÜBERSICHT PLAYER SELECTION ─────────────────────────────────────────
+function tuRenderPlayerSel(){
+  const chips=document.getElementById('tu-player-chips');
+  const picker=document.getElementById('tu-player-picker');
+  const pickerList=document.getElementById('tu-player-picker-list');
+  if(!chips)return;
+  if(tuSelPlayers.size===0){
+    chips.innerHTML='<span style="font-size:11px;color:var(--txt3);font-style:italic">Kein Spieler ausgewählt – Diagramme zeigen Team-Durchschnitt</span>';
+  }else{
+    chips.innerHTML=[...tuSelPlayers].map(pid=>{
+      const p=D.players.find(pl=>pl.id===pid);if(!p)return'';
+      const i=D.players.indexOf(p),col=COLS[i%COLS.length];
+      return'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;background:'+col+'20;border:1px solid '+col+';font-size:11px;font-weight:700;color:'+col+'">▪ '+p.name.split(' ')[0]+'<span onclick="tuTogglePlayer(this.dataset.pid)" data-pid='+pid+' style="cursor:pointer;opacity:.6;margin-left:2px;line-height:1;font-size:13px">&times;</span></span>';
+    }).join('');
+  }
+  if(picker)picker.style.display=tuPickerOpen?'':'none';
+  if(pickerList&&tuPickerOpen){
+    pickerList.innerHTML=D.players.map((p,i)=>{
+      const sel=tuSelPlayers.has(p.id),col=COLS[i%COLS.length],maxed=!sel&&tuSelPlayers.size>=6;
+      return'<label style="display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:6px;border:1px solid '+(sel?col:'var(--brd)')+';background:'+(sel?col+'18':'#f9f9f9')+';cursor:'+(maxed?'not-allowed':'pointer')+';font-size:11px;white-space:nowrap;opacity:'+(maxed?.5:1)+'"><input type="checkbox" '+(sel?'checked':'')+' '+(maxed&&!sel?'disabled':'')+' onchange="tuTogglePlayer(this.dataset.pid)" data-pid='+p.id+' style="accent-color:'+col+'"><span style="font-weight:700;color:'+col+'">#'+p.number+'</span> '+p.name.split(' ')[0]+'</label>';
+    }).join('');
+  }
+}
+function tuOpenPlayerPicker(){tuPickerOpen=!tuPickerOpen;tuRenderPlayerSel();}
+function tuResetPlayers(){tuSelPlayers.clear();tuPickerOpen=false;tuRenderPlayerSel();renderTCharts('tr');}
+function tuTogglePlayer(pid){
+  if(tuSelPlayers.has(pid)){tuSelPlayers.delete(pid);}
+  else{if(tuSelPlayers.size>=6)return;tuSelPlayers.add(pid);}
+  tuRenderPlayerSel();renderTCharts('tr');
+}
+function tuSetCompMetric(v){tuCompMetric=v;renderTCharts('tr');}
+function tuSetRadarMode(m){
+  tuRadarMode=m;
+  ['tu-radar-norm','tu-radar-abs'].forEach(id=>{const b=document.getElementById(id);if(b)b.classList.toggle('active',(m==='norm'&&id==='tu-radar-norm')||(m==='abs'&&id==='tu-radar-abs'));});
+  renderTCharts('tr');
+}
+
+function renderTuLast5(){
+  const el=document.getElementById('tu-last5');if(!el)return;
+  const allDatesSorted=[...new Set(D.sessions.map(s=>s.date))].sort();
+  const last5=allDatesSorted.slice(-5);
+  if(!last5.length){el.innerHTML='';return;}
+  const METS=[
+    {key:'distance',label:'Ø DISTANZ',unit:'km',fmt:v=>v.toFixed(1)+' km'},
+    {key:'maxSprint',label:'Ø TOP SPEED',unit:'km/h',fmt:v=>v.toFixed(1)+' km/h'},
+    {key:'hiInt',label:'Ø HI-INT.',unit:'m',fmt:v=>Math.round(v)+' m'},
+    {key:'acc',label:'Ø BESCHL.',unit:'',fmt:v=>Math.round(v)+''},
+    {key:'dec',label:'Ø ABBREMS.',unit:'',fmt:v=>Math.round(v)+''},
+    {key:'ball',label:'Ø BALLKT.',unit:'',fmt:v=>Math.round(v)+'',special:'ball'},
+    {key:'load',label:'Ø BELASTG.',unit:'',fmt:v=>Math.round(v)+''},
+    {key:'maxShot',label:'Ø SCHUSSST.',unit:'km/h',fmt:v=>v.toFixed(1)+' km/h'},
+  ];
+  const dateAvg=(date,m)=>{
+    if(m.special==='ball'){
+      const ss=D.sessions.filter(s=>s.date===date&&(parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0));
+      const vs=ss.map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));
+      return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;
+    }
+    const ss=D.sessions.filter(s=>s.date===date&&parseFloat(s[m.key]||0)>0);
+    const vs=ss.map(s=>parseFloat(s[m.key]));
+    return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;
+  };
+  const saAvg=(m)=>{
+    const vs=allDatesSorted.map(d=>dateAvg(d,m)).filter(v=>v!==null);
+    return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;
+  };
+  const cards=METS.map(m=>{
+    const l5vs=last5.map(d=>dateAvg(d,m)).filter(v=>v!==null);
+    if(!l5vs.length)return null;
+    const l5avg=l5vs.reduce((a,b)=>a+b,0)/l5vs.length;
+    const sa=saAvg(m);
+    let devHtml='';
+    if(sa!==null&&sa>0){
+      const dev=Math.round((l5avg-sa)/sa*100);
+      const dc=dev>5?'#1a6a35':dev<-5?'#c0392b':'var(--txt3)';
+      devHtml='<div style="font-size:9px;color:'+dc+';font-weight:700;margin-top:2px">'+(dev>=0?'+':'')+dev+' % vs. Saison-Ø</div>';
+    }
+    return'<div class="card" style="text-align:center;padding:10px 8px"><div style="font-size:9px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">'+m.label+'</div><div style="font-family:var(--fd);font-size:18px;font-weight:800;color:var(--txt);line-height:1">'+m.fmt(l5avg)+'</div>'+devHtml+'</div>';
+  }).filter(Boolean);
+  if(!cards.length){el.innerHTML='';return;}
+  el.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">TEAM – LETZTE 5 EINHEITEN</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'+cards.join('')+'</div>';
+}
+
 function renderTeam(){
   if(isTr||isSL) renderTrainerCockpit();
   // ── Player mode: hide other players, show team averages + own card ─────────
@@ -2710,7 +2833,7 @@ function renderTeam(){
       <div class="pc-stats">
         <div class="pc-stat"><div class="pc-sv">${ps.length}</div><div class="pc-sl">Training</div></div>
         <div class="pc-stat"><div class="pc-sv">${st.em||0}</div><div class="pc-sl">Minuten</div></div>
-        <div class="pc-stat"><div class="pc-sv">${(()=>{const _tds=(D.trainingDays||[]).slice(-8);return _tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*100)+'%':'–';})()}</div><div class="pc-sl">Anwesen.</div></div>
+        <div class="pc-stat"><div class="pc-sv">${(()=>{const _tds=D.trainingDays||[];return _tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*100)+'%':'–';})()}</div><div class="pc-sl">Anwesen.</div></div>
         <div class="pc-stat"><div class="pc-sv">${totalGoals(st)}</div><div class="pc-sl">Tore</div></div>
       </div></div>`;
     setTimeout(()=>{
@@ -2726,11 +2849,26 @@ function renderTeam(){
   document.getElementById('t-gc').textContent=D.games.length+' Spiele';
   const aA=(arr,k)=>{const v=arr.map(s=>parseFloat(s[k]||0)).filter(v=>v>0);return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'–';};
   const mA=(arr,k)=>{const v=arr.map(s=>parseFloat(s[k]||0)).filter(v=>v>0);return v.length?Math.max(...v).toFixed(1):'–';};
-  document.getElementById('t-sc-cards').innerHTML=`
-    <div class="card"><div class="cv">Kader</div><div class="cn">${D.players.length}</div><div class="cs">Spieler</div></div>
-    <div class="card"><div class="cv">Trainingseinheiten</div><div class="cn">${D.sessions.length}</div></div>
-    <div class="card"><div class="cv">Ø Distanz</div><div class="cn">${aA(D.sessions,'distance')}<small style="font-size:14px;font-weight:500"> km</small></div></div>
-    <div class="card"><div class="cv">Max. Sprint</div><div class="cn">${mA(D.sessions,'maxSprint')}<small style="font-size:14px;font-weight:500"> km/h</small></div></div>`;
+  // ── 6 KPIs ──
+  const _trainingCount=D.trainingDays.length;
+  const _avgAttPct=D.trainingDays.length>0&&D.players.length>0?Math.round(D.trainingDays.reduce((sum,td)=>sum+(td.present||[]).length,0)/D.trainingDays.length/D.players.length*100):0;
+  const _distSess=D.sessions.filter(s=>parseFloat(s.distance||0)>0);
+  const _avgDistV=_distSess.length?_distSess.reduce((sum,s)=>sum+parseFloat(s.distance),0)/_distSess.length:null;
+  const _spdSess=D.sessions.filter(s=>parseFloat(s.maxSprint||0)>0);
+  const _avgSpdV=_spdSess.length?_spdSess.reduce((sum,s)=>sum+parseFloat(s.maxSprint),0)/_spdSess.length:null;
+  const _topSpdE=_spdSess.reduce((mx,s)=>parseFloat(s.maxSprint)>parseFloat(mx?.maxSprint||0)?s:mx,null);
+  const _topSpdPl=_topSpdE?D.players.find(p=>p.id===_topSpdE.playerId):null;
+  const _attCol=_avgAttPct>=80?'var(--grn)':_avgAttPct>=60?'#ca8a04':'var(--red)';
+  document.getElementById('t-sc-cards').innerHTML=
+    '<div class="card" style="text-align:center;padding:12px 8px"><div style="font-size:9px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">KADER</div><div style="font-family:var(--fd);font-size:26px;font-weight:800;color:var(--txt);line-height:1">'+D.players.length+'</div><div style="font-size:10px;color:var(--txt3);margin-top:2px">Spieler</div></div>'
+   +'<div class="card" style="text-align:center;padding:12px 8px"><div style="font-size:9px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">TRAININGSEINHEITEN</div><div style="font-family:var(--fd);font-size:26px;font-weight:800;color:var(--txt);line-height:1">'+_trainingCount+'</div><div style="font-size:10px;color:var(--txt3);margin-top:2px">erfasst</div></div>'
+   +'<div class="card" style="text-align:center;padding:12px 8px"><div style="font-size:9px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Ø ANWESENHEIT</div><div style="font-family:var(--fd);font-size:26px;font-weight:800;color:'+_attCol+';line-height:1">'+_avgAttPct+'%</div><div style="font-size:10px;color:var(--txt3);margin-top:2px">Saison-Schnitt</div></div>'
+   +'<div class="card" style="text-align:center;padding:12px 8px"><div style="font-size:9px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Ø DISTANZ</div><div style="font-family:var(--fd);font-size:26px;font-weight:800;color:var(--txt);line-height:1">'+(_avgDistV!==null?_avgDistV.toFixed(1):'–')+'<span style="font-size:12px;font-weight:600"> km</span></div><div style="font-size:10px;color:var(--txt3);margin-top:2px">pro Einheit/Spieler</div></div>'
+   +'<div class="card" style="text-align:center;padding:12px 8px"><div style="font-size:9px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Ø TOP SPEED</div><div style="font-family:var(--fd);font-size:26px;font-weight:800;color:var(--txt);line-height:1">'+(_avgSpdV!==null?_avgSpdV.toFixed(1):'–')+'<span style="font-size:12px;font-weight:600"> km/h</span></div><div style="font-size:10px;color:var(--txt3);margin-top:2px">Saison-Schnitt</div></div>'
+   +'<div class="card" style="text-align:center;padding:12px 8px"><div style="font-size:9px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">TOP SPEED SAISON</div><div style="font-family:var(--fd);font-size:26px;font-weight:800;color:#1d4ed8;line-height:1">'+(_topSpdE?parseFloat(_topSpdE.maxSprint).toFixed(1):'–')+'<span style="font-size:12px;font-weight:600"> km/h</span></div><div style="font-size:10px;color:var(--txt3);margin-top:2px">'+(_topSpdPl?_topSpdPl.name.split(' ')[0]+' · '+fmtD(_topSpdE.date):'Kein Wert')+'</div></div>';
+  // ── Player selection + last 5 ──
+  tuRenderPlayerSel();
+  renderTuLast5();
   const fmGames=filtGames(D.games,gmFilter),w=fmGames.filter(g=>res(g)==='win').length,d=fmGames.filter(g=>res(g)==='draw').length,l=fmGames.filter(g=>res(g)==='loss').length;
   document.getElementById('t-gc-cards').innerHTML=`
     <div class="card"><div class="cv">Spiele</div><div class="cn">${fmGames.length}</div><div class="cs">${D.games.filter(g=>(g.gameType||'official')==='official').length} Pflicht · ${D.games.filter(g=>g.gameType==='friendly').length} Test</div></div>
@@ -2753,7 +2891,7 @@ function renderTeam(){
       <div class="pc-stats">
         <div class="pc-stat"><div class="pc-sv">${ps.length}</div><div class="pc-sl">Training</div></div>
         <div class="pc-stat"><div class="pc-sv">${st.em||0}</div><div class="pc-sl">Minuten</div></div>
-        <div class="pc-stat"><div class="pc-sv" style="color:${(()=>{const _tds=(D.trainingDays||[]).slice(-8),_a=_tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*100):null;return _a===null?'var(--txt3)':_a>=80?'#1a6a35':_a>=60?'#ca8a04':'#c0392b';})()}">${(()=>{const _tds=(D.trainingDays||[]).slice(-8);return _tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*100)+'%':'–';})()}</div><div class="pc-sl">Anwesen.</div></div>
+        <div class="pc-stat"><div class="pc-sv" style="color:${(()=>{const _tds=D.trainingDays||[],_a=_tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*100):null;return _a===null?'var(--txt3)':_a>=80?'#1a6a35':_a>=60?'#ca8a04':'#c0392b';})()}">${(()=>{const _tds=D.trainingDays||[];return _tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*100)+'%':'–';})()}</div><div class="pc-sl">Anwesen.</div></div>
         <div class="pc-stat"><div class="pc-sv" style="color:${(()=>{const _ps=(D.sessions||[]).filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0).sort((a,b)=>a.date.localeCompare(b.date)),_r=_ps.slice(-4);if(!_r.length)return 'var(--txt3)';const _av=k=>_ps.length?_ps.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_ps.length:0,_rv=k=>_r.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_r.length,_tds=(D.trainingDays||[]).slice(-6),_att=_tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*25):0,sc=Math.min(100,_att+(_av('distance')>0?Math.min(25,Math.round((_rv('distance')/_av('distance'))*20)):0)+(_av('hiInt')>0?Math.min(25,Math.round((_rv('hiInt')/_av('hiInt'))*20)):0)+(_av('maxSprint')>0?Math.min(25,Math.round((_rv('maxSprint')/_av('maxSprint'))*20)):0));return sc>=80?'#1a6a35':sc>=60?'#ca8a04':'#c0392b';})()}">${(()=>{const _ps=(D.sessions||[]).filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0).sort((a,b)=>a.date.localeCompare(b.date)),_r=_ps.slice(-4);if(!_r.length)return '–';const _av=k=>_ps.length?_ps.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_ps.length:0,_rv=k=>_r.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_r.length,_tds=(D.trainingDays||[]).slice(-6),_att=_tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*25):0;return Math.min(100,_att+(_av('distance')>0?Math.min(25,Math.round((_rv('distance')/_av('distance'))*20)):0)+(_av('hiInt')>0?Math.min(25,Math.round((_rv('hiInt')/_av('hiInt'))*20)):0)+(_av('maxSprint')>0?Math.min(25,Math.round((_rv('maxSprint')/_av('maxSprint'))*20)):0));})()}</div><div class="pc-sl">Score</div></div>
       </div></div>`;}).join('');
 }
@@ -2855,16 +2993,48 @@ function renderTChartsForPlayer(filtPl,t){
 }
 
 function renderTCharts(t){
-  const filtPl=tcFilter.size>0?D.players.filter(p=>tcFilter.has(p.id)):D.players;
+  // tuSelPlayers drives Team-Übersicht charts; fall back to all players if empty
+  const chartPl=tuSelPlayers.size>0?D.players.filter(p=>tuSelPlayers.has(p.id)):[];
   if(t==='tr'){
     ['ch-td','ch-ts','ch-tr'].forEach(dch);
     const dates=[...new Set(D.sessions.map(s=>s.date))].sort();
     if(!dates.length||!D.players.length){noDataMsg(['ch-td','ch-ts','ch-tr'],'Noch keine GPS-Einheiten eingetragen');return;}
-    CHS['ch-td']=new Chart(document.getElementById('ch-td'),{type:'line',data:{labels:dates,datasets:filtPl.map((p,i)=>({label:p.name,data:dates.map(d=>{const s=D.sessions.find(s=>s.playerId===p.id&&s.date===d);return s?parseFloat(s.distance||0):null;}),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'18',tension:.35,spanGaps:true,pointRadius:3}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9},color:'#64748b'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});
-    CHS['ch-ts']=new Chart(document.getElementById('ch-ts'),{type:'bar',data:{labels:filtPl.map(p=>p.name.split(' ')[0]),datasets:[{data:filtPl.map(p=>{const ps=pSess(p.id);return ps.length?Math.max(...ps.map(s=>parseFloat(s.maxSprint||0))):0;}),backgroundColor:filtPl.map((_,i)=>COLS[i%COLS.length]+'cc'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});
-    const rL=['Distanz','Hi-Int.','Sprint','Beschl.','Abbrems.','Pässe','Am Ball'],rK=['distance','hiInt','maxSprint','acc','dec','passes','ballMin'];
-    const mxV=rK.map(k=>Math.max(...D.sessions.map(s=>parseFloat(s[k]||0)),1));
-    CHS['ch-tr']=new Chart(document.getElementById('ch-tr'),{type:'radar',data:{labels:rL,datasets:filtPl.slice(0,6).map((p,i)=>{const ps=pSess(p.id);return{label:p.name.split(' ')[0],data:rK.map((k,ki)=>ps.length?(avg(ps,k)/mxV[ki]*100):0),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'15',pointRadius:2};})},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:100,ticks:{display:false,stepSize:25},grid:{color:'rgba(0,0,0,.06)'},pointLabels:{font:{size:9,weight:'600'},color:'#64748b'}}},plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}}}});
+    // ── Distance chart ──
+    const tdEl=document.getElementById('ch-td');
+    if(tdEl){
+      let tdDS;
+      if(chartPl.length>0){
+        tdDS=chartPl.map((p,i)=>({label:p.name.split(' ')[0],data:dates.map(d=>{const s=D.sessions.find(s=>s.playerId===p.id&&s.date===d);return s&&parseFloat(s.distance||0)>0?parseFloat(s.distance):null;}),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'18',tension:.35,spanGaps:true,pointRadius:3}));
+      }else{
+        tdDS=[{label:'Team-Ø',data:dates.map(d=>{const ss=D.sessions.filter(s=>s.date===d&&parseFloat(s.distance||0)>0);return ss.length?ss.reduce((a,s)=>a+parseFloat(s.distance),0)/ss.length:null;}),borderColor:'#1a6a35',backgroundColor:'#1a6a3528',tension:.35,spanGaps:true,pointRadius:3}];
+      }
+      CHS['ch-td']=new Chart(tdEl,{type:'line',data:{labels:dates.map(fmtD),datasets:tdDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9},color:'#64748b'}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});
+    }
+    // ── Flexible comparison chart ──
+    const tsEl=document.getElementById('ch-ts');
+    if(tsEl){
+      const compPl=chartPl.length>0?chartPl:D.players;
+      const MC={distance:{label:'Distanz',unit:'km',key:'distance',fmt:v=>v.toFixed(1)},maxSprint:{label:'Top Speed',unit:'km/h',key:'maxSprint',fmt:v=>v.toFixed(1)},hiInt:{label:'HI-Intensität',unit:'m',key:'hiInt',fmt:v=>Math.round(v)+''},acc:{label:'Beschleunigungen',unit:'',key:'acc',fmt:v=>Math.round(v)+''},dec:{label:'Abbremsungen',unit:'',key:'dec',fmt:v=>Math.round(v)+''},ball:{label:'Ballkontakte',unit:'',key:'ball',fmt:v=>Math.round(v)+'',special:'ball'},load:{label:'Belastung',unit:'',key:'load',fmt:v=>Math.round(v)+''},maxShot:{label:'Schussstärke',unit:'km/h',key:'maxShot',fmt:v=>v.toFixed(1)}};
+      const mc=MC[tuCompMetric]||MC.distance;
+      const plVal=p=>{const ps=pSess(p.id);if(!ps.length)return null;if(mc.special==='ball'){const vs=ps.filter(s=>parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0).map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;}const vs=ps.filter(s=>parseFloat(s[mc.key]||0)>0).map(s=>parseFloat(s[mc.key]));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;};
+      const selEl=document.getElementById('tu-comp-metric');if(selEl&&selEl.value!==tuCompMetric)selEl.value=tuCompMetric;
+      CHS['ch-ts']=new Chart(tsEl,{type:'bar',data:{labels:compPl.map(p=>p.name.split(' ')[0]),datasets:[{label:mc.label+(mc.unit?' ('+mc.unit+')':''),data:compPl.map(plVal),backgroundColor:compPl.map((_,i)=>COLS[i%COLS.length]+'cc'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const v=ctx.raw;return v!==null?(mc.fmt(v)+(mc.unit?' '+mc.unit:'')):'Keine Daten';}}}},scales:{x:{grid:{display:false},ticks:{font:{size:9,weight:'600'}}},y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9}}}}}});
+    }
+    // ── Radar chart ──
+    const crEl=document.getElementById('ch-tr');
+    if(crEl){
+      const radarPl=chartPl.length>0?chartPl.slice(0,6):D.players.slice(0,6);
+      const rL=['Distanz','HI-Int.','Top Speed','Beschl.','Abbrems.','Ballkt.'];
+      const rK=['distance','hiInt','maxSprint','acc','dec','ball'];
+      const plAvg=(p,k)=>{const ps=pSess(p.id);if(k==='ball'){const vs=ps.filter(s=>parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0).map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:0;}const vs=ps.filter(s=>parseFloat(s[k]||0)>0).map(s=>parseFloat(s[k]));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:0;};
+      if(tuRadarMode==='norm'){
+        const teamAvgV=rK.map(k=>{if(k==='ball'){const vs=D.sessions.filter(s=>parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0).map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:1;}const vs=D.sessions.filter(s=>parseFloat(s[k]||0)>0).map(s=>parseFloat(s[k]));return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:1;});
+        CHS['ch-tr']=new Chart(crEl,{type:'radar',data:{labels:rL,datasets:[{label:'Team-Ø (100)',data:rK.map(()=>100),borderColor:'#94a3b8',borderDash:[5,4],backgroundColor:'rgba(148,163,184,.08)',pointRadius:0,borderWidth:1.5,fill:true},...radarPl.map((p,i)=>({label:p.name.split(' ')[0],data:rK.map((k,ki)=>teamAvgV[ki]>0?Math.round(plAvg(p,k)/teamAvgV[ki]*100):0),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'15',pointRadius:3,fill:true}))]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:false,min:0,suggestedMax:150,ticks:{display:false,stepSize:25},grid:{color:'rgba(0,0,0,.06)'},pointLabels:{font:{size:9,weight:'600'},color:'#64748b'},angleLines:{color:'rgba(0,0,0,.06)'}}},plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:9}}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.raw}}}}});
+      }else{
+        const mxV=rK.map(k=>{if(k==='ball'){const vs=D.sessions.filter(s=>parseFloat(s.passes||0)>0||parseFloat(s.shots||0)>0).map(s=>parseFloat(s.passes||0)+parseFloat(s.shots||0));return vs.length?Math.max(...vs,1):1;}return Math.max(...D.sessions.map(s=>parseFloat(s[k]||0)),1);});
+        CHS['ch-tr']=new Chart(crEl,{type:'radar',data:{labels:rL,datasets:radarPl.map((p,i)=>({label:p.name.split(' ')[0],data:rK.map((k,ki)=>mxV[ki]>0?plAvg(p,k)/mxV[ki]*100:0),borderColor:COLS[i%COLS.length],backgroundColor:COLS[i%COLS.length]+'15',pointRadius:2,fill:true}))},options:{responsive:true,maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:100,ticks:{display:false,stepSize:25},grid:{color:'rgba(0,0,0,.06)'},pointLabels:{font:{size:9,weight:'600'},color:'#64748b'},angleLines:{color:'rgba(0,0,0,.06)'}}},plugins:{legend:{position:'bottom',labels:{boxWidth:7,font:{size:9}}}}}});
+      }
+    }
   } else {
     ['ch-gd','ch-gr','ch-gmr'].forEach(dch);
     if(!D.games.length||!D.players.length){noDataMsg(['ch-gd','ch-gr','ch-gmr'],'Noch keine GPS-Spieldaten eingetragen');return;}

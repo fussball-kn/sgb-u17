@@ -523,9 +523,27 @@ input:focus,select:focus { border-color:var(--grn);box-shadow:0 0 0 3px rgba(26,
       <div><label>Bezeichnung</label><input type="text" id="ta-lb" placeholder="z.B. Taktiktraining" style="margin-top:3px"></div>
       <input type="hidden" id="ta-id">
     </div>
+    <div style="margin-bottom:10px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:7px 10px;border-radius:7px;border:1.5px solid #f59e0b;background:#fffbeb"><input type="checkbox" id="ta-holiday" style="width:15px;height:15px;accent-color:#f59e0b"><span style="font-size:12px;font-weight:700;color:#92400e">🏖️ Ferientraining <span style="font-weight:400;font-size:11px;color:#b45309">(kein negativer Einfluss auf Statistiken)</span></span></label></div>
+    <div style="display:none">
+    </div>
     <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Anwesenheit</div>
     <div id="ta-players" style="display:flex;flex-direction:column;gap:4px;max-height:320px;overflow-y:auto"></div>
     <div style="font-size:11px;color:var(--muted);margin-top:7px" id="ta-count"></div>
+    <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--brd)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="font-size:11px;font-weight:800;color:#9333ea;text-transform:uppercase;letter-spacing:.5px">🏃 Gastspieler (U16/Probe)</div>
+        <span id="ta-guest-count" style="font-size:10px;color:#9333ea"></span>
+        <button onclick="document.getElementById('ta-guest-form2').style.display=document.getElementById('ta-guest-form2').style.display==='none'?'':'none'" style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid #c084fc;background:#fdf8ff;color:#9333ea;cursor:pointer">+ Gastspieler</button>
+      </div>
+      <div id="ta-guest-form2" style="display:none;background:#fdf8ff;border:1px solid #c084fc;border-radius:8px;padding:8px 10px;margin-bottom:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:7px;align-items:end">
+          <div><label style="font-size:11px;color:var(--muted)">Name</label><input id="ta-gname" type="text" placeholder="Max Muster" style="display:block;margin-top:3px;padding:4px 7px;border-radius:5px;border:1px solid #c084fc;font-size:12px;width:100%"></div>
+          <div><label style="font-size:11px;color:var(--muted)">Position</label><select id="ta-gpos" style="display:block;margin-top:3px;padding:4px 7px;border-radius:5px;border:1px solid #c084fc;font-size:12px;width:100%"><option>Torwart</option><option>Innenverteidiger</option><option>Außenverteidiger</option><option>Defensives Mittelfeld</option><option>Zentrales Mittelfeld</option><option>Offensives Mittelfeld</option><option>Außenstürmer</option><option>Stürmer</option></select></div>
+          <button onclick="taAddTAGuest()" style="padding:4px 10px;border-radius:5px;border:none;background:#9333ea;color:#fff;font-size:11px;cursor:pointer;white-space:nowrap">Hinzufügen</button>
+        </div>
+      </div>
+      <div id="ta-guests-wrap" style="display:flex;flex-direction:column;gap:2px"></div>
+    </div>
     <div class="ma"><button class="btn btn-gr" onclick="cmod('ta')">Abbrechen</button><button class="btn btn-g" onclick="svTA()">Speichern</button></div>
   </div>
 </div>
@@ -1387,8 +1405,9 @@ function renderVergleichPlayer(){
     meVals=[myAvg('distance'),myAvg('hiInt')/100,myAvg('maxSprint'),myAvg('passes')/10,myAvg('activeMin')];
     teamVals=[teamAvg('distance'),teamAvg('hiInt')/100,teamAvg('maxSprint'),teamAvg('passes')/10,teamAvg('activeMin')];
   }
-  const myAtt=D.trainingDays.length?D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length/D.trainingDays.length*100:0;
-  const allAtts=D.players.map(pl=>D.trainingDays.length?D.trainingDays.filter(td=>(td.present||[]).includes(pl.id)).length/D.trainingDays.length*100:0);
+  const _regTDsCmp=D.trainingDays.filter(td=>!td.isHoliday);
+  const myAtt=_regTDsCmp.length?_regTDsCmp.filter(td=>(td.present||[]).includes(p.id)).length/_regTDsCmp.length*100:0;
+  const allAtts=D.players.map(pl=>_regTDsCmp.length?_regTDsCmp.filter(td=>(td.present||[]).includes(pl.id)).length/_regTDsCmp.length*100:0);
   const teamAttAvg=allAtts.length?allAtts.reduce((a,v)=>a+v,0)/allAtts.length:0;
   const tInfo=document.getElementById('cmp-tracker-info');
   if(tInfo)tInfo.innerHTML='Dein Vergleich mit dem <strong>Team-Durchschnitt</strong>';
@@ -1405,7 +1424,7 @@ function renderVergleichPlayer(){
     {label:'Team-Durchschnitt',data:teamVals,borderColor:'#1d4ed8',backgroundColor:'#1a5e8a22',pointRadius:4,pointBackgroundColor:'#1d4ed8',borderDash:[4,3]}
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:11}}}},scales:{r:{beginAtZero:true,ticks:{font:{size:9}}}}}});
   parent.insertAdjacentHTML('afterend','<div class="g2" style="margin-top:12px" id="cmp-pl-extra">'
-    +'<div class="card"><div class="cv">Deine Anwesenheit</div><div class="cn" style="color:'+(myAtt>=80?'var(--grn)':myAtt>=60?'#ca8a04':'var(--red)')+'">'+Math.round(myAtt)+'%</div><div class="cs">'+D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length+' von '+D.trainingDays.length+' Einheiten</div></div>'
+    +'<div class="card"><div class="cv">Deine Anwesenheit</div><div class="cn" style="color:'+(myAtt>=80?'var(--grn)':myAtt>=60?'#ca8a04':'var(--red)')+'">'+Math.round(myAtt)+'%</div><div class="cs">'+_regTDsCmp.filter(td=>(td.present||[]).includes(p.id)).length+' / '+_regTDsCmp.length+' (o. Ferien)</div></div>'
     +'<div class="card"><div class="cv">Team-Ø Anwesenheit</div><div class="cn" style="color:#1a5e8a">'+Math.round(teamAttAvg)+'%</div><div class="cs">Alle Spieler</div></div></div>');
 }
 
@@ -1679,44 +1698,90 @@ function oTA(id){
   document.getElementById('ta-id').value=id||'';
   document.getElementById('ta-dt').value=td?td.date:new Date().toISOString().slice(0,10);
   document.getElementById('ta-lb').value=td?td.label:'';
+  document.getElementById('ta-holiday').checked=!!(td&&td.isHoliday);
   const present=td?td.present:D.players.map(p=>p.id);
   const excused=td?td.excused||[]:[];
+  const ersatz=td?td.ersatz||[]:[];
   const box=document.getElementById('ta-players');
   box.innerHTML=D.players.map((p,i)=>{
-    const col=COLS[i%COLS.length],chk=present.includes(p.id)?'checked':'',exc=excused.includes(p.id);
-    const bg=chk?'#e6f4e6':exc?'#fffbe6':'#fafafa';
-    const bc=chk?'#b0d8b0':exc?'#f59e0b':'#eee';
+    const col=COLS[i%COLS.length],chk=present.includes(p.id)?'checked':'',exc=excused.includes(p.id),erz=ersatz.includes(p.id);
+    const bg=chk?'#e6f4e6':erz?'#eff6ff':exc?'#fffbe6':'#fafafa';
+    const bc=chk?'#b0d8b0':erz?'#93c5fd':exc?'#f59e0b':'#eee';
     return`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:${bg};border:1px solid ${bc};margin-bottom:2px" id="ta-lbl-${p.id}">
       <input type="checkbox" id="ta-cb-${p.id}" ${chk} onchange="updTAColor('${p.id}')" style="width:15px;height:15px;accent-color:var(--grn)">
       <span style="width:26px;height:26px;border-radius:50%;background:${col}18;color:${col};font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center">${ini(p.name)}</span>
       <span style="font-weight:600;font-size:12px;flex:1">#${p.number} ${p.name}</span>
-      <label style="display:flex;align-items:center;gap:3px;font-size:10px;color:#ca8a04;cursor:pointer"><input type="checkbox" id="ta-exc-${p.id}" ${exc&&!chk?'checked':''} ${chk?'disabled':''} style="accent-color:#ca8a04">entsch.</label>
+      <label style="display:flex;align-items:center;gap:3px;font-size:10px;color:#1d4ed8;cursor:pointer" title="Zählt statistisch als anwesend, aber als Ersatzleistung markiert"><input type="checkbox" id="ta-erz-${p.id}" ${erz&&!chk?'checked':''} ${chk?'disabled':''} onchange="updTAColor('${p.id}')" style="accent-color:#1d4ed8">🔄 Ersatz</label>
+      <label style="display:flex;align-items:center;gap:3px;font-size:10px;color:#ca8a04;cursor:pointer"><input type="checkbox" id="ta-exc-${p.id}" ${exc&&!chk&&!erz?'checked':''} ${chk||erz?'disabled':''} onchange="updTAColor('${p.id}')" style="accent-color:#ca8a04">entsch.</label>
     </div>`;}).join('');
   updTACount();
+  // Render existing guests
+  const taGuestWrap=document.getElementById('ta-guests-wrap');
+  const curTD=id?D.trainingDays.find(t=>t.id===id):null;
+  if(taGuestWrap){
+    taGuestWrap._guests=(curTD&&curTD.guests)||[];
+    taRenderTAGuests();
+  }
   omod('ta');
 }
 function updTAColor(pid){
   const chk=document.getElementById('ta-cb-'+pid).checked;
+  const erzEl=document.getElementById('ta-erz-'+pid);
   const excEl=document.getElementById('ta-exc-'+pid);
-  const exc=excEl&&excEl.checked&&!chk;
-  if(excEl){excEl.disabled=chk;if(chk)excEl.checked=false;}
+  const erz=erzEl&&erzEl.checked&&!chk;
+  const exc=excEl&&excEl.checked&&!chk&&!erz;
+  if(erzEl){erzEl.disabled=chk;if(chk)erzEl.checked=false;}
+  if(excEl){excEl.disabled=chk||erz;if(chk||erz)excEl.checked=false;}
   const lbl=document.getElementById('ta-lbl-'+pid);
-  lbl.style.background=chk?'#e6f4e6':exc?'#fffbe6':'#fafafa';
-  lbl.style.borderColor=chk?'#b0d8b0':exc?'#f59e0b':'#eee';
+  lbl.style.background=chk?'#e6f4e6':erz?'#eff6ff':exc?'#fffbe6':'#fafafa';
+  lbl.style.borderColor=chk?'#b0d8b0':erz?'#93c5fd':exc?'#f59e0b':'#eee';
   updTACount();
 }
 function updTACount(){
   const n=D.players.filter(p=>document.getElementById('ta-cb-'+p.id)?.checked).length;
-  document.getElementById('ta-count').textContent=n+' / '+D.players.length+' Spieler anwesend';
+  const nErz=D.players.filter(p=>document.getElementById('ta-erz-'+p.id)?.checked).length;
+  document.getElementById('ta-count').textContent=n+' anwesend'+(nErz?' + '+nErz+' 🔄 Ersatzleistung':'')+' / '+D.players.length+' Spieler';
+}
+function taRenderTAGuests(){
+  const w=document.getElementById('ta-guests-wrap');if(!w)return;
+  const gs=w._guests||[];
+  const count=document.getElementById('ta-guest-count');
+  if(count)count.textContent=gs.length+' Gastspieler';
+  if(!gs.length){w.innerHTML='';return;}
+  w.innerHTML=gs.map((g,i)=>'<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;background:#fdf8ff;border:1px solid #c084fc;margin-bottom:2px">'
+    +'<span style="font-size:14px">🏃</span>'
+    +'<span style="font-weight:600;font-size:12px;flex:1">'+g.name+'</span>'
+    +'<span style="font-size:10px;color:#9333ea;background:#f3e8ff;padding:1px 6px;border-radius:8px">'+g.pos+'</span>'
+    +'<button onclick="taDlGuest('+i+')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:14px;padding:0 2px">✕</button>'
+    +'</div>').join('');
+}
+function taDlGuest(i){
+  const w=document.getElementById('ta-guests-wrap');if(!w)return;
+  w._guests.splice(i,1);taRenderTAGuests();updTACount();
+}
+function taAddTAGuest(){
+  const name=(document.getElementById('ta-gname').value||'').trim();
+  const pos=document.getElementById('ta-gpos').value||'Stürmer';
+  if(!name){alert('Name eingeben.');return;}
+  const w=document.getElementById('ta-guests-wrap');if(!w)return;
+  if(!w._guests)w._guests=[];
+  w._guests.push({name,pos});
+  document.getElementById('ta-gname').value='';
+  document.getElementById('ta-guest-form2').style.display='none';
+  taRenderTAGuests();updTACount();
 }
 function svTA(){
   const id=document.getElementById('ta-id').value||Date.now().toString();
   const date=document.getElementById('ta-dt').value,label=document.getElementById('ta-lb').value;
   if(!date){alert('Datum angeben.');return;}
   const present=D.players.filter(p=>document.getElementById('ta-cb-'+p.id)?.checked).map(p=>p.id);
-  const excused=D.players.filter(p=>!present.includes(p.id)&&document.getElementById('ta-exc-'+p.id)?.checked).map(p=>p.id);
+  const ersatz=D.players.filter(p=>!present.includes(p.id)&&document.getElementById('ta-erz-'+p.id)?.checked).map(p=>p.id);
+  const excused=D.players.filter(p=>!present.includes(p.id)&&!ersatz.includes(p.id)&&document.getElementById('ta-exc-'+p.id)?.checked).map(p=>p.id);
+  const taGW=document.getElementById('ta-guests-wrap');
+  const guests=(taGW&&taGW._guests)||[];
   const existing=D.trainingDays.findIndex(t=>t.id===id);
-  const rec={id,date,label,present,excused};
+  const isHoliday=document.getElementById('ta-holiday').checked;
+  const rec={id,date,label,present,ersatz,excused,guests,isHoliday};
   if(existing>=0)D.trainingDays[existing]=rec;else D.trainingDays.push(rec);
   D.trainingDays.sort((a,b)=>a.date.localeCompare(b.date));
   sv();cmod('ta');renderTDSection();renderStatsOv();setTimeout(renderStatsCharts,60);
@@ -1730,17 +1795,17 @@ function renderTDSection(){
   c.innerHTML=`<div class="card" style="margin-bottom:0">
     <div style="font-size:12px;font-weight:800;margin-bottom:8px">📋 Anwesenheitslisten (${D.trainingDays.length})</div>
     <table class="tbl"><thead><tr><th>Datum</th><th>Bezeichnung</th><th>Anwesend</th><th>Spieler</th><th class="trainer-only"></th></tr></thead>
-    <tbody>${sorted.map(t=>`<tr>
-      <td>${fmtD(t.date)}</td>
+    <tbody>${sorted.map(t=>`<tr style="${t.isHoliday?'background:#fffbeb':''}"}>
+      <td>${fmtD(t.date)}${t.isHoliday?' <span style="font-size:10px;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:5px;font-weight:700;border:1px solid #f59e0b">🏖️ Ferien</span>':''}</td>
       <td>${t.label||'–'}</td>
-      <td><strong>${(t.present||[]).length}</strong> / ${D.players.length}</td>
+      <td><strong>${(t.present||[]).length}</strong>${(t.ersatz&&t.ersatz.length)?` <span style="font-size:10px;color:#1d4ed8;font-weight:600">+${t.ersatz.length}🔄</span>`:''} / ${D.players.length}${(t.guests&&t.guests.length)?` <span style="font-size:10px;color:#9333ea;font-weight:600">+${t.guests.length}🏃</span>`:''}</td>
       <td style="font-size:11px">${(t.present||[]).map(pid=>{const p=D.players.find(p=>p.id===pid);return p?p.name.split(' ')[0]:''}).filter(Boolean).join(', ')}</td>
       <td>${isTr?`<div style="display:flex;gap:4px"><button class="btn btn-g" style="padding:3px 8px;font-size:11px" onclick="oTA('${t.id}')">✏️</button><button class="btn-d" onclick="delTA('${t.id}')">✕</button></div>`:''}</td>
     </tr>`).join('')}</tbody></table></div>`;
 }
 
 // ── MATCH REPORTS ─────────────────────────────────────────────────────────────
-let mrEvts=[],mrStrs=[],mrBench=[];
+let mrEvts=[],mrStrs=[],mrBench=[],mrGuests=[];
 
 function computePMS(pid,mr){
   if(mr.players){
@@ -1789,8 +1854,15 @@ function getEffStats(pid,mrFilter){
   const injs=p4inj?p4inj.injuries||[]:[];
   const notInjured=td=>!injs.some(inj=>td.date>=inj.from&&(!inj.to||td.date<=inj.to));
   const validTDs=hasTD?D.trainingDays.filter(notInjured):[];
-  const ta=hasTD?validTDs.filter(t=>t.present&&t.present.includes(pid)).length:ps.ta;
-  const tg=hasTD?validTDs.length:ps.tg;
+  const validRegTDs=validTDs.filter(t=>!t.isHoliday);
+  const _taPresent=t=>((t.present||[]).includes(pid)||(t.ersatz||[]).includes(pid));
+  const ta=hasTD?validRegTDs.filter(_taPresent).length:ps.ta;
+  const taErz=hasTD?validRegTDs.filter(t=>(t.ersatz||[]).includes(pid)).length:0;
+  const tg=hasTD?validRegTDs.length:ps.tg;
+  const taAll=hasTD?validTDs.filter(_taPresent).length:(ps.ta||0);
+  const tgAll=hasTD?validTDs.length:(ps.tg||0);
+  const taHol=hasTD?validTDs.filter(t=>t.isHoliday&&_taPresent(t)).length:0;
+  const tgHol=hasTD?validTDs.filter(t=>t.isHoliday).length:0;
   const _allMR=D.matchReports||[];
   const allMR=mrFilter&&mrFilter!=='all'?_allMR.filter(m=>(m.gameType||'official')===mrFilter):_allMR;
   const allPR=allMR.flatMap(mr=>{const r=computePMS(pid,mr);return r?[r]:[];});
@@ -1821,7 +1893,7 @@ function getEffStats(pid,mrFilter){
   const maxMinFromMR=hasMR?allPR.reduce((a,r,i)=>{
     const mr2=allMR[i];return a+(r.kader?(mr2.matchDuration||80):0);
   },0):null;
-  return{ta,tg,kn,s11,em,ew,aw,gk,grk,rk,vl,goalsTotal,
+  return{ta,tg,taErz,taAll,tgAll,taHol,tgHol,kn,s11,em,ew,aw,gk,grk,rk,vl,goalsTotal,
     tib:ps.tib,tao:ps.tao,ts:ps.ts,tk:ps.tk,
     penSaved,penMissed,penWon,penCaused,penScored,
     sn:cleanSheets,maxMinFromMR,
@@ -1867,7 +1939,7 @@ function oMR(id){
     mrEvts=mr?(mr.events||[]).map(e=>({...e})):[];
   }
   document.getElementById('mr-evt-form').style.display='none';
-  renderMRStarters();renderMREvents();omod('mr');
+  renderMRStarters();mrRenderGuests();renderMREvents();omod('mr');
 }
 
 function renderMRStarters(){
@@ -1922,9 +1994,59 @@ function mrToggleSt(pid){
   renderMRStarters();
 }
 
+function mrRenderGuests(){
+  const c=document.getElementById('mr-guests-wrap');if(!c)return;
+  if(!mrGuests.length){c.innerHTML='';return;}
+  c.innerHTML=mrGuests.map(g=>{
+    const inStr=mrStrs.includes(g.id),inBench=mrBench.includes(g.id);
+    let bg,bc,lbl;
+    if(inStr){bg='#e6f4e6';bc='#1a6a35';lbl='<div style="font-size:9px;font-weight:800;color:#2d7a2d">START</div>';}
+    else if(inBench){bg='#dbeafe';bc='#1d4ed8';lbl='<div style="font-size:9px;font-weight:800;color:#1a5e8a">BANK</div>';}
+    else{bg='#fdf8ff';bc='#c084fc';lbl='<div style="font-size:9px;color:#9333ea">'+g.pos.slice(0,5)+'</div>';}
+    return '<div style="display:inline-flex;flex-direction:column;align-items:center;cursor:pointer;padding:5px 8px;border-radius:7px;border:2px solid '+bc+';background:'+bg+';min-width:68px;text-align:center;user-select:none;position:relative" onclick="mrToggleGuest(\''+g.id+'\')">'
+      +'<div style="font-size:11px;font-weight:800;color:#9333ea">🏃</div>'
+      +'<div style="font-size:10px;font-weight:700;max-width:68px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+g.name.split(' ')[0]+'</div>'
+      +lbl
+      +'<button onclick="event.stopPropagation();mrDelGuest(\''+g.id+'\')" style="position:absolute;top:-5px;right:-5px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:14px;height:14px;font-size:8px;cursor:pointer;line-height:14px;padding:0">✕</button>'
+      +'</div>';
+  }).join('');
+}
+
+function mrToggleGuest(gid){
+  if(mrStrs.includes(gid)){mrStrs=mrStrs.filter(id=>id!==gid);}
+  else if(mrBench.includes(gid)){mrBench=mrBench.filter(id=>id!==gid);}
+  else{if(mrStrs.length<11)mrStrs.push(gid);else mrBench.push(gid);}
+  renderMRStarters();mrRenderGuests();
+}
+
+function mrDelGuest(gid){
+  mrGuests=mrGuests.filter(g=>g.id!==gid);
+  mrStrs=mrStrs.filter(id=>id!==gid);
+  mrBench=mrBench.filter(id=>id!==gid);
+  renderMRStarters();mrRenderGuests();
+}
+
+function mrShowGuestForm(){
+  const f=document.getElementById('mr-guest-form');
+  f.style.display=f.style.display==='none'?'':'none';
+}
+
+function mrSvGuest(){
+  const name=(document.getElementById('mg-name').value||'').trim();
+  const pos=document.getElementById('mg-pos').value||'Stürmer';
+  if(!name){alert('Name eingeben.');return;}
+  const id='guest_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  mrGuests.push({id,name,pos});
+  document.getElementById('mg-name').value='';
+  document.getElementById('mr-guest-form').style.display='none';
+  mrRenderGuests();
+  renderMRStarters();mrRenderGuests();
+}
+
 function mrAddEvt(type){
   const f=document.getElementById('mr-evt-form');f.style.display='';
-  const pOpts=D.players.map(p=>'<option value="'+p.id+'">'+p.name+' (#'+p.number+')</option>').join('');
+  const guestOpts=mrGuests.map(g=>'<option value="'+g.id+'">'+g.name+' (Gast/'+g.pos+')</option>').join('');
+  const pOpts=D.players.map(p=>'<option value="'+p.id+'">'+p.name+' (#'+p.number+')</option>').join('')+guestOpts;
   // Aktuelle NSZ aus dem Modal lesen
   const curEt1=parseInt(document.getElementById('mr-et1')?.value||0);
   const curEt2=parseInt(document.getElementById('mr-et2')?.value||0);
@@ -2051,10 +2173,10 @@ function mrSvEvt(type){
   }
   mrEvts.push(evt);mrEvts.sort((a,b)=>a.minute-b.minute);
   document.getElementById('mr-evt-form').style.display='none';
-  renderMREvents();renderMRStarters();
+  renderMREvents();renderMRStarters();mrRenderGuests();
 }
 
-function mrDelEvt(id){mrEvts=mrEvts.filter(e=>e.id!==id);renderMREvents();renderMRStarters();}
+function mrDelEvt(id){mrEvts=mrEvts.filter(e=>e.id!==id);renderMREvents();renderMRStarters();mrRenderGuests();}
 
 function renderMREvents(){
   const c=document.getElementById('mr-events');if(!c)return;
@@ -2112,7 +2234,7 @@ function svMR(){
   const _mrDur=_mrGtype==='friendly'?_mrPer*_mrPmin:80;
   const rec={id,date,opponent:g('mr-op'),home:g('mr-hm'),gameType:_mrGtype,matchDuration:_mrDur,matchPeriods:_mrPer,matchPeriodMin:_mrPmin,
     goalsUs:parseInt(g('mr-gu')||0),goalsThem:parseInt(g('mr-gt')||0),
-    zuschauer:parseInt(g('mr-zu')||0)||0,htUs:parseInt(g('mr-htu')||0),htThem:parseInt(g('mr-htt')||0),etH1:parseInt(g('mr-et1')||0),etH2:parseInt(g('mr-et2')||0),starters:[...mrStrs],bench:[...mrBench],events:mrEvts.map(e=>({...e}))};
+    zuschauer:parseInt(g('mr-zu')||0)||0,htUs:parseInt(g('mr-htu')||0),htThem:parseInt(g('mr-htt')||0),etH1:parseInt(g('mr-et1')||0),etH2:parseInt(g('mr-et2')||0),starters:[...mrStrs],bench:[...mrBench],events:mrEvts.map(e=>({...e})),guests:mrGuests.map(g=>({...g}))};
   const idx=D.matchReports.findIndex(m=>m.id===id);
   if(idx>=0)D.matchReports[idx]=rec;else D.matchReports.push(rec);
   D.matchReports.sort((a,b)=>a.date.localeCompare(b.date));
@@ -2242,10 +2364,11 @@ function renderTrainerCockpit(){
   el.style.display='';
 
   // ── A: Compute KPIs ──
-  const totDays=D.trainingDays.length;
+  const _regTDsFok=D.trainingDays.filter(td=>!td.isHoliday);
+  const totDays=_regTDsFok.length;
   let teamAtt=0;
   if(totDays>0&&D.players.length>0){
-    const presences=D.players.map(p=>D.trainingDays.filter(td=>(td.present||[]).includes(p.id)).length);
+    const presences=D.players.map(p=>_regTDsFok.filter(td=>(td.present||[]).includes(p.id)).length);
     teamAtt=Math.round(_tcAvg(presences)/totDays*100);
   }
   const _ntwSess=D.sessions.filter(s=>!isTW(s.playerId));
@@ -2909,12 +3032,13 @@ function renderSpielerMatrix(){
   var posF=(document.getElementById('tc-pos-filter')||{}).value||'all';
   var rangeV=(document.getElementById('tc-range-filter')||{}).value||'5';
   var search=((document.getElementById('tc-search')||{}).value||'').toLowerCase().trim();
-  var totDays=D.trainingDays.length;
+  var regTDsMat=D.trainingDays.filter(function(td){return!td.isHoliday;});
+  var totDays=regTDsMat.length;
   var players=D.players.filter(function(p){return(posF==='all'||p.pos===posF)&&(!search||p.name.toLowerCase().indexOf(search)>=0);});
   var rows=players.map(function(p){
     var allSess=D.sessions.filter(function(s){return s.playerId===p.id&&parseFloat(s.distance||0)>0;});
     var sess=rangeV==='all'?allSess:allSess.slice(-parseInt(rangeV));
-    var att=totDays>0?Math.round(D.trainingDays.filter(function(td){return(td.present||[]).indexOf(p.id)>=0;}).length/totDays*100):0;
+    var att=totDays>0?Math.round(regTDsMat.filter(function(td){return(td.present||[]).indexOf(p.id)>=0||(td.ersatz||[]).indexOf(p.id)>=0;}).length/totDays*100):0;
     var dist=sess.length?_tcAvg(sess.map(function(s){return parseFloat(s.distance);})):0;
     var spd=sess.length?_tcAvg(sess.filter(function(s){return parseFloat(s.maxSprint||0)>0;}).map(function(s){return parseFloat(s.maxSprint);})):0;
     var hi=sess.length?_tcAvg(sess.filter(function(s){return parseFloat(s.hiInt||0)>0;}).map(function(s){return parseFloat(s.hiInt);})):0;
@@ -3179,7 +3303,7 @@ function renderTeam(){
       <div class="pc-stats">
         <div class="pc-stat"><div class="pc-sv">${ps.length}</div><div class="pc-sl">Training</div></div>
         <div class="pc-stat"><div class="pc-sv">${st.em||0}</div><div class="pc-sl">Minuten</div></div>
-        <div class="pc-stat"><div class="pc-sv">${(()=>{const _tds=D.trainingDays||[];return _tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*100)+'%':'–';})()}</div><div class="pc-sl">Anwesen.</div></div>
+        <div class="pc-stat"><div class="pc-sv">${(()=>{const _tds=(D.trainingDays||[]).filter(td=>!td.isHoliday);return _tds.length?Math.round(_tds.filter(td2=>(td2.present||[]).includes(p.id)).length/_tds.length*100)+'%':'–';})()}</div><div class="pc-sl">Anwesen.</div></div>
         <div class="pc-stat"><div class="pc-sv">${totalGoals(st)}</div><div class="pc-sl">Tore</div></div>
       </div></div>`;
     setTimeout(()=>{
@@ -3238,7 +3362,7 @@ function renderTeam(){
       <div class="pc-stats">
         <div class="pc-stat"><div class="pc-sv">${ps.length}</div><div class="pc-sl">Training</div></div>
         <div class="pc-stat"><div class="pc-sv">${st.em||0}</div><div class="pc-sl">Minuten</div></div>
-        <div class="pc-stat"><div class="pc-sv" style="color:${(()=>{const _tds=D.trainingDays||[],_a=_tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*100):null;return _a===null?'var(--txt3)':_a>=80?'#1a6a35':_a>=60?'#ca8a04':'#c0392b';})()}">${(()=>{const _tds=D.trainingDays||[];return _tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*100)+'%':'–';})()}</div><div class="pc-sl">Anwesen.</div></div>
+        <div class="pc-stat"><div class="pc-sv" style="color:${(()=>{const _tds=(D.trainingDays||[]).filter(td=>!td.isHoliday),_a=_tds.length?Math.round(_tds.filter(td2=>(td2.present||[]).includes(p.id)).length/_tds.length*100):null;return _a===null?'var(--txt3)':_a>=80?'#1a6a35':_a>=60?'#ca8a04':'#c0392b';})()}">${(()=>{const _tds=D.trainingDays||[];return _tds.length?Math.round(_tds.filter(td2=>(td2.present||[]).includes(p.id)).length/_tds.length*100)+'%':'–';})()}</div><div class="pc-sl">Anwesen.</div></div>
         <div class="pc-stat"><div class="pc-sv" style="color:${(()=>{const _ps=(D.sessions||[]).filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0).sort((a,b)=>a.date.localeCompare(b.date)),_r=_ps.slice(-4);if(!_r.length)return 'var(--txt3)';const _av=k=>_ps.length?_ps.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_ps.length:0,_rv=k=>_r.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_r.length,_tds=(D.trainingDays||[]).slice(-6),_att=_tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*25):0,sc=Math.min(100,_att+(_av('distance')>0?Math.min(25,Math.round((_rv('distance')/_av('distance'))*20)):0)+(_av('hiInt')>0?Math.min(25,Math.round((_rv('hiInt')/_av('hiInt'))*20)):0)+(_av('maxSprint')>0?Math.min(25,Math.round((_rv('maxSprint')/_av('maxSprint'))*20)):0));return sc>=80?'#1a6a35':sc>=60?'#ca8a04':'#c0392b';})()}">${(()=>{const _ps=(D.sessions||[]).filter(s=>s.playerId===p.id&&parseFloat(s.distance||0)>0).sort((a,b)=>a.date.localeCompare(b.date)),_r=_ps.slice(-4);if(!_r.length)return '–';const _av=k=>_ps.length?_ps.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_ps.length:0,_rv=k=>_r.reduce((a,s)=>a+parseFloat(s[k]||0),0)/_r.length,_tds=(D.trainingDays||[]).slice(-6),_att=_tds.length?Math.round(_tds.filter(td=>(td.present||[]).includes(p.id)).length/_tds.length*25):0;return Math.min(100,_att+(_av('distance')>0?Math.min(25,Math.round((_rv('distance')/_av('distance'))*20)):0)+(_av('hiInt')>0?Math.min(25,Math.round((_rv('hiInt')/_av('hiInt'))*20)):0)+(_av('maxSprint')>0?Math.min(25,Math.round((_rv('maxSprint')/_av('maxSprint'))*20)):0));})()}</div><div class="pc-sl">Score</div></div>
       </div></div>`;}).join('');
 }
@@ -3473,8 +3597,9 @@ function renderTeamScore(mrList){
   const totalGelb=allEvts.filter(e=>e.type==='card'&&e.cardType==='gelb').length;
   const totalGelbRot=allEvts.filter(e=>e.type==='card'&&e.cardType==='gelbrot').length;
   const totalRot=allEvts.filter(e=>e.type==='card'&&e.cardType==='rot').length;
-  const teamAtt=D.players.length&&D.trainingDays.length?
-    Math.round(D.players.reduce((a,p)=>a+(D.trainingDays.filter(t=>(t.present||[]).includes(p.id)).length/D.trainingDays.length*100),0)/D.players.length):0;
+  const _regTDs=D.trainingDays.filter(t=>!t.isHoliday);
+  const teamAtt=D.players.length&&_regTDs.length?
+    Math.round(D.players.reduce((a,p)=>a+(_regTDs.filter(t=>(t.present||[]).includes(p.id)).length/_regTDs.length*100),0)/D.players.length):0;
   // Mannschaftsscore (0-100)
   const winScore=Math.min(40,Math.round(wins/mrList.length*40+(draws/mrList.length*15)));
   const gdPerGame=(goalsFor-goalsAgainst)/mrList.length;
@@ -4318,13 +4443,24 @@ function renderPlRec(p){
 
   // ── Anwesenheits-Streaks ───────────────────────────────────────────────────
   const _tdsAll=(D.trainingDays||[]).sort((a,b)=>a.date.localeCompare(b.date));
-  const _present=_tdsAll.filter(td=>(td.present||[]).includes(pid));
+  const _tdsReg=_tdsAll.filter(td=>!td.isHoliday);
+  const _tdsHol=_tdsAll.filter(td=>td.isHoliday);
+  const _plPresent=td=>(td.present||[]).includes(pid)||(td.ersatz||[]).includes(pid);
+  const _present=_tdsReg.filter(_plPresent);
+  const _presentHol=_tdsHol.filter(_plPresent);
   let curStreak=0,maxStreak=0,s2=0;
-  for(let i=_tdsAll.length-1;i>=0;i--){const isP=((_tdsAll[i].present)||[]).includes(pid);if(i===_tdsAll.length-1){curStreak=isP?1:0;}else if(isP){curStreak++;}else if(curStreak>0)break;}
-  for(const td of _tdsAll){if(((td.present)||[]).includes(pid)){s2++;maxStreak=Math.max(maxStreak,s2);}else{s2=0;}}
-  const attPctVal=_tdsAll.length?Math.round(_present.length/_tdsAll.length*100):null;
+  for(let i=_tdsReg.length-1;i>=0;i--){const isP=_plPresent(_tdsReg[i]);if(i===_tdsReg.length-1){curStreak=isP?1:0;}else if(isP){curStreak++;}else if(curStreak>0)break;}
+  for(const td of _tdsReg){if(_plPresent(td)){s2++;maxStreak=Math.max(maxStreak,s2);}else{s2=0;}}
+  const attPctVal=_tdsReg.length?Math.round(_present.length/_tdsReg.length*100):null;
+  const attPctAll=_tdsAll.length?Math.round((_present.length+_presentHol.length)/_tdsAll.length*100):null;
   const attCol=attPctVal===null?'var(--txt3)':attPctVal>=80?'#1a6a35':attPctVal>=60?'#ca8a04':'#c0392b';
-  const _dotHtml=_tdsAll.slice(-30).map(td=>{const p2=((td.present)||[]).includes(pid),exc=((td.excused)||[]).includes(pid);const dc=p2?'#1a6a35':exc?'#fbbf24':'#ef4444';const lbl=p2?'Anwesend':exc?'Entschuldigt':'Fehlt';return '<div title="'+td.date+' · '+lbl+'" style="width:18px;height:18px;border-radius:3px;background:'+dc+'"></div>';}).join('');
+  const _erzCount=_tdsReg.filter(td=>(td.ersatz||[]).includes(pid)).length;
+  const _dotHtml=_tdsAll.slice(-30).map(td=>{
+    const p2=(td.present||[]).includes(pid),erz=(td.ersatz||[]).includes(pid),exc=(td.excused||[]).includes(pid),hol=td.isHoliday;
+    const dc=p2?'#1a6a35':erz?'#1d4ed8':exc?'#fbbf24':hol?'#f59e0b':'#ef4444';
+    const lbl=p2?'Anwesend':erz?'Ersatzleistung':exc?'Entschuldigt':hol?'Ferientraining (fehlend)':'Fehlt';
+    return '<div title="'+td.date+(hol?' 🏖️':'')+' · '+lbl+'" style="width:18px;height:18px;border-radius:3px;background:'+dc+';'+(hol?'outline:2px solid #f59e0b;outline-offset:-2px;':'')+'">'+(hol?'<div style="font-size:8px;line-height:18px;text-align:center">🏖</div>':erz?'<div style="font-size:8px;line-height:18px;text-align:center">🔄</div>':'')+'</div>';
+  }).join('');
   const _streakCol=curStreak>=5?'#1a6a35':curStreak>=3?'#ca8a04':'var(--txt)';
 
   const attStreakHtml='<div class="streak-section">'
@@ -4332,10 +4468,11 @@ function renderPlRec(p){
     +'<div class="streak-cards">'
     +'<div class="card"><div class="cv">Aktueller Streak</div><div class="cn" style="color:'+_streakCol+'">'+curStreak+' <small style="font-size:11px;font-weight:400">Einheiten</small></div></div>'
     +'<div class="card"><div class="cv">Bester Streak</div><div class="cn" style="color:#1a6a35">'+maxStreak+' <small style="font-size:11px;font-weight:400">Einheiten</small></div></div>'
-    +'<div class="card"><div class="cv">Gesamte Anwesenheit</div><div class="cn" style="color:'+attCol+'">'+(attPctVal!==null?attPctVal+'%':'–')+'</div><div class="cs">'+_present.length+' / '+_tdsAll.length+' Einheiten</div></div>'
+    +'<div class="card"><div class="cv">Anwesenheit (o. Ferien)</div><div class="cn" style="color:'+attCol+'">'+(attPctVal!==null?attPctVal+'%':'–')+'</div><div class="cs">'+_present.length+' / '+_tdsReg.length+' Trainings'+(_erzCount>0?' · '+_erzCount+' 🔄 Ersatz':'')+'</div></div>'
+    +(_tdsHol.length?'<div class="card" style="border-color:#f59e0b"><div class="cv">🏖️ Ferientraining</div><div class="cn" style="color:#92400e">'+_presentHol.length+' / '+_tdsHol.length+'</div><div class="cs">'+(attPctAll!==null?attPctAll+'% inkl. Ferien':'')+'</div></div>':'')
     +'</div>'
     +'<div class="streak-dot-row">'+_dotHtml+'</div>'
-    +'<div class="streak-dot-legend">Letzte 30 Trainingseinheiten &nbsp; <span style="background:#1a6a35;display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle"></span> anwesend &nbsp; <span style="background:#ef4444;display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle"></span> gefehlt</div>'
+    +'<div class="streak-dot-legend">Letzte 30 Einheiten &nbsp; <span style="background:#1a6a35;display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle"></span> anwesend &nbsp; <span style="background:#1d4ed8;display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle"></span> 🔄 Ersatz &nbsp; <span style="background:#ef4444;display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle"></span> gefehlt &nbsp; <span style="background:#f59e0b;display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle"></span> Ferien</div>'
     +'</div>';
 
   if(!allSess.length){
@@ -4522,7 +4659,7 @@ function renderPlSt(p,col){
   const keyItems=[
     {val:String(tg),lbl:'Tore',sub:(s.ts||0)+' Schuss · '+(s.tk||0)+' Kopf',col:'var(--grn)'},
     {val:String(s.vl||0),lbl:'Vorlagen',sub:'',col:'var(--pur)'},
-    {val:att+'%',lbl:'Anwesenheit',sub:(s.ta||0)+' / '+(s.tg||0)+' Trainings',col:attC},
+    {val:att+'%',lbl:'Anwesenheit',sub:(s.ta||0)+' / '+(s.tg||0)+' (o. Ferien)'+(s.taErz>0?' inkl. '+s.taErz+' 🔄 Ersatz':'')+(s.tgHol>0?' · '+s.taHol+'/'+s.tgHol+' Ferien':''),col:attC},
     {val:String(s.em||0),lbl:'Einsatzminuten',sub:mp+'% der max. Zeit',col:minC},
     {val:tg>0?String(Math.round((s.em||0)/tg)):'–',lbl:'Min. pro Tor',sub:tg+' Tore gesamt',col:'var(--org)'},
     {val:String(s.kn||0),lbl:'Kadernominierungen',sub:'S11: '+(s.s11||0)+' · Einwechs.: '+(s.ew||0),col:'var(--txt)'},
